@@ -41,4 +41,7 @@ yarn-error.log*
 next-env.d.ts
 # Cloudflare / OpenNext build artifacts
 .open-next/
+.wrangler/public/images-original/
+
 .wrangler/
+public/images-original/
