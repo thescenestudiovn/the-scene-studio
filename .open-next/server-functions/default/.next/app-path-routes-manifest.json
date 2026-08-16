@@ -1,0 +1,13 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/about/page": "/about",
+  "/contact/page": "/contact",
+  "/destinations/[slug]/page": "/destinations/[slug]",
+  "/destinations/page": "/destinations",
+  "/favicon.ico/route": "/favicon.ico",
+  "/films/page": "/films",
+  "/page": "/",
+  "/stories/haley-david/page": "/stories/haley-david",
+  "/stories/page": "/stories"
+}
