@@ -1,3 +1,10 @@
+export type DestinationSlug =
+    | "da-nang"
+    | "hoi-an"
+    | "phu-quoc"
+    | "nha-trang"
+    | "con-dao"
+    | "ba-na-hills";
 export type Destination = {
     country: string;
     countryName: string;
@@ -22,35 +29,37 @@ export const destinations: Destination[] = [
         slug: "da-nang",
         name: "Da Nang",
         region: "Central Vietnam",
+
         seoTitle:
             "Da Nang Wedding Photographer & Wedding Films | The Scene Studio",
 
         seoDescription:
-            "Da Nang wedding photographer and wedding films for intimate destination weddings and beach weddings in Vietnam. The Scene Studio documents celebrations with a quiet, cinematic approach.",
+            "The Scene Studio is a Da Nang wedding photographer and wedding film studio documenting intimate destination weddings, beach weddings, and celebrations across Central Vietnam.",
+
         description:
-            "A coastal city where modern celebrations meet beaches, mountains, and quiet moments.",
+            "A coastal city where beaches, mountains, modern resorts, and intimate celebrations come together.",
 
         introTitle:
-            "A coastal city made for celebrations with a sense of place.",
+            "A coastal city made for destination weddings with a sense of place.",
 
         introText:
-            "From beachfront resorts to quiet corners of the city, Da Nang offers an effortless balance between contemporary luxury and the natural beauty of Central Vietnam. It is a place where a wedding can feel intimate, relaxed, and deeply connected to the landscape.",
+            "Da Nang offers an effortless balance between the coast and the mountains. From beachfront resorts overlooking the East Sea to intimate celebrations surrounded by the landscapes of Central Vietnam, the city gives couples space to create a wedding that feels relaxed, personal, and entirely their own. As a Da Nang wedding photographer and wedding film studio, we document the atmosphere, people, and moments that make the destination part of the story.",
 
         weddingStyle: [
             {
                 title: "Beachside",
                 description:
-                    "Ocean views, warm light, and celebrations that move naturally from afternoon into sunset.",
+                    "Ocean views, warm afternoon light, and celebrations that naturally move from the ceremony into sunset.",
             },
             {
                 title: "Intimate",
                 description:
-                    "Private gatherings and smaller celebrations where the people matter more than the production.",
+                    "Smaller destination weddings where family, friends, and genuine moments take priority over production.",
             },
             {
                 title: "Modern",
                 description:
-                    "Contemporary venues and refined details without losing the relaxed character of the coast.",
+                    "Contemporary beachfront resorts and refined venues combined with the relaxed character of Central Vietnam.",
             },
         ],
     },
@@ -60,36 +69,38 @@ export const destinations: Destination[] = [
         countryName: "Vietnam",
         slug: "hoi-an",
         name: "Hoi An",
+        region: "Central Vietnam",
+
         seoTitle:
             "Hoi An Wedding Photographer & Wedding Films | The Scene Studio",
 
         seoDescription:
-            "Hoi An wedding photographer and wedding films for intimate destination weddings in Vietnam. The Scene Studio documents elegant, relaxed celebrations with a quiet cinematic approach.",
-        region: "Central Vietnam",
+            "The Scene Studio documents intimate destination weddings in Hoi An with cinematic wedding photography and films inspired by the town's timeless atmosphere and Central Vietnam landscapes.",
+
         description:
-            "Ancient streets, warm light, intimate venues, and a timeless atmosphere.",
+            "A timeless riverside town where old-world architecture, lantern-lit evenings, and intimate celebrations create an atmosphere unlike anywhere else.",
 
         introTitle:
-            "A timeless setting for stories that feel quietly cinematic.",
+            "A timeless setting for an intimate destination wedding.",
 
         introText:
-            "Hoi An has a rhythm of its own. Old streets, textured walls, lantern light, and the Thu Bon River create an atmosphere that feels intimate without trying too hard. It is particularly beautiful for couples who want their wedding to feel personal and unhurried.",
+            "Hoi An brings together historic architecture, quiet riverside streets, tropical landscapes, and some of Central Vietnam's most beautiful resorts. It is a destination that naturally lends itself to intimate celebrations, where the atmosphere of the place becomes part of the wedding story. We photograph and film Hoi An weddings with a documentary approach, focusing on honest moments, natural movement, and the feeling of being there.",
 
         weddingStyle: [
             {
-                title: "Old Town",
+                title: "Timeless",
                 description:
-                    "Historic architecture, textured streets, and warm evening light create a naturally cinematic setting.",
+                    "Historic streets, warm lantern light, and architecture that gives every celebration a sense of place.",
             },
             {
-                title: "Garden",
+                title: "Intimate",
                 description:
-                    "Private villas and garden celebrations surrounded by tropical greenery.",
+                    "Perfect for smaller destination weddings where the focus stays on the couple, their families, and closest friends.",
             },
             {
-                title: "Slow",
+                title: "Romantic",
                 description:
-                    "A destination where there is room to walk, talk, explore, and simply enjoy being together.",
+                    "Riverside evenings, tropical gardens, and soft Central Vietnamese light create a naturally romantic atmosphere.",
             },
         ],
     },
@@ -99,36 +110,38 @@ export const destinations: Destination[] = [
         countryName: "Vietnam",
         slug: "phu-quoc",
         name: "Phu Quoc",
+        region: "Southern Vietnam",
+
         seoTitle:
             "Phu Quoc Wedding Photographer & Wedding Films | The Scene Studio",
 
         seoDescription:
-            "Phu Quoc wedding photographer for intimate destination weddings and beach weddings in Vietnam. The Scene Studio creates cinematic wedding photography and films by the sea.",
-        region: "Southern Vietnam",
+            "The Scene Studio documents intimate destination weddings in Phu Quoc with cinematic wedding photography and films across tropical beaches, private resorts, and island celebrations.",
+
         description:
-            "A tropical island of long beaches, warm sunsets, and relaxed celebrations by the sea.",
+            "A tropical island of quiet beaches, warm light, and intimate resort celebrations surrounded by the sea.",
 
         introTitle:
-            "An island setting for celebrations shaped by the sea.",
+            "An island setting where the sea becomes part of the celebration.",
 
         introText:
-            "Phu Quoc brings together tropical beaches, private resorts, warm sunsets, and a slower island rhythm. It is a natural choice for couples imagining a destination wedding that feels relaxed, intimate, and connected to the ocean.",
+            "Phu Quoc offers a slower rhythm for destination weddings, with tropical beaches, private resorts, and long sunsets over the Gulf of Thailand. From intimate ceremonies by the water to relaxed celebrations surrounded by family and friends, the island creates space for weddings that feel personal rather than overly produced. We document Phu Quoc weddings with a cinematic and documentary approach, allowing the landscape and atmosphere to naturally shape the story.",
 
         weddingStyle: [
             {
                 title: "Tropical",
                 description:
-                    "Palm trees, open skies, warm water, and natural textures create an effortless island atmosphere.",
+                    "Palm-lined beaches, clear water, and lush landscapes create a naturally beautiful backdrop for an island celebration.",
             },
             {
-                title: "Resort",
+                title: "Relaxed",
                 description:
-                    "Beautiful beachfront resorts offer an elegant setting for intimate destination celebrations.",
+                    "A slower island rhythm that allows couples and their guests to enjoy the celebration without feeling rushed.",
             },
             {
                 title: "Sunset",
                 description:
-                    "Golden evenings by the sea create a naturally cinematic rhythm for the celebration.",
+                    "Warm evening light and ocean horizons create an atmospheric setting for ceremonies, portraits, and celebrations.",
             },
         ],
     },
@@ -139,35 +152,37 @@ export const destinations: Destination[] = [
         slug: "nha-trang",
         name: "Nha Trang",
         region: "Central Vietnam",
+
         seoTitle:
             "Nha Trang Wedding Photographer & Wedding Films | The Scene Studio",
 
         seoDescription:
-            "Nha Trang wedding photographer and wedding films for destination weddings, beach weddings, and intimate celebrations along the coast of Vietnam.",
+            "The Scene Studio photographs and films intimate destination weddings in Nha Trang, combining beachfront resorts, tropical landscapes, and cinematic wedding storytelling.",
+
         description:
-            "A coastal destination with turquoise water, island landscapes, and beautiful beachfront venues.",
+            "A coastal destination known for its turquoise water, beachfront resorts, and relaxed celebrations by the sea.",
 
         introTitle:
-            "A coastal escape where celebration meets the open sea.",
+            "A coastal destination shaped by the sea.",
 
         introText:
-            "Nha Trang combines a vibrant coastal atmosphere with beautiful beaches, islands, and beachfront resorts. For couples looking for a destination wedding with a sense of ease and a little more energy, it offers a versatile setting.",
+            "Nha Trang combines a long coastline, tropical landscapes, and a wide selection of beachfront resorts, making it a natural setting for destination weddings. The city offers couples the freedom to create anything from an intimate ceremony by the water to a relaxed celebration surrounded by their closest people. Our approach is documentary and cinematic, focusing on the atmosphere, connections, and fleeting moments that make a Nha Trang wedding feel uniquely yours.",
 
         weddingStyle: [
             {
-                title: "Coastal",
+                title: "By the Sea",
                 description:
-                    "Wide beaches, blue water, and open horizons create a naturally beautiful backdrop.",
+                    "Beachfront ceremonies and ocean views create a simple, open setting for destination celebrations.",
             },
             {
                 title: "Resort",
                 description:
-                    "Beachfront venues provide a comfortable setting for celebrations with family and friends.",
+                    "Elegant coastal resorts provide a refined setting while keeping the relaxed atmosphere of a seaside destination.",
             },
             {
-                title: "Island",
+                title: "Intimate",
                 description:
-                    "Nearby islands offer opportunities for intimate ceremonies, portraits, and relaxed experiences.",
+                    "Smaller celebrations allow couples to spend more time with the people who matter most.",
             },
         ],
     },
@@ -178,35 +193,37 @@ export const destinations: Destination[] = [
         slug: "con-dao",
         name: "Con Dao",
         region: "Southern Vietnam",
+
         seoTitle:
             "Con Dao Wedding Photographer & Wedding Films | The Scene Studio",
 
         seoDescription:
-            "Con Dao wedding photographer for intimate destination weddings and beach weddings in Vietnam. Cinematic wedding photography and films for couples seeking a private island celebration.",
+            "The Scene Studio documents intimate destination weddings in Con Dao with cinematic photography and films inspired by its untouched beaches, tropical landscapes, and quiet island atmosphere.",
+
         description:
-            "An intimate island destination surrounded by untouched beaches and natural beauty.",
+            "A remote island destination with untouched beaches, dramatic landscapes, and an atmosphere of quiet escape.",
 
         introTitle:
-            "For couples who want the island to become part of the story.",
+            "A quieter island for celebrations that feel deeply personal.",
 
         introText:
-            "Con Dao feels removed from everything else. Its quiet beaches, dense landscape, and slower rhythm make it naturally suited to intimate celebrations. Here, the destination itself becomes part of the experience rather than simply a backdrop.",
+            "Con Dao feels different from Vietnam's more familiar coastal destinations. Its secluded beaches, forested landscapes, and slower rhythm create an intimate environment for couples looking for something more private. A wedding here can feel less like an event and more like an escape shared with the people closest to you. We photograph and film Con Dao weddings with a restrained documentary approach, preserving the natural atmosphere of the island rather than forcing moments into a formula.",
 
         weddingStyle: [
             {
-                title: "Island",
+                title: "Secluded",
                 description:
-                    "Open skies, quiet beaches, and a sense of being completely away from the everyday.",
+                    "Quiet beaches and remote landscapes create a sense of privacy that is difficult to find elsewhere.",
             },
             {
-                title: "Private",
+                title: "Natural",
                 description:
-                    "Ideal for intimate gatherings where the experience can unfold without unnecessary distractions.",
+                    "The island's forests, coastline, and changing light provide an authentic backdrop without needing excessive decoration.",
             },
             {
-                title: "Unhurried",
+                title: "Meaningful",
                 description:
-                    "Slow mornings, long afternoons, and celebrations that leave space for the unexpected.",
+                    "An intimate destination where the focus can remain on the people, relationships, and experience itself.",
             },
         ],
     },
@@ -216,36 +233,38 @@ export const destinations: Destination[] = [
         countryName: "Vietnam",
         slug: "ba-na-hills",
         name: "Ba Na Hills",
-        region: "Da Nang · Vietnam",
+        region: "Central Vietnam",
+
         seoTitle:
             "Ba Na Hills Wedding Photographer & Wedding Films | The Scene Studio",
 
         seoDescription:
-            "Ba Na Hills wedding photographer and wedding films for intimate destination weddings in Da Nang, Vietnam. Cinematic photography for mountain celebrations above the clouds.",
+            "The Scene Studio photographs and films destination weddings at Ba Na Hills near Da Nang, combining mountain landscapes, dramatic architecture, and cinematic wedding storytelling.",
+
         description:
-            "A mountain destination above the clouds, surrounded by dramatic landscapes.",
+            "A mountain destination above Da Nang, known for dramatic landscapes, changing weather, and distinctive architecture.",
 
         introTitle:
-            "A wedding above the clouds, surrounded by the mountains.",
+            "A mountain setting above the clouds.",
 
         introText:
-            "Ba Na Hills offers a completely different atmosphere from the coast. Mist, mountains, changing weather, and dramatic architecture create a destination that feels almost cinematic by nature.",
+            "Rising above the coast of Central Vietnam, Ba Na Hills offers a destination wedding setting unlike the beaches and resorts below. Mountain landscapes, shifting clouds, cool air, and distinctive architecture create an atmosphere that can feel almost cinematic. For couples looking for something visually distinctive near Da Nang, it offers an experience shaped by elevation, weather, and the surrounding landscape. We document celebrations here with an emphasis on atmosphere and movement, allowing the environment to become part of the film and photographs.",
 
         weddingStyle: [
             {
                 title: "Mountain",
                 description:
-                    "Dramatic landscapes and elevated views create a striking setting for portraits and celebrations.",
+                    "Cloud-covered peaks, forests, and changing weather create an atmospheric setting for a destination celebration.",
             },
             {
-                title: "Dramatic",
+                title: "Cinematic",
                 description:
-                    "Clouds, mist, architecture, and changing light make every moment feel different.",
+                    "Distinctive architecture and dramatic landscapes offer a naturally cinematic visual language.",
             },
             {
-                title: "Escape",
+                title: "Unexpected",
                 description:
-                    "A destination experience that feels far removed from the city below.",
+                    "A completely different experience from a traditional beach wedding, while remaining close to Da Nang.",
             },
         ],
     },

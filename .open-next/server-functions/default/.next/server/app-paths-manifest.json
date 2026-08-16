@@ -3,11 +3,14 @@
   "/_not-found/page": "app/_not-found/page.js",
   "/about/page": "app/about/page.js",
   "/contact/page": "app/contact/page.js",
-  "/destinations/[slug]/page": "app/destinations/[slug]/page.js",
+  "/destinations/[country]/[slug]/page": "app/destinations/[country]/[slug]/page.js",
+  "/destinations/[country]/page": "app/destinations/[country]/page.js",
   "/destinations/page": "app/destinations/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/films/page": "app/films/page.js",
   "/page": "app/page.js",
-  "/stories/haley-david/page": "app/stories/haley-david/page.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
+  "/stories/[slug]/page": "app/stories/[slug]/page.js",
   "/stories/page": "app/stories/page.js"
 }

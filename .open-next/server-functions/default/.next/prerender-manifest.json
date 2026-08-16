@@ -5,7 +5,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 26393,
+      "htmlSize": 33046,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -62,7 +62,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 8690,
+      "htmlSize": 12481,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -90,7 +90,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 21360,
+      "htmlSize": 25143,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -118,7 +118,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 13761,
+      "htmlSize": 17544,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -146,7 +146,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 22506,
+      "htmlSize": 44641,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -170,11 +170,11 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/destinations/ba-na-hills": {
+    "/destinations/vietnam": {
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 22966,
+      "htmlSize": 49594,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -187,8 +187,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/destinations/[slug]",
-      "dataRoute": "/destinations/ba-na-hills.rsc",
+      "srcRoute": "/destinations/[country]",
+      "dataRoute": "/destinations/vietnam.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -198,11 +198,11 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/destinations/con-dao": {
+    "/destinations/vietnam/ba-na-hills": {
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 23115,
+      "htmlSize": 29289,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -215,8 +215,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/destinations/[slug]",
-      "dataRoute": "/destinations/con-dao.rsc",
+      "srcRoute": "/destinations/[country]/[slug]",
+      "dataRoute": "/destinations/vietnam/ba-na-hills.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -226,11 +226,11 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/destinations/da-nang": {
+    "/destinations/vietnam/con-dao": {
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 25052,
+      "htmlSize": 28981,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -243,8 +243,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/destinations/[slug]",
-      "dataRoute": "/destinations/da-nang.rsc",
+      "srcRoute": "/destinations/[country]/[slug]",
+      "dataRoute": "/destinations/vietnam/con-dao.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -254,11 +254,11 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/destinations/hoi-an": {
+    "/destinations/vietnam/da-nang": {
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 23094,
+      "htmlSize": 32078,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -271,8 +271,92 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/destinations/[slug]",
-      "dataRoute": "/destinations/hoi-an.rsc",
+      "srcRoute": "/destinations/[country]/[slug]",
+      "dataRoute": "/destinations/vietnam/da-nang.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/destinations/vietnam/hoi-an": {
+      "routeType": "page",
+      "response": "complete",
+      "compute": "static",
+      "htmlSize": 29234,
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/destinations/[country]/[slug]",
+      "dataRoute": "/destinations/vietnam/hoi-an.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/destinations/vietnam/nha-trang": {
+      "routeType": "page",
+      "response": "complete",
+      "compute": "static",
+      "htmlSize": 29115,
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/destinations/[country]/[slug]",
+      "dataRoute": "/destinations/vietnam/nha-trang.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/destinations/vietnam/phu-quoc": {
+      "routeType": "page",
+      "response": "complete",
+      "compute": "static",
+      "htmlSize": 29008,
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/destinations/[country]/[slug]",
+      "dataRoute": "/destinations/vietnam/phu-quoc.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -318,7 +402,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 19841,
+      "htmlSize": 23638,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -342,11 +426,75 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/robots.txt": {
+      "initialHeaders": {
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-type": "text/plain",
+        "x-next-cache-tags": "_N_T_/layout,_N_T_/robots.txt/layout,_N_T_/robots.txt/route,_N_T_/robots.txt"
+      },
+      "routeType": "route",
+      "response": "complete",
+      "compute": "static",
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/robots.txt",
+      "dataRoute": null,
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/sitemap.xml": {
+      "initialHeaders": {
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-type": "application/xml",
+        "x-next-cache-tags": "_N_T_/layout,_N_T_/sitemap.xml/layout,_N_T_/sitemap.xml/route,_N_T_/sitemap.xml"
+      },
+      "routeType": "route",
+      "response": "complete",
+      "compute": "static",
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/sitemap.xml",
+      "dataRoute": null,
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/stories": {
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 18183,
+      "htmlSize": 26292,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -374,7 +522,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 28027,
+      "htmlSize": 37895,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -387,7 +535,7 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/stories/haley-david",
+      "srcRoute": "/stories/[slug]",
       "dataRoute": "/stories/haley-david.rsc",
       "allowHeader": [
         "host",
@@ -400,7 +548,7 @@
     }
   },
   "dynamicRoutes": {
-    "/destinations/[slug]": {
+    "/destinations/[country]": {
       "routeType": "page",
       "response": "empty",
       "compute": "blocking",
@@ -416,7 +564,7 @@
         }
       ],
       "routeRegex": "^/destinations/([^/]+?)(?:/)?$",
-      "dataRoute": "/destinations/[slug].rsc",
+      "dataRoute": "/destinations/[country].rsc",
       "fallback": null,
       "fallbackRootParams": [],
       "fallbackRouteParams": [],
@@ -430,12 +578,74 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/destinations/[country]/[slug]": {
+      "routeType": "page",
+      "response": "empty",
+      "compute": "blocking",
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "routeRegex": "^/destinations/([^/]+?)/([^/]+?)(?:/)?$",
+      "dataRoute": "/destinations/[country]/[slug].rsc",
+      "fallback": null,
+      "fallbackRootParams": [],
+      "fallbackRouteParams": [],
+      "dataRouteRegex": "^/destinations/([^/]+?)/([^/]+?)\\.rsc$",
+      "prefetchDataRoute": null,
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/stories/[slug]": {
+      "routeType": "page",
+      "response": "empty",
+      "compute": "blocking",
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "routeRegex": "^/stories/([^/]+?)(?:/)?$",
+      "dataRoute": "/stories/[slug].rsc",
+      "fallback": null,
+      "fallbackRootParams": [],
+      "fallbackRouteParams": [],
+      "dataRouteRegex": "^/stories/([^/]+?)\\.rsc$",
+      "prefetchDataRoute": null,
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "09fe8d3c4bf7e7bedfc8f0d0dcf67de7",
-    "previewModeSigningKey": "ece6dbeb611510ed2aa25c7170a69ea1e8deb278aa49e3f960c65beca410a31f",
-    "previewModeEncryptionKey": "c1dc9329d3e09224a0f44dbd603956565423c9dbc6b249aa60143b2b7eed6ee6"
+    "previewModeId": "7fbde47d8642d5568872eba4b7930bac",
+    "previewModeSigningKey": "97661d67232a815f0345d8c82c162f13fe3be921d5c4e958b14de5b8ee93414b",
+    "previewModeEncryptionKey": "1beddaf07f69b202aa5502675c99d1538141beca761e2bd2e58a2d06c30390c0"
   }
 }

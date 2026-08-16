@@ -49,6 +49,11 @@ export const metadata: Metadata = {
 
   creator: "The Scene Studio",
 
+  verification: {
+    google:
+      "AVvrDHG767WsbMJRETLTgSMg3wow8t6-u_z1b2igpzI",
+  },
+
   openGraph: {
     type: "website",
     siteName: "The Scene Studio",
@@ -79,8 +84,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} `}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`${serif.variable} ${sans.variable}`}
+    >
+      <body>
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "@id":
+                "https://the-scene-studio.thescenestudio.workers.dev/#organization",
+              name: "The Scene Studio",
+              url: "https://the-scene-studio.thescenestudio.workers.dev",
+              description:
+                "The Scene Studio creates intimate, cinematic photographs and films for destination weddings in Vietnam and beyond.",
+            }),
+          }}
+        />
+
+        {children}
+
+      </body>
     </html>
   );
 }

@@ -23,12 +23,29 @@
   },
   "dynamicRoutes": [
     {
-      "page": "/destinations/[slug]",
+      "page": "/destinations/[country]",
       "regex": "^/destinations/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcountry": "nxtPcountry"
+      },
+      "namedRegex": "^/destinations/(?<nxtPcountry>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/destinations/[country]/[slug]",
+      "regex": "^/destinations/([^/]+?)/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcountry": "nxtPcountry",
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/destinations/(?<nxtPcountry>[^/]+?)/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/stories/[slug]",
+      "regex": "^/stories/([^/]+?)(?:/)?$",
       "routeKeys": {
         "nxtPslug": "nxtPslug"
       },
-      "namedRegex": "^/destinations/(?<nxtPslug>[^/]+?)(?:/)?$"
+      "namedRegex": "^/stories/(?<nxtPslug>[^/]+?)(?:/)?$"
     }
   ],
   "staticRoutes": [
@@ -81,16 +98,22 @@
       "namedRegex": "^/films(?:/)?$"
     },
     {
+      "page": "/robots.txt",
+      "regex": "^/robots\\.txt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/robots\\.txt(?:/)?$"
+    },
+    {
+      "page": "/sitemap.xml",
+      "regex": "^/sitemap\\.xml(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sitemap\\.xml(?:/)?$"
+    },
+    {
       "page": "/stories",
       "regex": "^/stories(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/stories(?:/)?$"
-    },
-    {
-      "page": "/stories/haley-david",
-      "regex": "^/stories/haley\\-david(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/stories/haley\\-david(?:/)?$"
     }
   ],
   "dataRoutes": [],

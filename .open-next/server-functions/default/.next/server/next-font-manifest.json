@@ -12,7 +12,11 @@
       "static/media/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2",
       "static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2"
     ],
-    "[project]/app/destinations/[slug]/page": [
+    "[project]/app/destinations/[country]/[slug]/page": [
+      "static/media/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2",
+      "static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2"
+    ],
+    "[project]/app/destinations/[country]/page": [
       "static/media/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2",
       "static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2"
     ],
@@ -28,7 +32,7 @@
       "static/media/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2",
       "static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2"
     ],
-    "[project]/app/stories/haley-david/page": [
+    "[project]/app/stories/[slug]/page": [
       "static/media/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2",
       "static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2"
     ],

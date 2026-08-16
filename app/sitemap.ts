@@ -39,22 +39,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
         },
     ];
 
-    // Countries
-    const countries = Array.from(
-        new Set(
-            destinations.map(
-                (destination) => destination.country
-            )
-        )
-    );
-
-    const countryPages: MetadataRoute.Sitemap =
-        countries.map((country) => ({
-            url: `${baseUrl}/destinations/${country}`,
-            changeFrequency: "monthly",
-            priority: 0.8,
-        }));
-
     // Destinations
     const destinationPages: MetadataRoute.Sitemap =
         destinations.map((destination) => ({
@@ -73,7 +57,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
     return [
         ...staticPages,
-        ...countryPages,
         ...destinationPages,
         ...storyPages,
     ];

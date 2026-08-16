@@ -1,6 +1,7 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { films } from "../../data/films";
+import { stories } from "../../data/stories";
 
 export const metadata = {
     title: "Films — The Scene Studio",

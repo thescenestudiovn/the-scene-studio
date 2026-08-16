@@ -1,8 +1,41 @@
+import type { Metadata } from "next";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Image from "next/image";
 import Link from "next/link";
 import { destinations } from "../../data/destinations";
+import { stories } from "../../data/stories";
+
+const baseUrl =
+    "https://the-scene-studio.thescenestudio.workers.dev";
+
+export const metadata: Metadata = {
+    title: "Destination Wedding Photography & Films in Vietnam",
+    description:
+        "Explore destination wedding photography and films in Da Nang, Hoi An, Phu Quoc, Nha Trang, Con Dao, and Ba Na Hills. The Scene Studio documents intimate celebrations across Vietnam.",
+    alternates: {
+        canonical: `${baseUrl}/destinations`,
+    },
+    openGraph: {
+        title: "Destination Wedding Photography & Films in Vietnam",
+        description:
+            "Explore destination wedding photography and films across Vietnam with The Scene Studio.",
+        url: `${baseUrl}/destinations`,
+        type: "website",
+        siteName: "The Scene Studio",
+        locale: "en_US",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Destination Wedding Photography & Films in Vietnam",
+        description:
+            "Explore destination wedding photography and films across Vietnam with The Scene Studio.",
+    },
+    robots: {
+        index: true,
+        follow: true,
+    },
+};
 
 const destinationImages: Record<string, string> = {
     "da-nang": "/images/destinations/da-nang.jpg",
@@ -13,20 +46,7 @@ const destinationImages: Record<string, string> = {
     "ba-na-hills": "/images/destinations/ba-na-hills.jpg",
 };
 
-const countryImages: Record<string, string> = {
-    vietnam: "/images/destinations/vietnam.jpg",
-};
-
 export default function DestinationsPage() {
-    const countries = Array.from(
-        new Map(
-            destinations.map((destination) => [
-                destination.country,
-                destination,
-            ])
-        ).values()
-    );
-
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
             <Header light />
@@ -51,10 +71,10 @@ export default function DestinationsPage() {
                 </div>
             </section>
 
-            {/* Countries */}
             {/* Destinations */}
             <section className="border-t border-[#d8d3ca] px-6 py-24 md:px-10 md:py-36">
                 <div className="mx-auto max-w-7xl">
+
                     <div className="flex items-end justify-between">
                         <div>
                             <p className="font-sans text-xs tracking-[0.2em] uppercase">
@@ -72,7 +92,11 @@ export default function DestinationsPage() {
                     </div>
 
                     <div className="mt-20 grid gap-x-8 gap-y-20 md:grid-cols-2 md:gap-y-32">
+
                         {destinations.map((destination, index) => {
+                            const destinationStories = stories.filter(
+                                (story) => story.destination === destination.slug
+                            );
                             const image =
                                 destinationImages[destination.slug];
 
@@ -85,11 +109,13 @@ export default function DestinationsPage() {
                                         : ""
                                         }`}
                                 >
+
                                     <div className="relative aspect-[4/5] overflow-hidden bg-[#ddd8cf]">
+
                                         {image && (
                                             <Image
                                                 src={image}
-                                                alt={`${destination.name} destination wedding`}
+                                                alt={`${destination.name} destination wedding photography`}
                                                 fill
                                                 className="object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
                                                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -101,9 +127,11 @@ export default function DestinationsPage() {
                                         <div className="absolute left-6 top-6 font-sans text-xs tracking-[0.15em] text-white">
                                             {String(index + 1).padStart(2, "0")}
                                         </div>
+
                                     </div>
 
                                     <div className="mt-7 flex items-start justify-between gap-6">
+
                                         <div>
                                             <p className="font-sans text-[10px] tracking-[0.18em] uppercase text-[#77736c]">
                                                 {destination.countryName}
@@ -117,14 +145,30 @@ export default function DestinationsPage() {
                                         <span className="pt-1 font-sans text-xs transition-transform duration-300 group-hover:translate-x-1">
                                             →
                                         </span>
+
                                     </div>
 
-                                    <p className="mt-4 max-w-md font-sans text-sm leading-6 text-[#77736c]">
-                                        {destination.description}
-                                    </p>
+                                    <div className="mt-4 flex items-end justify-between gap-6">
+
+                                        <p className="max-w-md font-sans text-sm leading-6 text-[#77736c]">
+                                            {destination.description}
+                                        </p>
+
+                                        {destinationStories.length > 0 && (
+                                            <span className="shrink-0 font-sans text-[10px] tracking-[0.15em] uppercase text-[#77736c]">
+                                                {destinationStories.length}{" "}
+                                                {destinationStories.length === 1
+                                                    ? "Story"
+                                                    : "Stories"}
+                                            </span>
+                                        )}
+
+                                    </div>
+
                                 </Link>
                             );
                         })}
+
                     </div>
                 </div>
             </section>
@@ -132,6 +176,7 @@ export default function DestinationsPage() {
             {/* Closing */}
             <section className="border-t border-[#d8d3ca] px-6 py-32 md:px-10 md:py-48">
                 <div className="mx-auto max-w-5xl">
+
                     <p className="font-serif text-4xl leading-tight tracking-[-0.03em] md:text-7xl">
                         Wherever the celebration takes you,
                         <br />
@@ -144,6 +189,7 @@ export default function DestinationsPage() {
                     >
                         Tell us about your destination →
                     </Link>
+
                 </div>
             </section>
 

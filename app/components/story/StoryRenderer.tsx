@@ -2,7 +2,6 @@ import type { StorySection } from "../../../data/stories";
 
 import StoryText from "./StoryText";
 import StoryImage from "./StoryImage";
-import StoryFilm from "./StoryFilm";
 import StoryQuote from "./StoryQuote";
 import StoryGallery from "./StoryGallery";
 
@@ -54,14 +53,8 @@ export default function StoryRenderer({
                             />
                         );
 
-                    case "film":
-                        return (
-                            <StoryFilm
-                                key={index}
-                                videoUrl={section.videoUrl}
-                                poster={section.poster}
-                            />
-                        );
+                    case "credits":
+                        return null;
 
                     default:
                         return null;

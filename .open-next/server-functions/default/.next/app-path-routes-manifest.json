@@ -3,11 +3,14 @@
   "/_not-found/page": "/_not-found",
   "/about/page": "/about",
   "/contact/page": "/contact",
-  "/destinations/[slug]/page": "/destinations/[slug]",
+  "/destinations/[country]/[slug]/page": "/destinations/[country]/[slug]",
+  "/destinations/[country]/page": "/destinations/[country]",
   "/destinations/page": "/destinations",
   "/favicon.ico/route": "/favicon.ico",
   "/films/page": "/films",
   "/page": "/",
-  "/stories/haley-david/page": "/stories/haley-david",
+  "/robots.txt/route": "/robots.txt",
+  "/sitemap.xml/route": "/sitemap.xml",
+  "/stories/[slug]/page": "/stories/[slug]",
   "/stories/page": "/stories"
 }

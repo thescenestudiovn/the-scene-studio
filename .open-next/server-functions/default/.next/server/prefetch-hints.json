@@ -50,7 +50,31 @@
       }
     }
   },
-  "/destinations/[slug]": {
+  "/destinations/[country]/[slug]": {
+    "hints": 64,
+    "slots": {
+      "children": {
+        "hints": 96,
+        "slots": {
+          "children": {
+            "hints": 96,
+            "slots": {
+              "children": {
+                "hints": 96,
+                "slots": {
+                  "children": {
+                    "hints": 160,
+                    "slots": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/destinations/[country]": {
     "hints": 64,
     "slots": {
       "children": {
@@ -106,7 +130,7 @@
       }
     }
   },
-  "/stories/haley-david": {
+  "/stories/[slug]": {
     "hints": 64,
     "slots": {
       "children": {

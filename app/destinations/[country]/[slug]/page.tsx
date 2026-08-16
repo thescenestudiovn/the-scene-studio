@@ -1,11 +1,15 @@
+
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Header from "../../../components/Header";
-import Footer from "../../../components/Footer";
-import { destinations } from "../../../../data/destinations";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
+
+import Header from "../../../components/Header";
+import Footer from "../../../components/Footer";
+
+import { destinations } from "../../../../data/destinations";
+import { stories } from "../../../../data/stories";
 
 const baseUrl =
     "https://the-scene-studio.thescenestudio.workers.dev";
@@ -26,6 +30,9 @@ type PageProps = {
     }>;
 };
 
+/*
+ * Generate all destination URLs
+ */
 export function generateStaticParams() {
     return destinations.map((destination) => ({
         country: destination.country,
@@ -33,6 +40,9 @@ export function generateStaticParams() {
     }));
 }
 
+/*
+ * SEO Metadata
+ */
 export async function generateMetadata({
     params,
 }: PageProps): Promise<Metadata> {
@@ -52,26 +62,45 @@ export async function generateMetadata({
         `${baseUrl}/destinations/${destination.country}/${destination.slug}`;
 
     return {
-        title: destination.seoTitle,
-        description: destination.seoDescription,
+        title: `${destination.name} Wedding Photography & Films`,
+
+        description:
+            `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
 
         alternates: {
             canonical: canonicalUrl,
         },
 
         openGraph: {
-            title: destination.seoTitle,
-            description: destination.seoDescription,
+            title: `${destination.name} Wedding Photography & Films`,
+            description:
+                `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
+            url: canonicalUrl,
             type: "website",
             siteName: "The Scene Studio",
             locale: "en_US",
-            url: canonicalUrl,
+
+            images: [
+                {
+                    url: `${baseUrl}${destinationImages[destination.slug]}`,
+                    alt: `${destination.name} destination wedding`,
+                },
+            ],
         },
 
         twitter: {
             card: "summary_large_image",
-            title: destination.seoTitle,
-            description: destination.seoDescription,
+            title: `${destination.name} Wedding Photography & Films`,
+            description:
+                `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
+            images: [
+                `${baseUrl}${destinationImages[destination.slug]}`,
+            ],
+        },
+
+        robots: {
+            index: true,
+            follow: true,
         },
     };
 }
@@ -91,7 +120,14 @@ export default async function DestinationPage({
         notFound();
     }
 
-    const image = destinationImages[destination.slug];
+    /*
+     * Automatically find all stories
+     * belonging to this destination.
+     */
+    const destinationStories = stories.filter(
+        (story) =>
+            story.destination === destination.slug
+    );
 
     const canonicalUrl =
         `${baseUrl}/destinations/${destination.country}/${destination.slug}`;
@@ -102,6 +138,7 @@ export default async function DestinationPage({
     const breadcrumbJsonLd = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
+
         itemListElement: [
             {
                 "@type": "ListItem",
@@ -119,269 +156,252 @@ export default async function DestinationPage({
     };
 
     /*
-     * Destination / Business JSON-LD
+     * LocalBusiness JSON-LD
      */
-    const jsonLd = {
+    const localBusinessJsonLd = {
         "@context": "https://schema.org",
-        "@type": "ProfessionalService",
+        "@type": "LocalBusiness",
+
+        "@id": `${canonicalUrl}#business`,
 
         name: "The Scene Studio",
 
-        description: destination.seoDescription,
+        url: baseUrl,
 
-        url: canonicalUrl,
-
-        image: image
-            ? `${baseUrl}${image}`
-            : undefined,
+        description:
+            `Destination wedding photography and films in ${destination.name}, Vietnam.`,
 
         areaServed: {
             "@type": "Place",
-            name: `${destination.name}, ${destination.countryName}`,
+            name: destination.name,
         },
-
-        serviceType: [
-            "Wedding Photography",
-            "Wedding Films",
-            "Destination Wedding Photography",
-            "Destination Wedding Videography",
-            "Beach Wedding Photography",
-            "Intimate Wedding Photography",
-        ],
     };
 
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
 
-            {/* Breadcrumb JSON-LD */}
+            {/* JSON-LD */}
+
             <Script
-                id="breadcrumb-jsonld"
+                id="destination-breadcrumb-jsonld"
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify(breadcrumbJsonLd),
+                    __html:
+                        JSON.stringify(
+                            breadcrumbJsonLd
+                        ),
                 }}
             />
 
-            {/* Destination JSON-LD */}
             <Script
-                id="destination-jsonld"
+                id="destination-business-jsonld"
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify(jsonLd),
+                    __html:
+                        JSON.stringify(
+                            localBusinessJsonLd
+                        ),
                 }}
             />
 
             <Header light />
 
             {/* Hero */}
-            <section className="px-6 pb-32 pt-40 md:px-10 md:pb-48 md:pt-52">
-                <div className="mx-auto max-w-7xl">
 
-                    {/* Breadcrumb */}
-                    <nav
-                        aria-label="Breadcrumb"
-                        className="mb-10 flex items-center gap-3 font-sans text-[10px] tracking-[0.15em] uppercase text-[#77736c]"
-                    >
-                        <Link
-                            href="/destinations"
-                            className="transition-opacity hover:opacity-50"
-                        >
-                            Destinations
-                        </Link>
+            <section className="relative min-h-[75vh] overflow-hidden">
 
-                        <span>/</span>
+                <Image
+                    src={destinationImages[destination.slug]}
+                    alt={`${destination.name} destination wedding`}
+                    fill
+                    priority
+                    sizes="100vw"
+                    className="object-cover"
+                />
 
-                        <span className="text-[#171717]">
+                <div className="absolute inset-0 bg-black/25" />
+
+                <div className="absolute inset-x-0 bottom-0 px-6 pb-10 md:px-10 md:pb-14">
+
+                    <div className="mx-auto max-w-7xl text-white">
+
+                        <p className="font-sans text-xs tracking-[0.2em] uppercase">
+                            Destination · Vietnam
+                        </p>
+
+                        <h1 className="mt-5 font-serif text-[clamp(4rem,10vw,9rem)] leading-[0.85] tracking-[-0.05em]">
                             {destination.name}
-                        </span>
-                    </nav>
+                        </h1>
 
-                    <p className="font-sans text-xs tracking-[0.2em] uppercase">
-                        {destination.countryName} · {destination.region}
-                    </p>
-
-                    <h1 className="mt-10 max-w-6xl font-serif text-7xl leading-[0.85] tracking-[-0.05em] md:text-9xl">
-                        {destination.name}
-                    </h1>
-
-                    <p className="mt-10 max-w-xl font-sans text-sm leading-7 text-[#77736c] md:text-base">
-                        {destination.description}
-                    </p>
+                    </div>
 
                 </div>
-            </section>
 
-            {/* Hero Image */}
-            {image && (
-                <section className="px-6 md:px-10">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="relative aspect-[16/9] overflow-hidden bg-[#ddd8cf]">
-                            <Image
-                                src={image}
-                                alt={`${destination.name} destination wedding`}
-                                fill
-                                priority
-                                className="object-cover"
-                                sizes="100vw"
-                            />
-                        </div>
-                    </div>
-                </section>
-            )}
+            </section>
 
             {/* Introduction */}
-            <section className="border-t border-[#d8d3ca] px-6 py-32 md:px-10 md:py-48">
-                <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-12">
 
-                    <div className="md:col-span-4">
+            <section className="px-6 py-32 md:px-10 md:py-48">
+
+                <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-2">
+
+                    <div>
+
                         <p className="font-sans text-xs tracking-[0.2em] uppercase">
-                            The Place
+                            {destination.name}
                         </p>
-                    </div>
 
-                    <div className="md:col-span-7 md:col-start-6">
-
-                        <h2 className="font-serif text-3xl leading-tight tracking-[-0.02em] md:text-5xl">
-                            {destination.introTitle}
+                        <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[0.95] tracking-[-0.04em] md:text-7xl">
+                            A place that becomes
+                            part of the story.
                         </h2>
 
-                        <p className="mt-10 font-sans text-sm leading-7 text-[#77736c]">
-                            {destination.introText}
+                    </div>
+
+                    <div className="flex items-end">
+
+                        <p className="max-w-xl font-sans text-sm leading-7 text-[#77736c] md:text-base">
+                            {destination.description}
                         </p>
 
                     </div>
+
                 </div>
+
             </section>
 
-            {/* Wedding Style */}
-            <section className="border-t border-[#d8d3ca] px-6 py-32 md:px-10 md:py-48">
+            {/* Stories */}
+
+            <section className="border-t border-[#d8d3ca] px-6 py-24 md:px-10 md:py-36">
+
                 <div className="mx-auto max-w-7xl">
 
-                    <p className="font-sans text-xs tracking-[0.2em] uppercase">
-                        Wedding Experience
-                    </p>
+                    <div className="flex items-end justify-between">
 
-                    <div className="mt-16 grid gap-12 md:grid-cols-3">
+                        <div>
 
-                        {destination.weddingStyle.map((style) => (
-                            <div key={style.title}>
+                            <p className="font-sans text-xs tracking-[0.2em] uppercase">
+                                Stories from {destination.name}
+                            </p>
 
-                                <h2 className="font-serif text-4xl tracking-[-0.03em]">
-                                    {style.title}
-                                </h2>
+                            <h2 className="mt-5 font-serif text-5xl tracking-[-0.04em] md:text-7xl">
+                                Weddings we have documented
+                            </h2>
 
-                                <p className="mt-5 font-sans text-sm leading-7 text-[#77736c]">
-                                    {style.description}
-                                </p>
+                        </div>
 
-                            </div>
-                        ))}
-
-                    </div>
-                </div>
-            </section>
-
-            {/* Approach */}
-            <section className="bg-[#171717] px-6 py-32 text-[#f7f5f0] md:px-10 md:py-48">
-                <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-12">
-
-                    <div className="md:col-span-4">
-                        <p className="font-sans text-xs tracking-[0.2em] uppercase text-[#9d9a93]">
-                            Our Approach
-                        </p>
-                    </div>
-
-                    <div className="md:col-span-7 md:col-start-6">
-
-                        <h2 className="font-serif text-4xl leading-tight tracking-[-0.03em] md:text-6xl">
-                            We document the way it felt to be there.
-                        </h2>
-
-                        <p className="mt-10 font-sans text-sm leading-7 text-[#9d9a93]">
-                            Rather than creating a collection of perfectly
-                            posed photographs, we look for the atmosphere,
-                            gestures, relationships, and quiet moments that
-                            make the day yours.
-                        </p>
+                        <Link
+                            href="/stories"
+                            className="hidden font-sans text-xs tracking-[0.15em] uppercase transition-opacity hover:opacity-50 md:block"
+                        >
+                            View all stories →
+                        </Link>
 
                     </div>
-                </div>
-            </section>
 
-            {/* Other destinations */}
-            <section className="border-t border-[#d8d3ca] px-6 py-32 md:px-10 md:py-48">
-                <div className="mx-auto max-w-7xl">
+                    {destinationStories.length > 0 ? (
 
-                    <p className="font-sans text-xs tracking-[0.2em] uppercase">
-                        More destinations in {destination.countryName}
-                    </p>
+                        <div className="mt-20 grid gap-x-8 gap-y-20 md:grid-cols-2 md:gap-y-32">
 
-                    <div className="mt-16 grid gap-8 md:grid-cols-2">
+                            {destinationStories.map(
+                                (story, index) => (
 
-                        {destinations
-                            .filter(
-                                (item) =>
-                                    item.country === destination.country &&
-                                    item.slug !== destination.slug
-                            )
-                            .slice(0, 4)
-                            .map((item) => (
+                                    <Link
+                                        key={story.slug}
+                                        href={`/stories/${story.slug}`}
+                                        className={`group ${index % 2 === 1
+                                            ? "md:mt-32"
+                                            : ""
+                                            }`}
+                                    >
 
-                                <Link
-                                    key={item.slug}
-                                    href={`/destinations/${item.country}/${item.slug}`}
-                                    className="group"
-                                >
+                                        <div className="relative aspect-[4/5] overflow-hidden bg-[#ddd8cf]">
 
-                                    <div className="relative aspect-[4/3] overflow-hidden bg-[#ddd8cf]">
-
-                                        {destinationImages[item.slug] && (
                                             <Image
-                                                src={destinationImages[item.slug]}
-                                                alt={`${item.name} destination wedding`}
+                                                src={story.coverImage}
+                                                alt={`${story.title} wedding in ${destination.name}`}
                                                 fill
-                                                className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                                                className="object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
                                                 sizes="(max-width: 768px) 100vw, 50vw"
                                             />
-                                        )}
 
-                                    </div>
+                                            <div className="absolute inset-0 bg-black/10 transition-colors duration-500 group-hover:bg-black/0" />
 
-                                    <h3 className="mt-5 font-serif text-3xl tracking-[-0.03em]">
-                                        {item.name}
-                                    </h3>
+                                            <div className="absolute left-6 top-6 font-sans text-xs tracking-[0.15em] text-white">
+                                                {String(index + 1).padStart(2, "0")}
+                                            </div>
 
-                                </Link>
+                                        </div>
 
-                            ))}
+                                        <div className="mt-7 flex items-start justify-between gap-6">
 
-                    </div>
+                                            <div>
+
+                                                <p className="font-sans text-[10px] tracking-[0.18em] uppercase text-[#77736c]">
+                                                    {story.category}
+                                                </p>
+
+                                                <h3 className="mt-2 font-serif text-4xl tracking-[-0.03em] md:text-5xl">
+                                                    {story.title}
+                                                </h3>
+
+                                            </div>
+
+                                            <span className="pt-1 font-sans text-xs transition-transform duration-300 group-hover:translate-x-1">
+                                                →
+                                            </span>
+
+                                        </div>
+
+                                        <p className="mt-4 max-w-md font-sans text-sm leading-6 text-[#77736c]">
+                                            {story.description}
+                                        </p>
+
+                                    </Link>
+
+                                )
+                            )}
+
+                        </div>
+
+                    ) : (
+
+                        <div className="mt-20 border-t border-[#d8d3ca] pt-12">
+
+                            <p className="max-w-xl font-sans text-sm leading-7 text-[#77736c]">
+                                We are currently documenting stories
+                                in {destination.name}. New celebrations
+                                will appear here soon.
+                            </p>
+
+                        </div>
+
+                    )}
+
                 </div>
+
             </section>
 
             {/* CTA */}
-            <section className="px-6 py-32 md:px-10 md:py-48">
-                <div className="mx-auto max-w-5xl text-center">
 
-                    <h2 className="font-serif text-5xl leading-[0.95] tracking-[-0.03em] md:text-8xl">
-                        Getting married
-                        <br />
+            <section className="border-t border-[#d8d3ca] px-6 py-32 md:px-10 md:py-48">
+
+                <div className="mx-auto max-w-5xl">
+
+                    <p className="font-serif text-4xl leading-tight tracking-[-0.03em] md:text-7xl">
+                        Planning a celebration
                         in {destination.name}?
-                    </h2>
-
-                    <p className="mx-auto mt-8 max-w-md font-sans text-sm leading-7 text-[#77736c]">
-                        Tell us about your destination wedding, beach wedding,
-                        or intimate celebration.
                     </p>
 
                     <Link
                         href="/contact"
                         className="mt-12 inline-block font-sans text-xs tracking-[0.2em] uppercase transition-opacity hover:opacity-50"
                     >
-                        Tell us about your day →
+                        Tell us about your wedding →
                     </Link>
 
                 </div>
+
             </section>
 
             <Footer />
