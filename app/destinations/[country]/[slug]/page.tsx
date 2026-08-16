@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -31,7 +30,7 @@ type PageProps = {
 };
 
 /*
- * Generate all destination URLs
+ * Generate all destination URLs at build time
  */
 export function generateStaticParams() {
     return destinations.map((destination) => ({
@@ -58,44 +57,54 @@ export async function generateMetadata({
         return {};
     }
 
+    const image =
+        destinationImages[destination.slug];
+
     const canonicalUrl =
         `${baseUrl}/destinations/${destination.country}/${destination.slug}`;
 
-    return {
-        title: `${destination.name} Wedding Photography & Films`,
+    const title =
+        `${destination.name} Wedding Photography & Films | The Scene Studio`;
 
-        description:
-            `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
+    const description =
+        `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`;
+
+    return {
+        title,
+        description,
 
         alternates: {
             canonical: canonicalUrl,
         },
 
         openGraph: {
-            title: `${destination.name} Wedding Photography & Films`,
-            description:
-                `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
+            title,
+            description,
             url: canonicalUrl,
             type: "website",
             siteName: "The Scene Studio",
             locale: "en_US",
 
-            images: [
-                {
-                    url: `${baseUrl}${destinationImages[destination.slug]}`,
-                    alt: `${destination.name} destination wedding`,
-                },
-            ],
+            ...(image && {
+                images: [
+                    {
+                        url: `${baseUrl}${image}`,
+                        alt: `${destination.name} destination wedding photography`,
+                    },
+                ],
+            }),
         },
 
         twitter: {
             card: "summary_large_image",
-            title: `${destination.name} Wedding Photography & Films`,
-            description:
-                `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
-            images: [
-                `${baseUrl}${destinationImages[destination.slug]}`,
-            ],
+            title,
+            description,
+
+            ...(image && {
+                images: [
+                    `${baseUrl}${image}`,
+                ],
+            }),
         },
 
         robots: {
@@ -119,6 +128,9 @@ export default async function DestinationPage({
     if (!destination) {
         notFound();
     }
+
+    const image =
+        destinationImages[destination.slug];
 
     /*
      * Automatically find all stories
@@ -156,13 +168,49 @@ export default async function DestinationPage({
     };
 
     /*
-     * LocalBusiness JSON-LD
+     * Destination WebPage JSON-LD
      */
-    const localBusinessJsonLd = {
+    const webPageJsonLd = {
         "@context": "https://schema.org",
-        "@type": "LocalBusiness",
+        "@type": "WebPage",
 
-        "@id": `${canonicalUrl}#business`,
+        "@id": `${canonicalUrl}#webpage`,
+
+        url: canonicalUrl,
+
+        name:
+            `${destination.name} Wedding Photography & Films | The Scene Studio`,
+
+        description:
+            `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`,
+
+        isPartOf: {
+            "@type": "WebSite",
+            name: "The Scene Studio",
+            url: baseUrl,
+        },
+
+        about: {
+            "@type": "Place",
+            name: `${destination.name}, Vietnam`,
+        },
+
+        primaryImageOfPage: image
+            ? {
+                "@type": "ImageObject",
+                url: `${baseUrl}${image}`,
+            }
+            : undefined,
+    };
+
+    /*
+     * Professional Service JSON-LD
+     */
+    const serviceJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "ProfessionalService",
+
+        "@id": `${canonicalUrl}#service`,
 
         name: "The Scene Studio",
 
@@ -173,9 +221,41 @@ export default async function DestinationPage({
 
         areaServed: {
             "@type": "Place",
-            name: destination.name,
+            name: `${destination.name}, Vietnam`,
         },
+
+        serviceType: [
+            "Wedding Photography",
+            "Wedding Films",
+            "Destination Wedding Photography",
+            "Destination Wedding Films",
+        ],
     };
+
+    /*
+     * Story collection JSON-LD
+     */
+    const storyCollectionJsonLd =
+        destinationStories.length > 0
+            ? {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+
+                name:
+                    `Wedding Stories from ${destination.name}`,
+
+                itemListElement:
+                    destinationStories.map(
+                        (story, index) => ({
+                            "@type": "ListItem",
+                            position: index + 1,
+                            name: story.title,
+                            url:
+                                `${baseUrl}/stories/${story.slug}`,
+                        })
+                    ),
+            }
+            : null;
 
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
@@ -194,15 +274,39 @@ export default async function DestinationPage({
             />
 
             <Script
-                id="destination-business-jsonld"
+                id="destination-webpage-jsonld"
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
                     __html:
                         JSON.stringify(
-                            localBusinessJsonLd
+                            webPageJsonLd
                         ),
                 }}
             />
+
+            <Script
+                id="destination-service-jsonld"
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html:
+                        JSON.stringify(
+                            serviceJsonLd
+                        ),
+                }}
+            />
+
+            {storyCollectionJsonLd && (
+                <Script
+                    id="destination-story-list-jsonld"
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html:
+                            JSON.stringify(
+                                storyCollectionJsonLd
+                            ),
+                    }}
+                />
+            )}
 
             <Header light />
 
@@ -210,14 +314,16 @@ export default async function DestinationPage({
 
             <section className="relative min-h-[75vh] overflow-hidden">
 
-                <Image
-                    src={destinationImages[destination.slug]}
-                    alt={`${destination.name} destination wedding`}
-                    fill
-                    priority
-                    sizes="100vw"
-                    className="object-cover"
-                />
+                {image && (
+                    <Image
+                        src={image}
+                        alt={`${destination.name} destination wedding photography`}
+                        fill
+                        priority
+                        sizes="100vw"
+                        className="object-cover"
+                    />
+                )}
 
                 <div className="absolute inset-0 bg-black/25" />
 
@@ -310,8 +416,8 @@ export default async function DestinationPage({
                                         key={story.slug}
                                         href={`/stories/${story.slug}`}
                                         className={`group ${index % 2 === 1
-                                            ? "md:mt-32"
-                                            : ""
+                                                ? "md:mt-32"
+                                                : ""
                                             }`}
                                     >
 

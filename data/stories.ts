@@ -54,10 +54,7 @@ export type Story = {
     destination: DestinationSlug;
 
     // Optional wedding film
-    film?: {
-        youtubeId: string;
-        poster?: string;
-    };
+
 
     // Story content
     sections: StorySection[];
@@ -89,9 +86,7 @@ export const stories: Story[] = [
 
         destination: "da-nang",
 
-        film: {
-            youtubeId: "XST30jLkZbM",
-        },
+
 
         sections: [
             {

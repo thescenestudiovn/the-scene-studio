@@ -272,31 +272,7 @@ export default async function StoryPage({
             />
 
             {/* Wedding Film */}
-            {story.film && (
-                <section className="px-6 py-32 md:px-10 md:py-48">
 
-                    <div className="mx-auto max-w-7xl">
-
-                        <p className="mb-8 font-sans text-xs tracking-[0.2em] uppercase">
-                            Wedding Film
-                        </p>
-
-                        <div className="relative aspect-video overflow-hidden bg-black">
-
-                            <iframe
-                                className="absolute inset-0 h-full w-full"
-                                src={`https://www.youtube.com/embed/${story.film.youtubeId}`}
-                                title={`${story.title} — Wedding Film`}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                            />
-
-                        </div>
-
-                    </div>
-
-                </section>
-            )}
 
             {/* Closing */}
             <section className="border-t border-[#d8d3ca] px-6 py-32 md:px-10 md:py-48">
