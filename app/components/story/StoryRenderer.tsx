@@ -40,6 +40,7 @@ export default function StoryRenderer({
                         return (
                             <StoryGallery
                                 key={index}
+                                title={section.title}
                                 images={section.images}
                                 layout={section.layout}
                             />
@@ -54,7 +55,33 @@ export default function StoryRenderer({
                         );
 
                     case "credits":
-                        return null;
+                        return (
+                            <section
+                                key={index}
+                                className="border-t border-[#d8d3ca] px-6 py-20 md:px-10 md:py-28"
+                            >
+                                <div className="mx-auto max-w-5xl">
+                                    <p className="mb-8 font-sans text-xs tracking-[0.2em] uppercase text-[#77736c]">
+                                        Credits
+                                    </p>
+                                    <div className="divide-y divide-[#d8d3ca]">
+                                        {section.items.map((item, itemIndex) => (
+                                            <div
+                                                key={`${item.label}-${itemIndex}`}
+                                                className="grid gap-2 py-4 md:grid-cols-[180px_1fr]"
+                                            >
+                                                <span className="font-sans text-xs tracking-[0.12em] uppercase text-[#77736c]">
+                                                    {item.label}
+                                                </span>
+                                                <span className="font-sans text-sm text-[#171717]">
+                                                    {item.value}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+                        );
 
                     default:
                         return null;
