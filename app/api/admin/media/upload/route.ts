@@ -1,5 +1,5 @@
 import { getDB } from "../../../../../lib/db";
-import { nasConfigured, sanitizeNasPath, uploadToNas } from "../../../../../lib/nas";
+import { nasConfigured, nasConfigurationError, sanitizeNasPath, uploadToNas } from "../../../../../lib/nas";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -12,20 +12,20 @@ function safeFilename(name: string) {
   return normalized.replace(/-+/g, "-").replace(/^-|-$/g, "") || `image-${Date.now()}.jpg`;
 }
 
-function getDimensions(_file: File) {
-  return { width: null as number | null, height: null as number | null };
+export async function GET() {
+  const configurationError = nasConfigurationError();
+  return Response.json({
+    success: !configurationError && nasConfigured(),
+    configured: !configurationError && nasConfigured(),
+    error: configurationError,
+  });
 }
 
 export async function POST(request: Request) {
   try {
-    if (!nasConfigured()) {
-      return Response.json(
-        {
-          success: false,
-          error: "NAS upload is not configured. Set NAS_WEBDAV_URL, NAS_USERNAME and NAS_PASSWORD in the Worker secrets.",
-        },
-        { status: 503 },
-      );
+    const configurationError = nasConfigurationError();
+    if (configurationError) {
+      return Response.json({ success: false, error: configurationError }, { status: 503 });
     }
 
     const form = await request.formData();
@@ -60,14 +60,12 @@ export async function POST(request: Request) {
       }
 
       const filename = safeFilename(file.name);
-      // NAS_WEBDAV_URL points at the public/WEB WebDAV root. The public URL
-      // therefore maps directly to /collections/<slug>/<filename>.
-      const path = `/collections/${collection.slug}/${Date.now()}-${filename}`;
-      const cleanPath = sanitizeNasPath(path);
+      const uniqueFilename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${filename}`;
+      const cleanPath = sanitizeNasPath(`/collections/${collection.slug}/${uniqueFilename}`);
+
       await uploadToNas(cleanPath, file);
 
       const id = crypto.randomUUID();
-      const dimensions = getDimensions(file);
       const sort = await db
         .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM media WHERE collection_id = ?")
         .bind(collectionId)
@@ -84,8 +82,9 @@ export async function POST(request: Request) {
           `/${cleanPath}`,
           filename,
           filename.replace(/\.[^.]+$/, ""),
-          dimensions.width,
-          dimensions.height,
+          null,
+          null,
+          null,
           sort?.next ?? 0,
         )
         .run();
