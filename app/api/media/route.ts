@@ -16,13 +16,10 @@ function getMediaUrl(request: NextRequest) {
 }
 
 async function fetchOrigin(url: string) {
-  // Keep this proxy deliberately simple. The NAS is behind Cloudflare/Tunnel,
-  // and the browser cannot embed its response directly because TNAS sends
-  // Cross-Origin-Resource-Policy: same-origin. The Worker proxy removes that
-  // restriction and streams the original bytes without buffering the image.
   return fetch(url, {
     method: "GET",
     redirect: "follow",
+    cache: "no-store",
     headers: {
       Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
     },
@@ -63,7 +60,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return new Response(origin.body, {
+    // Do not stream the NAS response through OpenNext. Materializing the
+    // response body avoids the intermittent 500s seen with the edge adapter
+    // when proxying the TNAS/Cloudflare response stream.
+    const body = await origin.arrayBuffer();
+
+    return new Response(body, {
       status: 200,
       headers: responseHeaders(origin),
     });
@@ -82,8 +84,6 @@ export async function HEAD(request: NextRequest) {
   if (!url) return new Response(null, { status: 400 });
 
   try {
-    // Fetch the origin as GET and discard the body. This avoids relying on
-    // WebDAV/TNAS HEAD support, which is inconsistent across NAS versions.
     const origin = await fetchOrigin(url);
 
     if (!origin.ok) {
