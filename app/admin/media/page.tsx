@@ -15,13 +15,11 @@ type Media = {
 
 type ResponseData = { success: boolean; media: Media[]; error?: string };
 
-const MEDIA_BASE = "https://media.thescenestudio.asia";
-
 function mediaUrl(path: string) {
   const value = (path || "").trim();
   if (!value) return "";
-  if (/^(https?:)?\/\//i.test(value)) return value;
-  return `${MEDIA_BASE}/${value.replace(/^\/+/, "")}`;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `/api/media?path=${encodeURIComponent(value)}`;
 }
 
 export default function AdminMediaPage() {
