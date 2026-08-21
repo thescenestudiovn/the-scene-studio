@@ -15,6 +15,7 @@ export type StorySection =
     }
     | {
         type: "gallery";
+        title?: string;
         images: {
             src: string;
             alt: string;
@@ -36,26 +37,19 @@ export type StorySection =
 export type Story = {
     slug: string;
 
-    // Basic information
     title: string;
     location: string;
     date: string;
     category: string;
 
-    // SEO
     seoTitle: string;
     seoDescription: string;
 
-    // Content
     description: string;
     coverImage: string;
 
-    // Destination relation
     destination: DestinationSlug;
 
-    // Optional wedding film
-
-    // Story content
     sections: StorySection[];
 };
 
@@ -80,7 +74,6 @@ export const stories: Story[] = [
         description:
             "An intimate destination wedding by the coast of Da Nang, Vietnam.",
 
-        // NAS / Cloudflare
         coverImage:
             "Haley-David/002-NT-HL-01178.jpg",
 
