@@ -32,6 +32,7 @@ export type StoryPageBlock = {
   body: string | null;
   media_id: string | null;
   gallery_title: string | null;
+  gallery_layout: "grid" | "feature" | "portrait-pair" | null;
   media: StoryPageMedia[];
 };
 
@@ -54,10 +55,6 @@ export async function getStoryPageData(
   slug: string
 ): Promise<StoryPageData | null> {
   const db = getDB();
-
-  // --------------------------------------------------
-  // STORY
-  // --------------------------------------------------
 
   const story = await db
     .prepare(
@@ -85,19 +82,13 @@ export async function getStoryPageData(
     .bind(slug)
     .first<Story>();
 
-  if (!story) {
-    return null;
-  }
-
-  // --------------------------------------------------
-  // DESTINATION
-  // --------------------------------------------------
+  if (!story) return null;
 
   let destination: StoryPageDestination | null = null;
 
   if (story.destination_id) {
     destination =
-      await db
+      (await db
         .prepare(
           `
           SELECT
@@ -113,18 +104,14 @@ export async function getStoryPageData(
           `
         )
         .bind(story.destination_id)
-        .first<StoryPageDestination>() ?? null;
+        .first<StoryPageDestination>()) ?? null;
   }
-
-  // --------------------------------------------------
-  // COVER
-  // --------------------------------------------------
 
   let cover: StoryPageMedia | null = null;
 
   if (story.cover_media_id) {
     cover =
-      await db
+      (await db
         .prepare(
           `
           SELECT
@@ -143,12 +130,8 @@ export async function getStoryPageData(
           `
         )
         .bind(story.cover_media_id)
-        .first<StoryPageMedia>() ?? null;
+        .first<StoryPageMedia>()) ?? null;
   }
-
-  // --------------------------------------------------
-  // BLOCKS
-  // --------------------------------------------------
 
   const blockResult = await db
     .prepare(
@@ -162,7 +145,8 @@ export async function getStoryPageData(
         title,
         body,
         media_id,
-        gallery_title
+        gallery_title,
+        gallery_layout
       FROM story_blocks
       WHERE story_id = ?
       ORDER BY sort_order ASC
@@ -172,7 +156,7 @@ export async function getStoryPageData(
     .all<Omit<StoryPageBlock, "media">>();
 
   const blocks = await Promise.all(
-    blockResult.results.map(async (block) => {
+    blockResult.results.map(async (block): Promise<StoryPageBlock> => {
       const mediaResult = await db
         .prepare(
           `
@@ -196,19 +180,45 @@ export async function getStoryPageData(
         .bind(block.id)
         .all<StoryPageMedia>();
 
+      let media = mediaResult.results;
+
+      // Backward compatibility for legacy image blocks that still use media_id
+      // instead of the story_block_media junction table.
+      if (media.length === 0 && block.type === "image" && block.media_id) {
+        const directMedia = await db
+          .prepare(
+            `
+            SELECT
+              id,
+              collection_id,
+              type,
+              path,
+              filename,
+              alt,
+              width,
+              height,
+              0 AS sort_order
+            FROM media
+            WHERE id = ?
+            LIMIT 1
+            `
+          )
+          .bind(block.media_id)
+          .first<StoryPageMedia>();
+
+        if (directMedia) media = [directMedia];
+      }
+
       return {
         ...block,
-        media: mediaResult.results,
+        gallery_layout: block.gallery_layout ?? null,
+        media,
       };
     })
   );
 
-  // --------------------------------------------------
-  // GALLERY CTA
-  // --------------------------------------------------
-
   const galleryCta =
-    await db
+    (await db
       .prepare(
         `
         SELECT
@@ -222,11 +232,7 @@ export async function getStoryPageData(
         `
       )
       .bind(story.id)
-      .first<StoryPageGalleryCTA>() ?? null;
-
-  // --------------------------------------------------
-  // FINAL OBJECT
-  // --------------------------------------------------
+      .first<StoryPageGalleryCTA>()) ?? null;
 
   return {
     story,
