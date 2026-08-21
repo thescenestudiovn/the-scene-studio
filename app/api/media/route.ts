@@ -12,14 +12,15 @@ export async function GET(request: NextRequest) {
     return new Response("Missing media path", { status: 400 });
   }
 
-  const path = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-  const url = new URL(path, MEDIA_BASE_URL);
+  const cleanPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
+  const url = `${MEDIA_BASE_URL}${cleanPath}`;
 
   try {
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url, {
       method: "GET",
       redirect: "follow",
-      cf: { cacheEverything: true, cacheTtl: 86400 },
+      headers: { Accept: "image/*,*/*;q=0.8" },
+      cache: "no-store",
     });
 
     if (!response.ok || !response.body) {
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const headers = new Headers();
     headers.set("Content-Type", response.headers.get("content-type") || "application/octet-stream");
-    headers.set("Cache-Control", "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400");
+    headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400");
     headers.set("Access-Control-Allow-Origin", "*");
     headers.set("Cross-Origin-Resource-Policy", "cross-origin");
 
