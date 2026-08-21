@@ -15,36 +15,23 @@ type UpdateBlockBody = {
   body?: string | null;
   media_id?: string | null;
   gallery_title?: string | null;
+  gallery_layout?: "grid" | "feature" | "portrait-pair";
 };
 
-export async function PATCH(
-  request: Request,
-  { params }: RouteContext
-) {
+export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const { id: storyId, blockId } = await params;
-
     const body = (await request.json()) as UpdateBlockBody;
-
     const db = getDB();
 
     const existing = await db
-      .prepare(`
-        SELECT id
-        FROM story_blocks
-        WHERE id = ?
-          AND story_id = ?
-        LIMIT 1
-      `)
+      .prepare(`SELECT id FROM story_blocks WHERE id = ? AND story_id = ? LIMIT 1`)
       .bind(blockId, storyId)
       .first();
 
     if (!existing) {
       return Response.json(
-        {
-          success: false,
-          error: "Story block not found",
-        },
+        { success: false, error: "Story block not found" },
         { status: 404 }
       );
     }
@@ -52,165 +39,94 @@ export async function PATCH(
     const fields: string[] = [];
     const values: unknown[] = [];
 
-    if (body.type !== undefined) {
-      fields.push("type = ?");
-      values.push(body.type);
-    }
+    const updates: [string, unknown][] = [
+      ["type = ?", body.type],
+      ["sort_order = ?", body.sort_order],
+      ["eyebrow = ?", body.eyebrow],
+      ["title = ?", body.title],
+      ["body = ?", body.body],
+      ["media_id = ?", body.media_id],
+      ["gallery_title = ?", body.gallery_title],
+      ["gallery_layout = ?", body.gallery_layout],
+    ];
 
-    if (body.sort_order !== undefined) {
-      fields.push("sort_order = ?");
-      values.push(body.sort_order);
-    }
-
-    if (body.eyebrow !== undefined) {
-      fields.push("eyebrow = ?");
-      values.push(body.eyebrow);
-    }
-
-    if (body.title !== undefined) {
-      fields.push("title = ?");
-      values.push(body.title);
-    }
-
-    if (body.body !== undefined) {
-      fields.push("body = ?");
-      values.push(body.body);
-    }
-
-    if (body.media_id !== undefined) {
-      fields.push("media_id = ?");
-      values.push(body.media_id);
-    }
-
-    if (body.gallery_title !== undefined) {
-      fields.push("gallery_title = ?");
-      values.push(body.gallery_title);
+    for (const [field, value] of updates) {
+      if (value !== undefined) {
+        fields.push(field);
+        values.push(value);
+      }
     }
 
     if (fields.length === 0) {
-      return Response.json({
-        success: true,
-        message: "Nothing to update",
-      });
+      return Response.json({ success: true, message: "Nothing to update" });
     }
 
+    fields.push("updated_at = CURRENT_TIMESTAMP");
     values.push(blockId, storyId);
 
     await db
       .prepare(`
         UPDATE story_blocks
         SET ${fields.join(", ")}
-        WHERE id = ?
-          AND story_id = ?
+        WHERE id = ? AND story_id = ?
       `)
       .bind(...values)
       .run();
 
     const block = await db
-      .prepare(`
-        SELECT *
-        FROM story_blocks
-        WHERE id = ?
-          AND story_id = ?
-        LIMIT 1
-      `)
+      .prepare(`SELECT * FROM story_blocks WHERE id = ? AND story_id = ? LIMIT 1`)
       .bind(blockId, storyId)
       .first();
 
-    return Response.json({
-      success: true,
-      block,
-    });
+    return Response.json({ success: true, block });
   } catch (error) {
-    console.error(
-      "PATCH /api/admin/stories/[id]/blocks/[blockId] error:",
-      error
-    );
-
+    console.error("PATCH story block error:", error);
     return Response.json(
-      {
-        success: false,
-        error: "Failed to update story block",
-      },
+      { success: false, error: "Failed to update story block" },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: RouteContext
-) {
+export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
     const { id: storyId, blockId } = await params;
-
     const db = getDB();
 
     const existing = await db
-      .prepare(`
-        SELECT id
-        FROM story_blocks
-        WHERE id = ?
-          AND story_id = ?
-        LIMIT 1
-      `)
+      .prepare(`SELECT id FROM story_blocks WHERE id = ? AND story_id = ? LIMIT 1`)
       .bind(blockId, storyId)
       .first();
 
     if (!existing) {
       return Response.json(
-        {
-          success: false,
-          error: "Story block not found",
-        },
+        { success: false, error: "Story block not found" },
         { status: 404 }
       );
     }
 
-    // Remove media relationships first.
     await db
-      .prepare(`
-        DELETE FROM story_block_media
-        WHERE block_id = ?
-      `)
+      .prepare(`DELETE FROM story_block_media WHERE block_id = ?`)
       .bind(blockId)
       .run();
 
-    // Then remove the block itself.
     const result = await db
-      .prepare(`
-        DELETE FROM story_blocks
-        WHERE id = ?
-          AND story_id = ?
-      `)
+      .prepare(`DELETE FROM story_blocks WHERE id = ? AND story_id = ?`)
       .bind(blockId, storyId)
       .run();
 
     if (!result.meta.changes) {
       return Response.json(
-        {
-          success: false,
-          error: "Story block not found",
-        },
+        { success: false, error: "Story block not found" },
         { status: 404 }
       );
     }
 
-    return Response.json({
-      success: true,
-      deleted: blockId,
-    });
+    return Response.json({ success: true, deleted: blockId });
   } catch (error) {
-    console.error(
-      "DELETE /api/admin/stories/[id]/blocks/[blockId] error:",
-      error
-    );
-
+    console.error("DELETE story block error:", error);
     return Response.json(
-      {
-        success: false,
-        error: "Failed to delete story block",
-      },
+      { success: false, error: "Failed to delete story block" },
       { status: 500 }
     );
   }
