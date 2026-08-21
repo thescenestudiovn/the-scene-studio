@@ -125,6 +125,7 @@ function blockToSection(block: DbBlock) {
     case "gallery":
       return {
         type: "gallery" as const,
+        title: block.gallery_title || undefined,
         layout: block.gallery_layout || "grid",
         images: block.media.map((image) => ({
           src: image.path,
@@ -133,8 +134,22 @@ function blockToSection(block: DbBlock) {
       };
     case "quote":
       return { type: "quote" as const, text: block.body || block.title || "" };
-    case "credits":
-      return null;
+    case "credits": {
+      const items = (block.body || "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const separator = line.indexOf("—") >= 0 ? "—" : ":";
+          const index = line.indexOf(separator);
+          if (index < 0) return { label: "", value: line };
+          return {
+            label: line.slice(0, index).trim(),
+            value: line.slice(index + 1).trim(),
+          };
+        });
+      return { type: "credits" as const, items };
+    }
     default:
       return null;
   }
