@@ -54,7 +54,7 @@ type ApiResult<T = unknown> = {
 const MEDIA_BASE = "https://media.thescenestudio.asia";
 
 function mediaUrl(path: string) {
-  return `${MEDIA_BASE}/${path.replace(/^\\/+/, "")}`;
+  return `${MEDIA_BASE}/${path.replace(/^\/+/, "")}`;
 }
 
 const blockLabels: Record<BlockType, string> = {
