@@ -65,6 +65,14 @@ const blockLabels: Record<BlockType, string> = {
   credits: "Credits",
 };
 
+const blockDescriptions: Record<BlockType, string> = {
+  text: "A section of editorial copy",
+  image: "One large editorial photograph",
+  gallery: "A curated sequence of photographs",
+  quote: "A highlighted quote or vow",
+  credits: "Vendors and production credits",
+};
+
 export default function StoryEditorPage() {
   const params = useParams();
   const id = params.id as string;
@@ -78,18 +86,14 @@ export default function StoryEditorPage() {
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
   const [activeBlock, setActiveBlock] = useState<string | null>(null);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [mediaPicker, setMediaPicker] = useState<string | null>(null);
+  const [mediaSearch, setMediaSearch] = useState("");
 
   const loadStory = async () => {
     const res = await fetch(`/api/admin/stories/${id}`, { cache: "no-store" });
-    const data = (await res.json()) as {
-      success: boolean;
-      story: Story;
-      blocks: Block[];
-      error?: string;
-    };
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || `Failed to load story (${res.status})`);
-    }
+    const data = (await res.json()) as { success: boolean; story: Story; blocks: Block[]; error?: string };
+    if (!res.ok || !data.success) throw new Error(data.error || `Failed to load story (${res.status})`);
     setStory(data.story);
     setBlocks(data.blocks || []);
   };
@@ -98,14 +102,8 @@ export default function StoryEditorPage() {
     setMediaLoading(true);
     try {
       const res = await fetch("/api/admin/media", { cache: "no-store" });
-      const data = (await res.json()) as {
-        success: boolean;
-        media: Media[];
-        error?: string;
-      };
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || `Failed to load media (${res.status})`);
-      }
+      const data = (await res.json()) as { success: boolean; media: Media[]; error?: string };
+      if (!res.ok || !data.success) throw new Error(data.error || `Failed to load media (${res.status})`);
       setAllMedia(data.media || []);
     } catch (error) {
       console.error(error);
@@ -117,7 +115,6 @@ export default function StoryEditorPage() {
 
   useEffect(() => {
     let cancelled = false;
-
     async function init() {
       setLoading(true);
       setMessage("");
@@ -126,26 +123,28 @@ export default function StoryEditorPage() {
         if (!cancelled) void loadMedia();
       } catch (error) {
         console.error(error);
-        if (!cancelled) {
-          setMessage(error instanceof Error ? error.message : "Failed to load story editor");
-        }
+        if (!cancelled) setMessage(error instanceof Error ? error.message : "Failed to load story editor");
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-
     void init();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [id]);
+
+  const request = async <T,>(url: string, options?: RequestInit): Promise<T> => {
+    const res = await fetch(url, { ...options, cache: "no-store" });
+    const data = (await res.json()) as ApiResult<T>;
+    if (!res.ok || !data.success) throw new Error(data.error || `Request failed (${res.status})`);
+    return data as T;
+  };
 
   const saveStory = async () => {
     if (!story) return;
     setSaving(true);
     setMessage("");
     try {
-      const res = await fetch(`/api/admin/stories/${id}`, {
+      const result = await request<{ story: Story }>(`/api/admin/stories/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,12 +161,9 @@ export default function StoryEditorPage() {
           published: Boolean(story.published),
         }),
       });
-      const data = (await res.json()) as ApiResult<Story>;
-      if (!res.ok || !data.success || !data.story) throw new Error(data.error || "Failed to save story");
-      setStory(data.story);
+      if (result.story) setStory(result.story);
       setMessage("Saved");
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to save story");
     } finally {
       setSaving(false);
@@ -177,16 +173,13 @@ export default function StoryEditorPage() {
   const updateBlock = async (blockId: string, patch: Partial<Block>) => {
     setWorking(true);
     try {
-      const res = await fetch(`/api/admin/stories/${id}/blocks/${blockId}`, {
+      await request(`/api/admin/stories/${id}/blocks/${blockId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      const data = (await res.json()) as ApiResult<Block>;
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to update block");
       await loadStory();
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to update block");
     } finally {
       setWorking(false);
@@ -195,19 +188,17 @@ export default function StoryEditorPage() {
 
   const addBlock = async (type: BlockType) => {
     setWorking(true);
+    setShowAddMenu(false);
     try {
-      const res = await fetch(`/api/admin/stories/${id}/blocks`, {
+      const result = await request<{ block: Block }>(`/api/admin/stories/${id}/blocks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, sort_order: blocks.length, gallery_layout: "grid" }),
       });
-      const data = (await res.json()) as ApiResult<Block>;
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to add block");
       await loadStory();
-      if (data.block) setActiveBlock(data.block.id);
+      if (result.block) setActiveBlock(result.block.id);
       setMessage(`${blockLabels[type]} block added`);
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to add block");
     } finally {
       setWorking(false);
@@ -218,22 +209,15 @@ export default function StoryEditorPage() {
     if (!window.confirm("Delete this block?")) return;
     setWorking(true);
     try {
-      const res = await fetch(`/api/admin/stories/${id}/blocks/${blockId}`, { method: "DELETE" });
-      const data = (await res.json()) as ApiResult;
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete block");
+      await request(`/api/admin/stories/${id}/blocks/${blockId}`, { method: "DELETE" });
       setActiveBlock(null);
       await loadStory();
       setMessage("Block deleted");
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to delete block");
     } finally {
       setWorking(false);
     }
-  };
-
-  const updateBlockOrder = async (blockId: string, sort_order: number) => {
-    await updateBlock(blockId, { sort_order });
   };
 
   const moveBlock = async (index: number, direction: -1 | 1) => {
@@ -243,41 +227,29 @@ export default function StoryEditorPage() {
     try {
       const a = blocks[index];
       const b = blocks[target];
-      const [ra, rb] = await Promise.all([
-        fetch(`/api/admin/stories/${id}/blocks/${a.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sort_order: b.sort_order }),
-        }),
-        fetch(`/api/admin/stories/${id}/blocks/${b.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sort_order: a.sort_order }),
-        }),
+      await Promise.all([
+        request(`/api/admin/stories/${id}/blocks/${a.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: b.sort_order }) }),
+        request(`/api/admin/stories/${id}/blocks/${b.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: a.sort_order }) }),
       ]);
-      if (!ra.ok || !rb.ok) throw new Error("Failed to reorder blocks");
       await loadStory();
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to reorder blocks");
     } finally {
       setWorking(false);
     }
   };
 
-  const addMedia = async (blockId: string, mediaId: string, sort_order: number) => {
+  const addMedia = async (blockId: string, mediaId: string, sortOrder: number) => {
     setWorking(true);
     try {
-      const res = await fetch(`/api/admin/stories/${id}/blocks/${blockId}/media`, {
+      await request(`/api/admin/stories/${id}/blocks/${blockId}/media`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ media_id: mediaId, sort_order }),
+        body: JSON.stringify({ media_id: mediaId, sort_order: sortOrder }),
       });
-      const data = (await res.json()) as ApiResult;
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to add media");
+      setMediaPicker(null);
       await loadStory();
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to add media");
     } finally {
       setWorking(false);
@@ -287,16 +259,13 @@ export default function StoryEditorPage() {
   const removeMedia = async (blockId: string, mediaId: string) => {
     setWorking(true);
     try {
-      const res = await fetch(`/api/admin/stories/${id}/blocks/${blockId}/media`, {
+      await request(`/api/admin/stories/${id}/blocks/${blockId}/media`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ media_id: mediaId }),
       });
-      const data = (await res.json()) as ApiResult;
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to remove media");
       await loadStory();
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to remove media");
     } finally {
       setWorking(false);
@@ -310,137 +279,175 @@ export default function StoryEditorPage() {
     try {
       const a = block.media[index];
       const b = block.media[target];
-      const [ra, rb] = await Promise.all([
-        fetch(`/api/admin/stories/${id}/blocks/${block.id}/media`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ media_id: a.id, sort_order: b.sort_order }),
-        }),
-        fetch(`/api/admin/stories/${id}/blocks/${block.id}/media`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ media_id: b.id, sort_order: a.sort_order }),
-        }),
+      await Promise.all([
+        request(`/api/admin/stories/${id}/blocks/${block.id}/media`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: a.id, sort_order: b.sort_order }) }),
+        request(`/api/admin/stories/${id}/blocks/${block.id}/media`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: b.id, sort_order: a.sort_order }) }),
       ]);
-      if (!ra.ok || !rb.ok) throw new Error("Failed to reorder media");
       await loadStory();
     } catch (error) {
-      console.error(error);
       setMessage(error instanceof Error ? error.message : "Failed to reorder media");
     } finally {
       setWorking(false);
     }
   };
 
-  const mediaById = useMemo(() => new Map(allMedia.map((media) => [media.id, media])), [allMedia]);
+  const filteredMedia = useMemo(() => {
+    const q = mediaSearch.trim().toLowerCase();
+    if (!q) return allMedia;
+    return allMedia.filter((media) => `${media.filename} ${media.alt || ""}`.toLowerCase().includes(q));
+  }, [allMedia, mediaSearch]);
 
   if (loading) {
-    return <main style={{ padding: 40 }}>Loading story editor…</main>;
+    return <main className="min-h-screen bg-[#f7f5f0] px-6 pt-28 text-[#171717]"><div className="mx-auto max-w-7xl"><p className="font-sans text-[10px] uppercase tracking-[0.28em] opacity-50">The Scene Studio / Story Editor</p><div className="mt-12 h-1 w-24 animate-pulse bg-[#171717]/15" /></div></main>;
   }
 
   if (!story) {
-    return (
-      <main style={{ padding: 40, maxWidth: 900, margin: "0 auto" }}>
-        <h1>Story Editor</h1>
-        <p style={{ color: "#b00020" }}>{message || "Story not found."}</p>
-      </main>
-    );
+    return <main className="min-h-screen bg-[#f7f5f0] px-6 pt-28 text-[#171717]"><div className="mx-auto max-w-2xl"><p className="font-sans text-[10px] uppercase tracking-[0.28em] opacity-50">Story Editor</p><h1 className="mt-5 font-serif text-5xl tracking-[-0.04em]">Unable to open story.</h1><p className="mt-5 font-sans text-sm text-red-700">{message || "Story not found."}</p></div></main>;
   }
 
+  const active = blocks.find((block) => block.id === activeBlock) || null;
+
   return (
-    <main style={{ padding: "40px", maxWidth: "1200px", margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
-        <div>
-          <p style={{ marginBottom: 8, opacity: 0.6, fontSize: 14 }}>Story Editor</p>
-          <h1 style={{ margin: 0 }}>{story.title}</h1>
-        </div>
-        <button onClick={saveStory} disabled={saving} style={{ padding: "12px 24px", border: "none", background: "#111", color: "#fff", cursor: saving ? "default" : "pointer" }}>
-          {saving ? "Saving…" : "Save Story"}
-        </button>
-      </div>
-
-      {message && <p style={{ marginBottom: 30, padding: 12, background: "#f3f3f3" }}>{message}</p>}
-      {mediaLoading && <p style={{ opacity: 0.6 }}>Loading media library…</p>}
-
-      <section style={{ border: "1px solid #ddd", padding: 24, marginBottom: 40 }}>
-        <h2>Story Information</h2>
-        <label>Title<input value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 20 }} /></label>
-        <label>Slug<input value={story.slug} onChange={(e) => setStory({ ...story, slug: e.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 20 }} /></label>
-        <label>Description<textarea value={story.description || ""} onChange={(e) => setStory({ ...story, description: e.target.value })} rows={5} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 20 }} /></label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
-          <label>Location<input value={story.location || ""} onChange={(e) => setStory({ ...story, location: e.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6 }} /></label>
-          <label>Date<input type="date" value={story.date || ""} onChange={(e) => setStory({ ...story, date: e.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6 }} /></label>
-          <label>Category<input value={story.category || ""} onChange={(e) => setStory({ ...story, category: e.target.value })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6 }} /></label>
-        </div>
-      </section>
-
-      <section>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Story Blocks</h2>
-          <div style={{ display: "flex", gap: 8 }}>
-            {(["text", "image", "gallery", "quote", "credits"] as BlockType[]).map((type) => (
-              <button key={type} onClick={() => addBlock(type)} disabled={working} style={{ padding: "8px 12px" }}>+ {blockLabels[type]}</button>
-            ))}
+    <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
+      <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f5f0]/95 px-5 py-4 backdrop-blur-md md:px-8">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-6">
+          <div className="min-w-0">
+            <a href="/admin/stories" className="font-sans text-[9px] uppercase tracking-[0.28em] opacity-50 hover:opacity-100">← Stories</a>
+            <div className="mt-1 flex items-center gap-3">
+              <h1 className="truncate font-serif text-xl tracking-[-0.03em] md:text-2xl">{story.title}</h1>
+              <span className={`hidden rounded-full px-2 py-1 font-sans text-[8px] uppercase tracking-[0.18em] sm:inline-flex ${story.published ? "bg-[#263a2d] text-white" : "bg-black/8 text-black/55"}`}>{story.published ? "Published" : "Draft"}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 md:gap-3">
+            <a href={`/stories/${story.slug}`} target="_blank" rel="noreferrer" className="hidden border border-black/15 px-4 py-2 font-sans text-[9px] uppercase tracking-[0.2em] hover:bg-black hover:text-white md:inline-block">Preview ↗</a>
+            <button onClick={saveStory} disabled={saving || working} className="bg-[#171717] px-5 py-2.5 font-sans text-[9px] uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-75 disabled:opacity-40">{saving ? "Saving…" : "Save"}</button>
           </div>
         </div>
+      </header>
 
-        {blocks.length === 0 ? <p>No blocks.</p> : blocks.map((block, index) => (
-          <article key={block.id} style={{ border: "1px solid #ddd", padding: 24, marginTop: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p style={{ opacity: 0.5, fontSize: 13 }}>{block.type} · Order {block.sort_order}</p>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => moveBlock(index, -1)} disabled={working || index === 0}>↑</button>
-                <button onClick={() => moveBlock(index, 1)} disabled={working || index === blocks.length - 1}>↓</button>
-                <button onClick={() => deleteBlock(block.id)} disabled={working}>Delete</button>
+      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[230px_minmax(0,1fr)_310px]">
+        <aside className="border-r border-black/10 px-5 py-7 lg:min-h-[calc(100vh-73px)]">
+          <div className="flex items-center justify-between">
+            <p className="font-sans text-[9px] uppercase tracking-[0.24em] opacity-50">Story structure</p>
+            <button onClick={() => setShowAddMenu((value) => !value)} className="text-xl leading-none opacity-60 hover:opacity-100">+</button>
+          </div>
+          {showAddMenu && (
+            <div className="mt-3 overflow-hidden border border-black/10 bg-white shadow-sm">
+              {(Object.keys(blockLabels) as BlockType[]).map((type) => (
+                <button key={type} onClick={() => addBlock(type)} disabled={working} className="block w-full border-b border-black/5 px-3 py-3 text-left last:border-0 hover:bg-[#ece9e2] disabled:opacity-40">
+                  <span className="block font-serif text-base">{blockLabels[type]}</span>
+                  <span className="mt-0.5 block font-sans text-[8px] uppercase tracking-[0.12em] opacity-45">{blockDescriptions[type]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="mt-5 space-y-1">
+            {blocks.map((block, index) => (
+              <button key={block.id} onClick={() => setActiveBlock(block.id)} className={`group flex w-full items-center gap-3 px-2.5 py-3 text-left transition ${activeBlock === block.id ? "bg-black text-white" : "hover:bg-black/5"}`}>
+                <span className="w-5 font-sans text-[9px] opacity-40">{String(index + 1).padStart(2, "0")}</span>
+                <span className="flex-1 font-sans text-[10px] uppercase tracking-[0.14em]">{blockLabels[block.type]}</span>
+                <span className="text-[10px] opacity-35">{block.type === "gallery" ? block.media.length : ""}</span>
+              </button>
+            ))}
+          </div>
+          {blocks.length === 0 && <p className="mt-5 font-serif text-lg opacity-40">Start building the story.</p>}
+        </aside>
+
+        <section className="min-w-0 px-5 py-8 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-[900px]">
+            <div className="mb-10 border-b border-black/10 pb-8">
+              <p className="font-sans text-[9px] uppercase tracking-[0.28em] opacity-45">Story information</p>
+              <input value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} className="mt-4 w-full border-0 bg-transparent p-0 font-serif text-4xl tracking-[-0.04em] outline-none placeholder:opacity-20 md:text-6xl" placeholder="Story title" />
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <input value={story.location || ""} onChange={(e) => setStory({ ...story, location: e.target.value })} placeholder="Location" className="border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase tracking-[0.16em] outline-none" />
+                <input value={story.date || ""} onChange={(e) => setStory({ ...story, date: e.target.value })} placeholder="Date" className="border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase tracking-[0.16em] outline-none" />
+                <input value={story.category || ""} onChange={(e) => setStory({ ...story, category: e.target.value })} placeholder="Category" className="border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase tracking-[0.16em] outline-none" />
               </div>
+              <textarea value={story.description || ""} onChange={(e) => setStory({ ...story, description: e.target.value })} rows={3} placeholder="Short story introduction" className="mt-6 w-full resize-none border-0 bg-transparent p-0 font-serif text-xl leading-relaxed outline-none placeholder:opacity-25" />
             </div>
 
-            {block.type === "gallery" && (
-              <>
-                <label>Gallery title<input value={block.gallery_title || ""} onChange={(e) => updateBlock(block.id, { gallery_title: e.target.value || null })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }} /></label>
-                <label>Layout<select value={block.gallery_layout || "grid"} onChange={(e) => updateBlock(block.id, { gallery_layout: e.target.value as GalleryLayout })} style={{ display: "block", padding: 10, marginTop: 6, marginBottom: 20 }}><option value="grid">Grid</option><option value="feature">Feature</option><option value="portrait-pair">Portrait pair</option></select></label>
-              </>
-            )}
+            {message && <div className="mb-6 border-l-2 border-black px-4 py-3 font-sans text-[10px] uppercase tracking-[0.12em]">{message}</div>}
 
-            <label>Eyebrow<input value={block.eyebrow || ""} onChange={(e) => updateBlock(block.id, { eyebrow: e.target.value || null })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }} /></label>
-            <label>Title<input value={block.title || ""} onChange={(e) => updateBlock(block.id, { title: e.target.value || null })} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }} /></label>
-            <label>Body<textarea value={block.body || ""} onChange={(e) => updateBlock(block.id, { body: e.target.value || null })} rows={4} style={{ display: "block", width: "100%", padding: 10, marginTop: 6, marginBottom: 20 }} /></label>
-
-            {block.media.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-                {block.media.map((media, mediaIndex) => (
-                  <div key={media.id} style={{ border: "1px solid #ddd", overflow: "hidden" }}>
-                    <img src={mediaUrl(media.path)} alt={media.alt || media.filename} width={media.width || undefined} height={media.height || undefined} loading="lazy" decoding="async" referrerPolicy="no-referrer" style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
-                    <div style={{ padding: 10 }}>
-                      <strong style={{ display: "block", fontSize: 13 }}>{media.filename}</strong>
-                      <small style={{ opacity: 0.6 }}>{media.width} × {media.height}</small>
-                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                        <button onClick={() => moveMedia(block, mediaIndex, -1)} disabled={working || mediaIndex === 0}>←</button>
-                        <button onClick={() => moveMedia(block, mediaIndex, 1)} disabled={working || mediaIndex === block.media.length - 1}>→</button>
-                        <button onClick={() => removeMedia(block.id, media.id)} disabled={working}>Remove</button>
-                      </div>
+            <div className="space-y-7">
+              {blocks.map((block, index) => (
+                <article key={block.id} onClick={() => setActiveBlock(block.id)} className={`group relative overflow-hidden border bg-white transition ${activeBlock === block.id ? "border-black shadow-[0_12px_40px_rgba(0,0,0,.06)]" : "border-black/8 hover:border-black/25"}`}>
+                  <div className="flex items-center justify-between border-b border-black/8 px-5 py-3">
+                    <div className="flex items-center gap-3"><span className="font-sans text-[9px] uppercase tracking-[0.2em] opacity-40">{String(index + 1).padStart(2, "0")}</span><span className="font-sans text-[9px] uppercase tracking-[0.2em]">{blockLabels[block.type]}</span></div>
+                    <div className="flex items-center gap-1 opacity-40 transition group-hover:opacity-100">
+                      <button onClick={(e) => { e.stopPropagation(); void moveBlock(index, -1); }} disabled={working || index === 0} className="px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-20">↑</button>
+                      <button onClick={(e) => { e.stopPropagation(); void moveBlock(index, 1); }} disabled={working || index === blocks.length - 1} className="px-2 py-1 text-xs hover:bg-black/5 disabled:opacity-20">↓</button>
+                      <button onClick={(e) => { e.stopPropagation(); void deleteBlock(block.id); }} disabled={working} className="px-2 py-1 font-sans text-[8px] uppercase tracking-[0.12em] text-red-700 hover:bg-red-50 disabled:opacity-30">Delete</button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
 
-            {block.type === "gallery" && (
-              <div style={{ marginTop: 20 }}>
-                <h4>Add media</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-                  {allMedia.filter((media) => !block.media.some((item) => item.id === media.id)).slice(0, 40).map((media) => (
-                    <button key={media.id} onClick={() => addMedia(block.id, media.id, block.media.length)} disabled={working} style={{ textAlign: "left", padding: 6, background: "#fff", border: "1px solid #ddd" }}>
-                      <img src={mediaUrl(media.path)} alt={media.alt || media.filename} style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} />
-                      <small>{media.filename}</small>
-                    </button>
-                  ))}
-                </div>
+                  <div className="p-6 md:p-8">
+                    {block.eyebrow && <p className="mb-3 font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">{block.eyebrow}</p>}
+                    {block.title && <h2 className="font-serif text-3xl tracking-[-0.035em] md:text-4xl">{block.title}</h2>}
+                    {block.body && <p className="mt-4 max-w-2xl whitespace-pre-wrap font-serif text-lg leading-[1.65] opacity-75">{block.body}</p>}
+
+                    {block.type === "image" && block.media[0] && <img src={mediaUrl(block.media[0].path)} alt={block.media[0].alt || block.media[0].filename} className="mt-6 max-h-[620px] w-full object-contain bg-[#ece9e2]" />}
+
+                    {block.type === "gallery" && (
+                      <div className={`mt-6 grid gap-2 ${block.gallery_layout === "portrait-pair" ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"}`}>
+                        {block.media.map((media) => <img key={media.id} src={mediaUrl(media.path)} alt={media.alt || media.filename} className={`w-full object-cover ${block.gallery_layout === "feature" ? "aspect-[4/3] first:col-span-2 first:aspect-[16/9]" : block.gallery_layout === "portrait-pair" ? "aspect-[2/3]" : "aspect-[4/3]"}`} />)}
+                        {block.media.length === 0 && <div className="col-span-full border border-dashed border-black/15 px-6 py-16 text-center font-serif text-xl opacity-40">No images yet</div>}
+                      </div>
+                    )}
+
+                    {block.type === "quote" && <div className="my-5 border-l border-black/20 pl-6"><span className="font-serif text-5xl opacity-20">“</span><p className="font-serif text-2xl leading-relaxed">{block.body || "Quote"}</p></div>}
+                  </div>
+                </article>
+              ))}
+
+              <button onClick={() => setShowAddMenu(true)} className="w-full border border-dashed border-black/15 py-8 font-sans text-[9px] uppercase tracking-[0.25em] opacity-50 transition hover:border-black/40 hover:opacity-100">+ Add story block</button>
+            </div>
+          </div>
+        </section>
+
+        <aside className="border-l border-black/10 bg-[#ece9e2]/35 px-5 py-7 lg:min-h-[calc(100vh-73px)]">
+          {!active ? (
+            <div className="sticky top-24">
+              <p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Inspector</p>
+              <p className="mt-5 font-serif text-2xl leading-tight opacity-45">Select a block to edit its content and media.</p>
+            </div>
+          ) : (
+            <div className="sticky top-24">
+              <div className="flex items-center justify-between"><p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">{blockLabels[active.type]}</p><button onClick={() => setActiveBlock(null)} className="font-sans text-[9px] uppercase tracking-[0.18em] opacity-45 hover:opacity-100">Close</button></div>
+              <div className="mt-7 space-y-6">
+                <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.2em] opacity-45">Eyebrow</span><input value={active.eyebrow || ""} onChange={(e) => void updateBlock(active.id, { eyebrow: e.target.value || null })} className="mt-2 w-full border-b border-black/15 bg-transparent py-2 font-serif text-lg outline-none" /></label>
+                <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.2em] opacity-45">Title</span><input value={active.title || ""} onChange={(e) => void updateBlock(active.id, { title: e.target.value || null })} className="mt-2 w-full border-b border-black/15 bg-transparent py-2 font-serif text-lg outline-none" /></label>
+                <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.2em] opacity-45">Body</span><textarea value={active.body || ""} onChange={(e) => void updateBlock(active.id, { body: e.target.value || null })} rows={8} className="mt-2 w-full resize-y border border-black/10 bg-white p-3 font-serif text-sm leading-relaxed outline-none" /></label>
+
+                {active.type === "gallery" && <>
+                  <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.2em] opacity-45">Gallery title</span><input value={active.gallery_title || ""} onChange={(e) => void updateBlock(active.id, { gallery_title: e.target.value || null })} className="mt-2 w-full border-b border-black/15 bg-transparent py-2 font-serif text-lg outline-none" /></label>
+                  <label className="block"><span className="font-sans text-[8px] uppercase tracking-[0.2em] opacity-45">Layout</span><select value={active.gallery_layout || "grid"} onChange={(e) => void updateBlock(active.id, { gallery_layout: e.target.value as GalleryLayout })} className="mt-2 w-full border border-black/10 bg-white p-3 font-sans text-[10px] uppercase tracking-[0.12em] outline-none"><option value="grid">Grid</option><option value="feature">Feature</option><option value="portrait-pair">Portrait Pair</option></select></label>
+                </>}
+
+                {(active.type === "gallery" || active.type === "image") && <div>
+                  <div className="flex items-center justify-between"><span className="font-sans text-[8px] uppercase tracking-[0.2em] opacity-45">Media</span><button onClick={() => { setMediaSearch(""); setMediaPicker(active.id); }} className="font-sans text-[8px] uppercase tracking-[0.15em] underline underline-offset-4">Add media</button></div>
+                  <div className="mt-3 space-y-2">
+                    {active.media.map((media, index) => <div key={media.id} className="flex gap-3 border-b border-black/8 pb-2"><img src={mediaUrl(media.path)} alt={media.alt || media.filename} className="h-14 w-14 shrink-0 object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-sans text-[9px]">{media.filename}</p><div className="mt-1 flex gap-2"><button onClick={() => void moveMedia(active, index, -1)} disabled={working || index === 0} className="text-[10px] opacity-50 disabled:opacity-15">←</button><button onClick={() => void moveMedia(active, index, 1)} disabled={working || index === active.media.length - 1} className="text-[10px] opacity-50 disabled:opacity-15">→</button><button onClick={() => void removeMedia(active.id, media.id)} disabled={working} className="font-sans text-[8px] uppercase text-red-700">Remove</button></div></div></div>)}
+                    {active.media.length === 0 && <p className="py-4 font-serif text-sm opacity-40">No media selected.</p>}
+                  </div>
+                </div>}
               </div>
-            )}
-          </article>
-        ))}
-      </section>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {mediaPicker && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-0 md:items-center md:p-8" onClick={() => setMediaPicker(null)}>
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden bg-[#f7f5f0] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-black/10 px-5 py-4 md:px-7"><div><p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Media library</p><h2 className="mt-1 font-serif text-2xl">Choose photographs</h2></div><button onClick={() => setMediaPicker(null)} className="font-sans text-[9px] uppercase tracking-[0.2em] opacity-50 hover:opacity-100">Close ×</button></div>
+            <div className="border-b border-black/10 px-5 py-3 md:px-7"><input autoFocus value={mediaSearch} onChange={(e) => setMediaSearch(e.target.value)} placeholder="Search filename…" className="w-full border-0 bg-transparent font-sans text-xs outline-none" /></div>
+            <div className="max-h-[65vh] overflow-y-auto p-5 md:p-7">
+              {mediaLoading ? <p className="py-20 text-center font-serif text-2xl opacity-40">Loading photographs…</p> : <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">{filteredMedia.map((media) => <button key={media.id} onClick={() => void addMedia(mediaPicker, media.id, blocks.find((block) => block.id === mediaPicker)?.media.length || 0)} disabled={working} className="group overflow-hidden bg-white text-left disabled:opacity-40"><img src={mediaUrl(media.path)} alt={media.alt || media.filename} className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]" /><span className="block truncate px-2 py-2 font-sans text-[8px] uppercase tracking-[0.08em] opacity-60">{media.filename}</span></button>)}</div>}
+              {!mediaLoading && filteredMedia.length === 0 && <p className="py-20 text-center font-serif text-2xl opacity-40">No photographs found.</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
