@@ -15,11 +15,13 @@ type Media = {
 
 type ResponseData = { success: boolean; media: Media[]; error?: string };
 
+const MEDIA_BASE = "https://media.thescenestudio.asia";
+
 function mediaUrl(path: string) {
   const value = (path || "").trim();
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
-  return `/api/media?path=${encodeURIComponent(value)}`;
+  return `${MEDIA_BASE}/${value.replace(/^\/+/, "")}`;
 }
 
 export default function AdminMediaPage() {
@@ -69,8 +71,8 @@ export default function AdminMediaPage() {
             {filtered.map((item) => {
               const src = mediaUrl(item.path);
               return <article key={item.id} className="overflow-hidden border border-black/10 bg-white/50">
-                <div className="aspect-square bg-black/5">
-                  {src ? <img src={src} alt={item.alt || item.filename || ""} className="h-full w-full object-cover" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
+                <div className="relative aspect-square bg-black/5">
+                  {src ? <img src={src} alt={item.alt || item.filename || ""} className="h-full w-full object-cover" loading="lazy" /> : <div className="flex h-full items-center justify-center font-sans text-[9px] uppercase tracking-[0.12em] opacity-30">No image path</div>}
                 </div>
                 <div className="p-3"><p className="truncate font-sans text-[9px] uppercase tracking-[0.08em]">{item.filename || item.path}</p><p className="mt-1 truncate font-sans text-[8px] opacity-40">{item.path}</p></div>
               </article>;
