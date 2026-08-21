@@ -4,7 +4,11 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 type Collection = { id: string; title: string; slug: string; description: string | null; destination_name: string | null; destination_country: string | null };
-type Media = { id: string; path: string; filename: string | null; alt: string | null; width: number | null; height: number | null; sort_order: number; type: string };
+type Media = { id: string; collection_id: string; path: string; filename: string | null; alt: string | null; width: number | null; height: number | null; sort_order: number; type: string };
+type CollectionsResponse = { success?: boolean; collections?: Collection[]; error?: string };
+type MediaResponse = { success?: boolean; media?: Media[]; error?: string };
+type UploadResponse = { success?: boolean; media?: Media[]; error?: string };
+type DeleteResponse = { success?: boolean; error?: string };
 
 function imageUrl(path: string) { return `/api/media?path=${encodeURIComponent(path)}`; }
 
@@ -20,12 +24,14 @@ export default function CollectionDetailPage() {
 
   async function load() {
     const [collectionsResponse, mediaResponse] = await Promise.all([fetch("/api/admin/collections", { cache: "no-store" }), fetch("/api/admin/media", { cache: "no-store" })]);
-    const collections = await collectionsResponse.json();
-    const mediaData = await mediaResponse.json();
-    const found = (collections.collections || []).find((item: Collection) => item.id === id);
+    const collections = (await collectionsResponse.json()) as CollectionsResponse;
+    const mediaData = (await mediaResponse.json()) as MediaResponse;
+    if (!collectionsResponse.ok || !collections.success) throw new Error(collections.error || "Failed to load collections");
+    if (!mediaResponse.ok || !mediaData.success) throw new Error(mediaData.error || "Failed to load media");
+    const found = (collections.collections ?? []).find((item) => item.id === id);
     if (!found) throw new Error("Collection not found");
     setCollection(found);
-    setMedia((mediaData.media || []).filter((item: Media) => item.collection_id === id));
+    setMedia((mediaData.media ?? []).filter((item) => item.collection_id === id));
   }
 
   useEffect(() => { void load().catch((e) => setError(e instanceof Error ? e.message : "Failed to load collection")); }, [id]);
@@ -40,9 +46,9 @@ export default function CollectionDetailPage() {
       form.set("collection_id", id);
       files.forEach((file) => form.append("files", file, file.name));
       const response = await fetch("/api/admin/media/upload", { method: "POST", body: form });
-      const data = await response.json();
+      const data = (await response.json()) as UploadResponse;
       if (!response.ok || !data.success) throw new Error(data.error || "Upload failed");
-      setFiles([]); setMessage(`${(data.media || []).length} image(s) uploaded`);
+      setFiles([]); setMessage(`${(data.media ?? []).length} image(s) uploaded`);
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed"); }
     finally { setBusy(false); }
@@ -51,7 +57,7 @@ export default function CollectionDetailPage() {
   async function removeMedia(mediaId: string) {
     if (!window.confirm("Remove this image from the collection?")) return;
     const response = await fetch("/api/admin/media", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: mediaId }) });
-    const data = await response.json();
+    const data = (await response.json()) as DeleteResponse;
     if (!response.ok || !data.success) { setError(data.error || "Failed to remove image"); return; }
     setMedia((items) => items.filter((item) => item.id !== mediaId));
   }
