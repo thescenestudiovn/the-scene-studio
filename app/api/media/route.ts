@@ -16,20 +16,31 @@ function getMediaUrl(request: NextRequest) {
 }
 
 async function fetchOrigin(url: string) {
-  // Do not use Next.js cache semantics here. This route is a binary media
-  // proxy running inside a Cloudflare Worker; use the native Worker fetch
-  // cache controls instead.
+  // Keep this proxy deliberately simple. The NAS is behind Cloudflare/Tunnel,
+  // and the browser cannot embed its response directly because TNAS sends
+  // Cross-Origin-Resource-Policy: same-origin. The Worker proxy removes that
+  // restriction and streams the original bytes without buffering the image.
   return fetch(url, {
     method: "GET",
     redirect: "follow",
     headers: {
       Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
     },
-    cf: {
-      cacheTtl: 86400,
-      cacheEverything: true,
-    },
   });
+}
+
+function responseHeaders(origin: Response) {
+  const headers = new Headers();
+  headers.set("Content-Type", origin.headers.get("content-type") || "application/octet-stream");
+  headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+  headers.set("X-Content-Type-Options", "nosniff");
+
+  const contentLength = origin.headers.get("content-length");
+  if (contentLength) headers.set("Content-Length", contentLength);
+
+  return headers;
 }
 
 export async function GET(request: NextRequest) {
@@ -52,23 +63,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const headers = new Headers();
-    headers.set(
-      "Content-Type",
-      origin.headers.get("content-type") || "application/octet-stream"
-    );
-    headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
-    headers.set("Access-Control-Allow-Origin", "*");
-    headers.set("Cross-Origin-Resource-Policy", "cross-origin");
-
-    const contentLength = origin.headers.get("content-length");
-    if (contentLength) headers.set("Content-Length", contentLength);
-
-    // Return the origin stream directly. Workers/OpenNext supports streaming
-    // Response bodies; buffering multi-megapixel photos wastes memory.
     return new Response(origin.body, {
       status: 200,
-      headers,
+      headers: responseHeaders(origin),
     });
   } catch (error) {
     console.error("Media proxy failed", error);
@@ -85,25 +82,18 @@ export async function HEAD(request: NextRequest) {
   if (!url) return new Response(null, { status: 400 });
 
   try {
+    // Fetch the origin as GET and discard the body. This avoids relying on
+    // WebDAV/TNAS HEAD support, which is inconsistent across NAS versions.
     const origin = await fetchOrigin(url);
 
     if (!origin.ok) {
       return new Response(null, { status: origin.status || 502 });
     }
 
-    const headers = new Headers();
-    headers.set(
-      "Content-Type",
-      origin.headers.get("content-type") || "application/octet-stream"
-    );
-    headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
-    headers.set("Access-Control-Allow-Origin", "*");
-    headers.set("Cross-Origin-Resource-Policy", "cross-origin");
-
-    const contentLength = origin.headers.get("content-length");
-    if (contentLength) headers.set("Content-Length", contentLength);
-
-    return new Response(null, { status: 200, headers });
+    return new Response(null, {
+      status: 200,
+      headers: responseHeaders(origin),
+    });
   } catch (error) {
     console.error("Media HEAD proxy failed", error);
     return new Response(null, { status: 502 });
