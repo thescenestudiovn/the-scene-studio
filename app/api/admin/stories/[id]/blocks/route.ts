@@ -17,10 +17,7 @@ type CreateBlockBody = {
   gallery_layout?: "grid" | "feature" | "portrait-pair";
 };
 
-export async function GET(
-  _request: Request,
-  { params }: RouteContext
-) {
+export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const db = getDB();
@@ -44,10 +41,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: Request,
-  { params }: RouteContext
-) {
+export async function POST(request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const body = (await request.json()) as CreateBlockBody;
@@ -63,10 +57,7 @@ export async function POST(
     } = body;
 
     if (!type) {
-      return Response.json(
-        { success: false, error: "type is required" },
-        { status: 400 }
-      );
+      return Response.json({ success: false, error: "type is required" }, { status: 400 });
     }
 
     const db = getDB();
@@ -76,10 +67,7 @@ export async function POST(
       .first();
 
     if (!story) {
-      return Response.json(
-        { success: false, error: "Story not found" },
-        { status: 404 }
-      );
+      return Response.json({ success: false, error: "Story not found" }, { status: 404 });
     }
 
     const blockId = crypto.randomUUID();
