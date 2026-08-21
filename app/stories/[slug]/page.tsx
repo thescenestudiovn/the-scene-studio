@@ -61,7 +61,7 @@ async function getDbStory(slug: string) {
 
   const blocks = await Promise.all(
     (rows.results || []).map(async (block) => {
-      const media = await db
+      const junctionMedia = await db
         .prepare(`
           SELECT m.id, m.path, m.filename, m.alt, m.width, m.height, sbm.sort_order
           FROM story_block_media sbm
@@ -71,7 +71,24 @@ async function getDbStory(slug: string) {
         `)
         .bind(block.id)
         .all<DbMedia>();
-      return { ...block, media: media.results || [] };
+
+      let media = junctionMedia.results || [];
+
+      if (media.length === 0 && block.type === "image" && block.media_id) {
+        const directMedia = await db
+          .prepare(`
+            SELECT id, path, filename, alt, width, height, 0 AS sort_order
+            FROM media
+            WHERE id = ?
+            LIMIT 1
+          `)
+          .bind(block.media_id)
+          .first<DbMedia>();
+
+        if (directMedia) media = [directMedia];
+      }
+
+      return { ...block, media };
     })
   );
 
