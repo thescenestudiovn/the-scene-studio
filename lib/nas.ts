@@ -1,4 +1,4 @@
-const NAS_WEBDAV_URL = process.env.NAS_WEBDAV_URL || "";
+const NAS_WEBDAV_URL = (process.env.NAS_WEBDAV_URL || "").trim();
 const NAS_USERNAME = process.env.NAS_USERNAME || "";
 const NAS_PASSWORD = process.env.NAS_PASSWORD || "";
 
@@ -25,6 +25,22 @@ export function nasConfigured() {
   return Boolean(NAS_WEBDAV_URL && NAS_USERNAME && NAS_PASSWORD);
 }
 
+export function nasConfigurationError() {
+  if (!NAS_WEBDAV_URL) return "NAS_WEBDAV_URL is not configured.";
+  if (!NAS_USERNAME || !NAS_PASSWORD) return "NAS_USERNAME and NAS_PASSWORD are not configured.";
+
+  try {
+    const host = new URL(NAS_WEBDAV_URL).hostname;
+    if (host === "media.thescenestudio.asia") {
+      return "NAS_WEBDAV_URL points to media.thescenestudio.asia, which is the read-only media CDN. Point it to the NAS WebDAV endpoint instead.";
+    }
+  } catch {
+    return "NAS_WEBDAV_URL is invalid.";
+  }
+
+  return null;
+}
+
 async function ensureNasDirectories(path: string) {
   const parts = path.split("/").filter(Boolean);
   if (parts.length <= 1) return;
@@ -32,7 +48,26 @@ async function ensureNasDirectories(path: string) {
   let current = "";
   for (const part of parts.slice(0, -1)) {
     current = current ? `${current}/${part}` : part;
-    const response = await fetch(joinUrl(NAS_WEBDAV_URL, current), {
+    const url = joinUrl(NAS_WEBDAV_URL, current);
+
+    const probe = await fetch(url, {
+      method: "PROPFIND",
+      headers: new Headers({
+        Authorization: authHeader() || "",
+        Depth: "0",
+      }),
+    });
+
+    if (probe.ok || probe.status === 207) continue;
+
+    if (probe.status !== 404) {
+      const detail = await probe.text().catch(() => "");
+      throw new Error(
+        `NAS WebDAV directory check failed (${probe.status}) at ${current}${detail ? `: ${detail.slice(0, 300)}` : ""}`,
+      );
+    }
+
+    const response = await fetch(url, {
       method: "MKCOL",
       headers: requestHeaders(),
     });
@@ -40,16 +75,15 @@ async function ensureNasDirectories(path: string) {
     if (!response.ok && response.status !== 405) {
       const detail = await response.text().catch(() => "");
       throw new Error(
-        `NAS directory creation failed (${response.status})${detail ? `: ${detail.slice(0, 300)}` : ""}`,
+        `NAS WebDAV directory creation failed (${response.status}) at ${current}${detail ? `: ${detail.slice(0, 300)}` : ""}`,
       );
     }
   }
 }
 
 export async function uploadToNas(path: string, file: File) {
-  if (!nasConfigured()) {
-    throw new Error("NAS upload is not configured. Set NAS_WEBDAV_URL, NAS_USERNAME and NAS_PASSWORD.");
-  }
+  const configurationError = nasConfigurationError();
+  if (configurationError) throw new Error(configurationError);
 
   const cleanPath = sanitizeNasPath(path);
   await ensureNasDirectories(cleanPath);
@@ -63,7 +97,7 @@ export async function uploadToNas(path: string, file: File) {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(`NAS upload failed (${response.status})${detail ? `: ${detail.slice(0, 300)}` : ""}`);
+    throw new Error(`NAS WebDAV upload failed (${response.status})${detail ? `: ${detail.slice(0, 300)}` : ""}`);
   }
 
   return url;
