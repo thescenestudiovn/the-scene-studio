@@ -2,8 +2,10 @@ const NAS_WEBDAV_URL = process.env.NAS_WEBDAV_URL || "";
 const NAS_USERNAME = process.env.NAS_USERNAME || "";
 const NAS_PASSWORD = process.env.NAS_PASSWORD || "";
 
-function joinUrl(base: string, path: string) {
-  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+function joinUrl(base: string, path = "") {
+  const cleanBase = base.replace(/\/+$/, "");
+  const cleanPath = path.replace(/^\/+/, "");
+  return cleanPath ? `${cleanBase}/${cleanPath}` : cleanBase;
 }
 
 function authHeader() {
@@ -11,8 +13,37 @@ function authHeader() {
   return `Basic ${btoa(`${NAS_USERNAME}:${NAS_PASSWORD}`)}`;
 }
 
+function requestHeaders(contentType?: string) {
+  const headers = new Headers();
+  if (contentType) headers.set("Content-Type", contentType);
+  const authorization = authHeader();
+  if (authorization) headers.set("Authorization", authorization);
+  return headers;
+}
+
 export function nasConfigured() {
   return Boolean(NAS_WEBDAV_URL && NAS_USERNAME && NAS_PASSWORD);
+}
+
+async function ensureNasDirectories(path: string) {
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length <= 1) return;
+
+  let current = "";
+  for (const part of parts.slice(0, -1)) {
+    current = current ? `${current}/${part}` : part;
+    const response = await fetch(joinUrl(NAS_WEBDAV_URL, current), {
+      method: "MKCOL",
+      headers: requestHeaders(),
+    });
+
+    if (!response.ok && response.status !== 405) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(
+        `NAS directory creation failed (${response.status})${detail ? `: ${detail.slice(0, 300)}` : ""}`,
+      );
+    }
+  }
 }
 
 export async function uploadToNas(path: string, file: File) {
@@ -20,15 +51,13 @@ export async function uploadToNas(path: string, file: File) {
     throw new Error("NAS upload is not configured. Set NAS_WEBDAV_URL, NAS_USERNAME and NAS_PASSWORD.");
   }
 
-  const url = joinUrl(NAS_WEBDAV_URL, path);
-  const headers = new Headers();
-  headers.set("Content-Type", file.type || "application/octet-stream");
-  const authorization = authHeader();
-  if (authorization) headers.set("Authorization", authorization);
+  const cleanPath = sanitizeNasPath(path);
+  await ensureNasDirectories(cleanPath);
 
+  const url = joinUrl(NAS_WEBDAV_URL, cleanPath);
   const response = await fetch(url, {
     method: "PUT",
-    headers,
+    headers: requestHeaders(file.type || "application/octet-stream"),
     body: file.stream(),
   });
 
