@@ -1,255 +1,167 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 type Media = { id: string; path: string; filename: string; alt: string | null; width: number | null; height: number | null; sort_order: number };
 type BlockType = "text" | "image" | "gallery" | "quote" | "credits";
-type GalleryLayout = "grid" | "feature" | "portrait-pair";
-type Block = { id: string; type: BlockType; sort_order: number; eyebrow: string | null; title: string | null; body: string | null; media_id: string | null; gallery_title: string | null; gallery_layout: GalleryLayout; media: Media[] };
+type Layout = "grid" | "feature" | "portrait-pair";
+type Block = { id: string; type: BlockType; sort_order: number; eyebrow: string | null; title: string | null; body: string | null; media_id: string | null; gallery_title: string | null; gallery_layout: Layout; media: Media[] };
 type Story = { id: string; slug: string; title: string; location: string | null; date: string | null; category: string | null; description: string | null; seo_title?: string | null; seo_description?: string | null; destination_id?: string | null; cover_media_id?: string | null; published: number };
-type ApiResult<T = unknown> = { success: boolean; error?: string; story?: T; block?: T };
-type AddCategory = "Text" | "Image" | "Content" | "Links" | "Video" | "Contact" | "Social" | "Others" | "Flex Block";
-type AddOption = { label: string; type: BlockType; preset?: string };
+type Destination = { id: string; name: string; country_name: string; slug: string };
+type Api = { success: boolean; error?: string; story?: Story; block?: Block; blocks?: Block[]; media?: Media[]; destinations?: Destination[] };
 
 const MEDIA_BASE = "https://media.thescenestudio.asia";
-const categories: { name: AddCategory; description: string }[] = [
-  { name: "Text", description: "Headings, paragraphs and editorial layouts" },
-  { name: "Image", description: "Single photographs and image-led sections" },
-  { name: "Content", description: "Galleries, quotes and supporting content" },
-  { name: "Links", description: "Calls to action and linked content" },
-  { name: "Video", description: "Films and video-led sections" },
-  { name: "Contact", description: "Contact and enquiry sections" },
-  { name: "Social", description: "Social links and profiles" },
-  { name: "Others", description: "Supporting editorial elements" },
-  { name: "Flex Block", description: "Flexible custom content" },
+const CATEGORIES = ["Wedding", "Prewedding", "Elopement", "Engagement", "Destination Wedding", "Editorial", "Lifestyle", "Other"];
+const BLOCKS = [
+  { group: "Text", items: ["Heading 1", "Heading 2", "Heading 3", "Wide Text", "Regular Text", "Narrow Text", "Text Columns 2", "Text Columns 3", "Text Columns 4"] },
+  { group: "Image", items: ["Image", "Image Columns", "Image Grid"] },
+  { group: "Video", items: ["Video"] },
+  { group: "More", items: ["Quote", "Contact", "Social", "Link", "Divider", "Flex Block"] },
 ];
-const options: Record<AddCategory, AddOption[]> = {
-  Text: ["Heading 1", "Heading 2", "Heading 3", "Wide Text", "Regular Text", "Narrow Text", "Text Columns 2", "Text Columns 3", "Text Columns 4"].map((label) => ({ label, type: "text", preset: label })),
-  Image: [{ label: "Single Image", type: "image", preset: "Single Image" }, { label: "Image with Caption", type: "image", preset: "Image with Caption" }],
-  Content: [{ label: "Gallery", type: "gallery", preset: "Gallery" }, { label: "Quote", type: "quote", preset: "Quote" }, { label: "Credits", type: "credits", preset: "Credits" }],
-  Links: [{ label: "Text Link", type: "text", preset: "Text Link" }, { label: "Call to Action", type: "text", preset: "Call to Action" }],
-  Video: [{ label: "Film", type: "credits", preset: "Film" }, { label: "Video Embed", type: "credits", preset: "Video Embed" }],
-  Contact: [{ label: "Contact", type: "credits", preset: "Contact" }],
-  Social: [{ label: "Social Links", type: "credits", preset: "Social Links" }],
-  Others: [{ label: "Divider", type: "text", preset: "Divider" }, { label: "Spacer", type: "text", preset: "Spacer" }],
-  "Flex Block": [{ label: "Flex Block", type: "text", preset: "Flex Block" }],
-};
-const blockLabels: Record<BlockType, string> = { text: "Text", image: "Image", gallery: "Gallery", quote: "Quote", credits: "Credits" };
-
-function mediaUrl(path: string) { return `${MEDIA_BASE}/${path.replace(/^\/+/, "")}`; }
+const mediaUrl = (path: string) => `${MEDIA_BASE}/${path.replace(/^\/+/, "")}`;
+const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 export default function StoryEditorPage() {
-  const params = useParams();
-  const id = params.id as string;
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [story, setStory] = useState<Story | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [allMedia, setAllMedia] = useState<Media[]>([]);
+  const [media, setMedia] = useState<Media[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mediaLoading, setMediaLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [working, setWorking] = useState(false);
-  const [message, setMessage] = useState("");
-  const [activeBlock, setActiveBlock] = useState<string | null>(null);
-  const [addScreen, setAddScreen] = useState(false);
-  const [insertIndex, setInsertIndex] = useState(0);
-  const [addCategory, setAddCategory] = useState<AddCategory>("Text");
+  const [message, setMessage] = useState("All changes saved");
+  const [settings, setSettings] = useState(false);
+  const [picker, setPicker] = useState<number | null>(null);
   const [mediaPicker, setMediaPicker] = useState<string | null>(null);
-  const [mediaSearch, setMediaSearch] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [mediaQuery, setMediaQuery] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
 
-  const loadStory = async () => {
-    const res = await fetch(`/api/admin/stories/${id}`, { cache: "no-store" });
-    const data = (await res.json()) as { success: boolean; story: Story; blocks: Block[]; error?: string };
-    if (!res.ok || !data.success) throw new Error(data.error || `Failed to load story (${res.status})`);
-    setStory(data.story);
-    setBlocks((data.blocks || []).sort((a, b) => a.sort_order - b.sort_order));
-  };
-
-  const loadMedia = async () => {
-    setMediaLoading(true);
-    try {
-      const res = await fetch("/api/admin/media", { cache: "no-store" });
-      const data = (await res.json()) as { success: boolean; media: Media[]; error?: string };
-      if (!res.ok || !data.success) throw new Error(data.error || `Failed to load media (${res.status})`);
-      setAllMedia(data.media || []);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load media");
-    } finally { setMediaLoading(false); }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    async function init() {
-      setLoading(true); setMessage("");
-      try { await loadStory(); if (!cancelled) void loadMedia(); }
-      catch (error) { if (!cancelled) setMessage(error instanceof Error ? error.message : "Failed to load story editor"); }
-      finally { if (!cancelled) setLoading(false); }
-    }
-    void init();
-    return () => { cancelled = true; };
-  }, [id]);
-
-  const request = async <T,>(url: string, init?: RequestInit): Promise<T> => {
+  const api = async (url: string, init?: RequestInit) => {
     const res = await fetch(url, { ...init, cache: "no-store" });
-    const data = (await res.json()) as ApiResult<T>;
+    const data = (await res.json()) as Api;
     if (!res.ok || !data.success) throw new Error(data.error || `Request failed (${res.status})`);
-    return data as T;
+    return data;
   };
 
-  const saveStory = async () => {
+  const load = async () => {
+    const [storyRes, mediaRes, destRes] = await Promise.all([api(`/api/admin/stories/${id}`), api("/api/admin/media"), api("/api/admin/destinations")]);
+    if (!storyRes.story) throw new Error("Story not found");
+    setStory(storyRes.story);
+    setBlocks((storyRes.blocks || []).sort((a, b) => a.sort_order - b.sort_order));
+    setMedia(mediaRes.media || []);
+    setDestinations(destRes.destinations || []);
+  };
+
+  useEffect(() => { void load().catch((e) => setMessage(e instanceof Error ? e.message : "Failed to load story")).finally(() => setLoading(false)); }, [id]);
+
+  const save = async (patch?: Partial<Story>) => {
     if (!story) return;
     setSaving(true); setMessage("");
     try {
-      const result = await request<{ story: Story }>(`/api/admin/stories/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: story.title, slug: story.slug, location: story.location, date: story.date, category: story.category, description: story.description, seo_title: story.seo_title, seo_description: story.seo_description, destination_id: story.destination_id, cover_media_id: story.cover_media_id, published: Boolean(story.published) }) });
-      if (result.story) setStory(result.story);
-      setMessage("Saved");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to save story"); }
+      const next = { ...story, ...patch };
+      const data = await api(`/api/admin/stories/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+      if (data.story) setStory(data.story);
+      setMessage("All changes saved");
+    } catch (e) { setMessage(e instanceof Error ? e.message : "Failed to save"); }
     finally { setSaving(false); }
   };
 
-  const openAddScreen = (index: number) => { setInsertIndex(Math.max(0, Math.min(index, blocks.length))); setAddCategory("Text"); setAddScreen(true); };
-
-  const normalizeBlockOrder = async (ordered: Block[]) => {
-    for (let index = 0; index < ordered.length; index++) {
-      if (ordered[index].sort_order !== index) await request(`/api/admin/stories/${id}/blocks/${ordered[index].id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: index }) });
-    }
+  const normalize = async (items: Block[]) => {
+    for (let i = 0; i < items.length; i++) if (items[i].sort_order !== i) await api(`/api/admin/stories/${id}/blocks/${items[i].id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: i }) });
   };
 
-  const addBlock = async (option: AddOption) => {
+  const addBlock = async (label: string, index: number) => {
     setWorking(true);
     try {
-      const result = await request<{ block: Block }>(`/api/admin/stories/${id}/blocks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: option.type, sort_order: blocks.length, gallery_layout: "grid", eyebrow: option.preset || null }) });
-      if (result.block) {
-        const next = [...blocks];
-        next.splice(insertIndex, 0, result.block);
-        setBlocks(next);
-        await normalizeBlockOrder(next);
-        setActiveBlock(result.block.id);
-      }
-      setAddScreen(false); setMessage(`${option.label} added`); await loadStory();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to add block"); }
+      const type: BlockType = label === "Image" ? "image" : label === "Image Columns" || label === "Image Grid" ? "gallery" : label === "Quote" ? "quote" : label === "Contact" || label === "Social" || label === "Video" ? "credits" : "text";
+      const created = await api(`/api/admin/stories/${id}/blocks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, sort_order: blocks.length, gallery_layout: label === "Image Columns" ? "portrait-pair" : "grid", eyebrow: label }) });
+      if (!created.block) throw new Error("Failed to create block");
+      const next = [...blocks]; next.splice(index, 0, created.block); setBlocks(next); await normalize(next); await load(); setEditing(created.block.id); setPicker(null); setMessage(`${label} added`);
+    } catch (e) { setMessage(e instanceof Error ? e.message : "Failed to add block"); }
     finally { setWorking(false); }
   };
 
-  const updateBlock = async (blockId: string, patch: Partial<Block>) => {
+  const updateBlock = async (block: Block, patch: Partial<Block>) => {
     setWorking(true);
-    try { await request(`/api/admin/stories/${id}/blocks/${blockId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }); await loadStory(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Failed to update block"); }
+    try { await api(`/api/admin/stories/${id}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }); await load(); setMessage("All changes saved"); }
+    catch (e) { setMessage(e instanceof Error ? e.message : "Failed to update block"); }
     finally { setWorking(false); }
   };
 
-  const deleteBlock = async (blockId: string) => {
+  const duplicate = async (block: Block, index: number) => {
+    setWorking(true);
+    try {
+      const created = await api(`/api/admin/stories/${id}/blocks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: block.type, sort_order: blocks.length, eyebrow: block.eyebrow, title: block.title, body: block.body, media_id: block.media_id, gallery_title: block.gallery_title, gallery_layout: block.gallery_layout }) });
+      if (!created.block) throw new Error("Failed to duplicate block");
+      if (block.media.length && block.type !== "image") await Promise.all(block.media.map((m, i) => api(`/api/admin/stories/${id}/blocks/${created.block!.id}/media`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: m.id, sort_order: i }) })));
+      const next = [...blocks]; next.splice(index + 1, 0, { ...created.block, media: block.media }); await normalize(next); await load(); setEditing(created.block.id); setMessage("Block duplicated");
+    } catch (e) { setMessage(e instanceof Error ? e.message : "Failed to duplicate block"); }
+    finally { setWorking(false); }
+  };
+
+  const remove = async (block: Block) => {
     if (!window.confirm("Delete this block?")) return;
     setWorking(true);
-    try { await request(`/api/admin/stories/${id}/blocks/${blockId}`, { method: "DELETE" }); setActiveBlock(null); await loadStory(); setMessage("Block deleted"); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Failed to delete block"); }
+    try { await api(`/api/admin/stories/${id}/blocks/${block.id}`, { method: "DELETE" }); setEditing(null); await load(); setMessage("Block deleted"); }
+    catch (e) { setMessage(e instanceof Error ? e.message : "Failed to delete block"); }
     finally { setWorking(false); }
   };
 
-  const persistOrder = async (ordered: Block[]) => {
-    setWorking(true);
-    setBlocks(ordered);
-    try { await normalizeBlockOrder(ordered); await loadStory(); setMessage("Block order saved"); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Failed to reorder blocks"); await loadStory(); }
-    finally { setWorking(false); setDraggingId(null); }
+  const drop = async (target: number) => {
+    if (!dragId) return;
+    const from = blocks.findIndex((b) => b.id === dragId); if (from < 0 || from === target) { setDragId(null); return; }
+    const next = [...blocks]; const [moved] = next.splice(from, 1); next.splice(target, 0, moved); setBlocks(next); setDragId(null); setWorking(true);
+    try { await normalize(next); await load(); setMessage("Block order saved"); } catch (e) { setMessage(e instanceof Error ? e.message : "Failed to reorder blocks"); await load(); } finally { setWorking(false); }
   };
 
-  const dropBlock = (targetIndex: number) => {
-    if (!draggingId) return;
-    const from = blocks.findIndex((block) => block.id === draggingId);
-    if (from < 0 || from === targetIndex) { setDraggingId(null); return; }
-    const ordered = [...blocks];
-    const [moved] = ordered.splice(from, 1);
-    ordered.splice(targetIndex, 0, moved);
-    void persistOrder(ordered);
-  };
-
-  const openMediaPicker = (blockId: string) => { const block = blocks.find((item) => item.id === blockId); setSelectedMedia(block?.media.map((media) => media.id) || []); setMediaPicker(blockId); setMediaSearch(""); };
-  const toggleMedia = (mediaId: string) => setSelectedMedia((current) => current.includes(mediaId) ? current.filter((item) => item !== mediaId) : [...current, mediaId]);
-  const selectAllMedia = () => setSelectedMedia((current) => Array.from(new Set([...current, ...filteredMedia.map((media) => media.id)])));
-  const clearMediaSelection = () => setSelectedMedia([]);
-
-  const addSelectedMedia = async () => {
-    if (!mediaPicker || selectedMedia.length === 0) return;
-    const block = blocks.find((item) => item.id === mediaPicker);
-    if (!block) return;
+  const openMedia = (block: Block) => { setMediaPicker(block.id); setSelectedMedia(block.media.map((m) => m.id)); setMediaQuery(""); };
+  const filteredMedia = useMemo(() => { const q = mediaQuery.trim().toLowerCase(); return q ? media.filter((m) => `${m.filename} ${m.alt || ""}`.toLowerCase().includes(q)) : media; }, [media, mediaQuery]);
+  const applyMedia = async () => {
+    if (!mediaPicker) return;
+    const block = blocks.find((b) => b.id === mediaPicker); if (!block) return;
     setWorking(true);
     try {
-      const existing = new Set(block.media.map((media) => media.id));
-      const ids = selectedMedia.filter((mediaId) => !existing.has(mediaId));
-      if (block.type === "image") {
-        if (ids[0]) await request(`/api/admin/stories/${id}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: ids[0] }) });
-      } else {
-        await Promise.all(ids.map((mediaId, index) => request(`/api/admin/stories/${id}/blocks/${block.id}/media`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: mediaId, sort_order: block.media.length + index }) })));
-      }
-      setMediaPicker(null); setSelectedMedia([]); await loadStory();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to add selected media"); }
+      const existing = new Set(block.media.map((m) => m.id));
+      const added = selectedMedia.filter((x) => !existing.has(x));
+      if (block.type === "image") await updateBlock(block, { media_id: selectedMedia[0] || null });
+      else { await Promise.all(added.map((m, i) => api(`/api/admin/stories/${id}/blocks/${block.id}/media`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: m, sort_order: block.media.length + i }) }))); await load(); }
+      setMediaPicker(null); setSelectedMedia([]);
+    } catch (e) { setMessage(e instanceof Error ? e.message : "Failed to add media"); }
     finally { setWorking(false); }
   };
 
-  const removeMedia = async (blockId: string, mediaId: string) => {
-    setWorking(true);
-    try { await request(`/api/admin/stories/${id}/blocks/${blockId}/media`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: mediaId }) }); await loadStory(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Failed to remove media"); }
-    finally { setWorking(false); }
-  };
-
-  const moveMedia = async (block: Block, index: number, direction: -1 | 1) => {
-    const target = index + direction; if (target < 0 || target >= block.media.length) return;
-    setWorking(true);
-    try {
-      const a = block.media[index]; const b = block.media[target];
-      await Promise.all([
-        request(`/api/admin/stories/${id}/blocks/${block.id}/media`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: a.id, sort_order: b.sort_order }) }),
-        request(`/api/admin/stories/${id}/blocks/${block.id}/media`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ media_id: b.id, sort_order: a.sort_order }) }),
-      ]); await loadStory();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to reorder media"); }
-    finally { setWorking(false); }
-  };
-
-  const filteredMedia = useMemo(() => { const q = mediaSearch.trim().toLowerCase(); return q ? allMedia.filter((media) => `${media.filename} ${media.alt || ""}`.toLowerCase().includes(q)) : allMedia; }, [allMedia, mediaSearch]);
-  const active = blocks.find((block) => block.id === activeBlock) || null;
-
-  if (loading) return <main className="min-h-screen bg-[#f7f5f0] px-6 pt-28 text-[#171717]"><p className="font-sans text-[10px] uppercase tracking-[0.28em] opacity-45">The Scene Studio / Story Editor</p><div className="mt-12 h-1 w-24 animate-pulse bg-black/15" /></main>;
-  if (!story) return <main className="min-h-screen bg-[#f7f5f0] px-6 pt-28"><p className="font-sans text-[10px] uppercase tracking-[0.25em] opacity-45">Story Editor</p><h1 className="mt-5 font-serif text-5xl">Unable to open story.</h1><p className="mt-4 font-sans text-sm text-red-700">{message}</p></main>;
-
-  if (addScreen) return (
-    <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
-      <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f5f0]/95 px-6 py-5 backdrop-blur-md"><div className="mx-auto flex max-w-[1300px] items-center justify-between"><button onClick={() => setAddScreen(false)} className="font-sans text-[10px] uppercase tracking-[0.22em] opacity-55">← Back to Story</button><p className="font-sans text-[10px] uppercase tracking-[0.28em] opacity-45">Add Block</p><span className="w-24" /></div></header>
-      <div className="mx-auto grid max-w-[1300px] lg:grid-cols-[280px_1fr]">
-        <aside className="border-r border-black/10 px-6 py-8 lg:min-h-[calc(100vh-72px)]"><p className="mb-5 font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Elements</p>{categories.map((category) => <button key={category.name} onClick={() => setAddCategory(category.name)} className={`mb-1 w-full px-4 py-4 text-left ${addCategory === category.name ? "bg-[#171717] text-white" : "hover:bg-black/5"}`}><span className="block font-serif text-xl">{category.name}</span><span className="mt-1 block font-sans text-[8px] uppercase tracking-[0.1em] opacity-45">{category.description}</span></button>)}</aside>
-        <section className="px-7 py-10 md:px-12 lg:px-16"><p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Insert at position {insertIndex + 1}</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.05em] md:text-6xl">Choose an element</h1><div className="mt-12 grid gap-px overflow-hidden border border-black/10 bg-black/10 sm:grid-cols-2 lg:grid-cols-3">{options[addCategory].map((option) => <button key={option.label} onClick={() => void addBlock(option)} disabled={working} className="group min-h-[150px] bg-[#f7f5f0] p-6 text-left transition hover:bg-white disabled:opacity-40"><span className="font-serif text-2xl group-hover:underline">{option.label}</span><span className="mt-3 block font-sans text-[9px] uppercase tracking-[0.16em] opacity-40">Add here →</span></button>)}</div></section>
-      </div>
-    </main>
-  );
-
-  if (mediaPicker) {
-    const pickerBlock = blocks.find((block) => block.id === mediaPicker);
-    const existingIds = new Set(pickerBlock?.media.map((media) => media.id) || []);
-    return <main className="min-h-screen bg-[#f7f5f0] text-[#171717]"><header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f5f0]/95 px-5 py-4 backdrop-blur-md"><div className="mx-auto flex max-w-[1400px] items-center justify-between gap-5"><button onClick={() => { setMediaPicker(null); setSelectedMedia([]); }} className="font-sans text-[10px] uppercase tracking-[0.22em] opacity-55">← Back to Block</button><div className="text-center"><p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Media Library</p><h1 className="font-serif text-2xl">Choose photographs</h1></div><button onClick={() => void addSelectedMedia()} disabled={working || selectedMedia.length === 0} className="bg-[#171717] px-5 py-2.5 font-sans text-[9px] uppercase tracking-[0.2em] text-white disabled:opacity-30">{working ? "Adding…" : `Add ${selectedMedia.length || ""} selected`}</button></div></header><section className="mx-auto max-w-[1400px] px-5 py-7 md:px-8"><div className="flex flex-col gap-4 border-b border-black/10 pb-6 md:flex-row md:items-center md:justify-between"><div className="flex items-center gap-4"><span className="font-sans text-[9px] uppercase tracking-[0.18em] opacity-45">{selectedMedia.length} selected</span><button onClick={selectAllMedia} className="font-sans text-[9px] uppercase tracking-[0.18em] underline">Select all</button><button onClick={clearMediaSelection} className="font-sans text-[9px] uppercase tracking-[0.18em] opacity-45">Clear</button></div><input value={mediaSearch} onChange={(e) => setMediaSearch(e.target.value)} placeholder="Search media…" className="w-full border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase tracking-[0.12em] outline-none md:w-72" /></div>{mediaLoading ? <div className="py-24 text-center font-sans text-[10px] uppercase tracking-[0.2em] opacity-40">Loading media…</div> : <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">{filteredMedia.map((media) => { const selected = selectedMedia.includes(media.id); const existing = existingIds.has(media.id); return <button key={media.id} type="button" onClick={() => !existing && toggleMedia(media.id)} disabled={existing} className={`group relative overflow-hidden bg-[#ece9e2] text-left ${selected ? "ring-2 ring-black ring-offset-2" : ""} ${existing ? "opacity-50" : ""}`}><img src={mediaUrl(media.path)} alt={media.alt || media.filename} className="aspect-[4/3] w-full object-cover transition group-hover:scale-[1.02]" loading="lazy" /><span className={`absolute left-2 top-2 flex h-6 w-6 items-center justify-center border text-[11px] ${selected ? "border-black bg-black text-white" : "border-white bg-black/20 text-white"}`}>{selected ? "✓" : ""}</span>{existing && <span className="absolute inset-x-0 bottom-0 bg-black/75 px-2 py-2 font-sans text-[7px] uppercase tracking-[0.15em] text-white">Already in block</span>}<span className="block truncate px-2 py-2 font-sans text-[8px] uppercase opacity-45">{media.filename}</span></button>; })}</div>}</section></main>;
-  }
+  if (loading) return <main className="min-h-screen bg-[#f7f5f0] px-8 pt-24 text-[#171717]"><p className="text-[10px] uppercase tracking-[.28em] opacity-40">Loading story editor…</p></main>;
+  if (!story) return <main className="min-h-screen bg-[#f7f5f0] p-10"><h1 className="font-serif text-5xl">Story not found</h1><p className="mt-4 text-sm text-red-700">{message}</p></main>;
 
   return <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
-    <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f5f0]/95 px-5 py-4 backdrop-blur-md md:px-8"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-6"><div className="min-w-0"><a href="/admin/stories" className="font-sans text-[9px] uppercase tracking-[0.28em] opacity-50">← Stories</a><div className="mt-1 flex items-center gap-3"><h1 className="truncate font-serif text-xl md:text-2xl">{story.title}</h1><span className={`rounded-full px-2 py-1 font-sans text-[8px] uppercase tracking-[0.18em] ${story.published ? "bg-[#263a2d] text-white" : "bg-black/8 text-black/50"}`}>{story.published ? "Published" : "Draft"}</span></div></div><div className="flex gap-2"><a href={`/stories/${story.slug}`} target="_blank" rel="noreferrer" className="hidden border border-black/15 px-4 py-2 font-sans text-[9px] uppercase tracking-[0.2em] hover:bg-black hover:text-white md:block">Preview ↗</a><button onClick={saveStory} disabled={saving || working} className="bg-black px-5 py-2.5 font-sans text-[9px] uppercase tracking-[0.2em] text-white disabled:opacity-40">{saving ? "Saving…" : "Save"}</button></div></div></header>
-    <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_320px]">
-      <aside className="border-r border-black/10 px-5 py-7 lg:min-h-[calc(100vh-73px)]"><div className="flex items-center justify-between"><p className="font-sans text-[9px] uppercase tracking-[0.24em] opacity-50">Story structure</p><button onClick={() => openAddScreen(blocks.length)} className="text-xl opacity-60">+</button></div><p className="mt-4 font-sans text-[8px] uppercase leading-5 opacity-35">Drag blocks to reorder. Use + between blocks to insert exactly where you want.</p><div className="mt-5 space-y-1">{blocks.map((block, index) => <button key={block.id} onClick={() => setActiveBlock(block.id)} className={`flex w-full items-center gap-3 px-2.5 py-3 text-left ${activeBlock === block.id ? "bg-black text-white" : "hover:bg-black/5"}`}><span className="w-5 font-sans text-[9px] opacity-40">{String(index + 1).padStart(2, "0")}</span><span className="flex-1 font-sans text-[10px] uppercase tracking-[0.14em]">{blockLabels[block.type]}</span></button>)}</div></aside>
-
-      <section className="min-w-0 px-5 py-8 md:px-10 lg:px-12"><div className="mx-auto max-w-[900px]"><div className="mb-10 border-b border-black/10 pb-8"><p className="font-sans text-[9px] uppercase tracking-[0.28em] opacity-45">Story information</p><input value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} className="mt-4 w-full bg-transparent font-serif text-4xl tracking-[-0.04em] outline-none md:text-6xl" /><div className="mt-6 grid gap-4 md:grid-cols-3"><input value={story.location || ""} onChange={(e) => setStory({ ...story, location: e.target.value })} placeholder="Location" className="border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase outline-none" /><input value={story.date || ""} onChange={(e) => setStory({ ...story, date: e.target.value })} placeholder="Date" className="border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase outline-none" /><input value={story.category || ""} onChange={(e) => setStory({ ...story, category: e.target.value })} placeholder="Category" className="border-b border-black/15 bg-transparent py-2 font-sans text-[10px] uppercase outline-none" /></div><textarea value={story.description || ""} onChange={(e) => setStory({ ...story, description: e.target.value })} rows={3} placeholder="Short story introduction" className="mt-6 w-full resize-none bg-transparent font-serif text-xl leading-relaxed outline-none" /></div>{message && <div className="mb-6 border-l-2 border-black px-4 py-3 font-sans text-[10px] uppercase tracking-[0.12em]">{message}</div>}
-
-        <div className="space-y-2">
-          <InsertButton onClick={() => openAddScreen(0)} />
-          {blocks.map((block, index) => <div key={block.id} onDragOver={(event) => event.preventDefault()} onDrop={() => dropBlock(index)}><article draggable onDragStart={() => setDraggingId(block.id)} onDragEnd={() => setDraggingId(null)} onClick={() => setActiveBlock(block.id)} className={`group cursor-grab overflow-hidden border bg-white transition active:cursor-grabbing ${draggingId === block.id ? "scale-[.99] opacity-45" : ""} ${activeBlock === block.id ? "border-black shadow-[0_12px_40px_rgba(0,0,0,.06)]" : "border-black/8 hover:border-black/25"}`}><div className="flex items-center justify-between border-b border-black/8 px-5 py-3"><div className="flex items-center gap-3"><span className="font-sans text-[9px] opacity-35">{String(index + 1).padStart(2, "0")}</span><span className="font-sans text-[9px] uppercase tracking-[0.2em]">{blockLabels[block.type]}</span><span className="font-sans text-[8px] opacity-25">⋮⋮ drag</span></div><button onClick={(e) => { e.stopPropagation(); void deleteBlock(block.id); }} className="font-sans text-[8px] uppercase tracking-[0.12em] text-red-700 opacity-40 hover:opacity-100">Delete</button></div><div className="p-6 md:p-8">{block.eyebrow && <p className="mb-3 font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">{block.eyebrow}</p>}{block.title && <h2 className="font-serif text-3xl tracking-[-0.035em] md:text-4xl">{block.title}</h2>}{block.body && <p className="mt-4 max-w-2xl whitespace-pre-wrap font-serif text-lg leading-[1.65] opacity-75">{block.body}</p>}{block.type === "image" && block.media[0] && <img src={mediaUrl(block.media[0].path)} alt={block.media[0].alt || block.media[0].filename} className="mt-6 max-h-[620px] w-full object-contain bg-[#ece9e2]" />}{block.type === "gallery" && <div className={`mt-6 grid gap-2 ${block.gallery_layout === "portrait-pair" ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"}`}>{block.media.map((media) => <img key={media.id} src={mediaUrl(media.path)} alt={media.alt || media.filename} className={`w-full object-cover ${block.gallery_layout === "feature" ? "aspect-[4/3] first:col-span-2 first:aspect-[16/9]" : block.gallery_layout === "portrait-pair" ? "aspect-[2/3]" : "aspect-[4/3]"}`} />)}{block.media.length === 0 && <div className="col-span-full border border-dashed border-black/15 px-6 py-16 text-center font-serif text-xl opacity-40">No images yet</div>}</div>}{block.type === "quote" && <div className="my-5 border-l border-black/20 pl-6"><span className="font-serif text-5xl opacity-20">“</span><p className="font-serif text-2xl leading-relaxed">{block.body || "Quote"}</p></div>}</div></article><InsertButton onClick={() => openAddScreen(index + 1)} /></div>)}
-          {blocks.length === 0 && <div className="border border-dashed border-black/15 py-20 text-center font-serif text-2xl opacity-35">Your story is empty.</div>}
-        </div>
-      </div></section>
-
-      <aside className="border-l border-black/10 bg-[#ece9e2]/35 px-5 py-7 lg:min-h-[calc(100vh-73px)]">{!active ? <div className="sticky top-24"><p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Inspector</p><h2 className="mt-4 font-serif text-3xl">Select a block</h2><p className="mt-3 font-sans text-xs leading-6 opacity-50">Drag a block to reorder it. Click + between blocks to insert a new element at that exact position.</p></div> : <div className="sticky top-24"><div className="flex items-center justify-between"><div><p className="font-sans text-[9px] uppercase tracking-[0.25em] opacity-45">Inspector</p><h2 className="mt-1 font-serif text-2xl">{blockLabels[active.type]}</h2></div><button onClick={() => setActiveBlock(null)} className="opacity-40">×</button></div><div className="mt-7 space-y-5"><label className="block"><span className="font-sans text-[8px] uppercase opacity-45">Eyebrow</span><input value={active.eyebrow || ""} onChange={(e) => setBlocks((current) => current.map((b) => b.id === active.id ? { ...b, eyebrow: e.target.value } : b))} onBlur={() => void updateBlock(active.id, { eyebrow: active.eyebrow })} className="mt-2 w-full border-b border-black/15 bg-transparent py-2 font-sans text-sm outline-none" /></label><label className="block"><span className="font-sans text-[8px] uppercase opacity-45">Title</span><input value={active.title || ""} onChange={(e) => setBlocks((current) => current.map((b) => b.id === active.id ? { ...b, title: e.target.value } : b))} onBlur={() => void updateBlock(active.id, { title: active.title })} className="mt-2 w-full border-b border-black/15 bg-transparent py-2 font-serif text-xl outline-none" /></label><label className="block"><span className="font-sans text-[8px] uppercase opacity-45">Body</span><textarea value={active.body || ""} onChange={(e) => setBlocks((current) => current.map((b) => b.id === active.id ? { ...b, body: e.target.value } : b))} onBlur={() => void updateBlock(active.id, { body: active.body })} rows={7} className="mt-2 w-full resize-none border border-black/10 bg-white/60 p-3 font-serif text-sm leading-6 outline-none" /></label>{(active.type === "image" || active.type === "gallery") && <div className="border-t border-black/10 pt-5"><div className="flex items-center justify-between"><span className="font-sans text-[8px] uppercase opacity-45">Media · {active.media.length}</span><button onClick={() => openMediaPicker(active.id)} className="border border-black/15 px-3 py-2 font-sans text-[8px] uppercase tracking-[0.15em] hover:bg-black hover:text-white">Choose media</button></div>{active.type === "gallery" && <div className="mt-4"><span className="font-sans text-[8px] uppercase opacity-45">Gallery layout</span><div className="mt-2 grid grid-cols-3 gap-1">{(["grid", "feature", "portrait-pair"] as GalleryLayout[]).map((layout) => <button key={layout} onClick={() => void updateBlock(active.id, { gallery_layout: layout })} className={`border px-2 py-2 font-sans text-[7px] uppercase ${active.gallery_layout === layout ? "border-black bg-black text-white" : "border-black/10"}`}>{layout}</button>)}</div></div>}<div className="mt-4 space-y-2">{active.media.map((media, index) => <div key={media.id} className="flex items-center gap-2 bg-white/60 p-2"><img src={mediaUrl(media.path)} alt={media.alt || media.filename} className="h-12 w-14 object-cover" /><span className="min-w-0 flex-1 truncate font-sans text-[8px] opacity-60">{media.filename}</span><button onClick={() => void moveMedia(active, index, -1)} disabled={index === 0 || working} className="opacity-45 disabled:opacity-15">↑</button><button onClick={() => void moveMedia(active, index, 1)} disabled={index === active.media.length - 1 || working} className="opacity-45 disabled:opacity-15">↓</button><button onClick={() => void removeMedia(active.id, media.id)} disabled={working} className="text-red-700 opacity-55">×</button></div>)}</div></div>}</div></div>}</aside>
-    </div>
+    <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f5f0]/95 backdrop-blur-md"><div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-5 md:px-8"><div className="flex items-center gap-5"><button onClick={() => router.push("/admin/stories")} className="text-[10px] uppercase tracking-[.2em] opacity-50">← Stories</button><span className="h-4 w-px bg-black/10"/><span className="font-serif text-xl">Edit Post</span></div><div className="flex items-center gap-3"><span className="hidden text-[9px] uppercase tracking-[.18em] opacity-40 md:inline">{saving ? "Saving…" : message}</span><button onClick={() => setSettings(true)} className="border border-black/15 px-4 py-2 text-[9px] uppercase tracking-[.18em]">Post Settings</button><button onClick={() => void save({ published: 1 })} className="bg-[#171717] px-5 py-2 text-[9px] uppercase tracking-[.18em] text-white">Publish Post</button></div></div></header>
+    <section className="mx-auto max-w-[1280px] px-5 py-10 md:px-8"><div className="mx-auto max-w-[900px]">
+      <div className="mb-8 text-center"><div className="text-[10px] uppercase tracking-[.22em] opacity-45">{story.date || "No date"} <span className="mx-2">—</span> {story.category || "Click to select categories"}</div><h1 className="mt-4 font-serif text-5xl tracking-[-.045em] md:text-7xl">{story.title}</h1><button onClick={() => setSettings(true)} className="mt-4 text-[9px] uppercase tracking-[.2em] opacity-45 hover:opacity-100">Click to change cover image</button></div>
+      <AddBar onClick={() => setPicker(0)} />
+      {blocks.map((block, index) => <div key={block.id} onDragOver={(e) => e.preventDefault()} onDrop={() => void drop(index)}><BlockCard block={block} editing={editing === block.id} working={working} onEdit={() => setEditing(editing === block.id ? null : block.id)} onDuplicate={() => void duplicate(block, index)} onDelete={() => void remove(block)} onMedia={() => openMedia(block)} onUpdate={(patch) => void updateBlock(block, patch)} onDragStart={() => setDragId(block.id)} /><AddBar onClick={() => setPicker(index + 1)} /></div>)}
+      <div className="mt-20 border-t border-black/10 pt-10"><button onClick={() => setSettings(true)} className="text-[9px] uppercase tracking-[.2em] opacity-45">Click to add tags</button><h3 className="mt-12 font-serif text-2xl">Related Posts</h3><div className="mt-6 border-t border-black/10 pt-6 text-[10px] uppercase tracking-[.18em] opacity-45">No related posts selected.</div></div>
+    </div></section>
+    {picker !== null && <BlockPicker index={picker} onClose={() => setPicker(null)} onSelect={(label) => void addBlock(label, picker)} />}
+    {settings && <SettingsPanel story={story} destinations={destinations} media={media} onClose={() => setSettings(false)} onSave={save} />}
+    {mediaPicker && <MediaPicker media={filteredMedia} selected={selectedMedia} query={mediaQuery} setQuery={setMediaQuery} toggle={(mid) => setSelectedMedia((s) => s.includes(mid) ? s.filter((x) => x !== mid) : [...s, mid])} close={() => setMediaPicker(null)} apply={() => void applyMedia()} />}
   </main>;
 }
 
-function InsertButton({ onClick }: { onClick: () => void }) {
-  return <div className="group relative z-10 flex h-10 items-center justify-center"><div className="absolute left-0 right-0 border-t border-black/10" /><button onClick={onClick} className="relative flex h-7 w-7 items-center justify-center rounded-full border border-black/15 bg-[#f7f5f0] font-serif text-lg leading-none opacity-45 transition hover:scale-110 hover:border-black hover:bg-black hover:text-white hover:opacity-100">+</button></div>;
-}
+function AddBar({ onClick }: { onClick: () => void }) { return <button onClick={onClick} className="group flex w-full items-center justify-center py-3"><span className="h-px flex-1 bg-black/0 group-hover:bg-black/10"/><span className="mx-4 flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-[#f7f5f0] text-lg font-light opacity-45 transition group-hover:scale-110 group-hover:opacity-100">+</span><span className="h-px flex-1 bg-black/0 group-hover:bg-black/10"/></button>; }
+
+function BlockPicker({ index, onClose, onSelect }: { index: number; onClose: () => void; onSelect: (label: string) => void }) { return <div className="fixed inset-0 z-50 bg-black/25"><div className="absolute right-0 top-0 h-full w-full max-w-[760px] overflow-y-auto bg-[#f7f5f0] shadow-2xl"><div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-[#f7f5f0]/95 px-7 py-6 backdrop-blur"><div><p className="text-[9px] uppercase tracking-[.25em] opacity-45">Insert at position {index + 1}</p><h2 className="mt-2 font-serif text-4xl">Add Block</h2></div><button onClick={onClose} className="text-2xl opacity-40">×</button></div><div className="grid gap-8 p-7 md:grid-cols-2">{BLOCKS.map((group) => <section key={group.group}><p className="mb-3 text-[9px] uppercase tracking-[.25em] opacity-45">{group.group}</p><div className="space-y-1">{group.items.map((item) => <button key={item} onClick={() => onSelect(item)} className="flex w-full items-center justify-between border-b border-black/8 px-3 py-4 text-left font-serif text-lg hover:bg-black/[.03]">{item}<span className="text-sm opacity-30">→</span></button>)}</div></section>)}</div></div></div>; }
+
+function BlockCard({ block, editing, working, onEdit, onDuplicate, onDelete, onMedia, onUpdate, onDragStart }: { block: Block; editing: boolean; working: boolean; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; onMedia: () => void; onUpdate: (patch: Partial<Block>) => void; onDragStart: () => void }) { return <article draggable onDragStart={onDragStart} className={`group relative border border-black/10 bg-white/30 transition ${editing ? "ring-1 ring-black/15" : "hover:border-black/20"}`}><div className="absolute right-3 top-3 z-10 flex items-center gap-1 bg-[#f7f5f0]/90 px-2 py-1 opacity-0 transition group-hover:opacity-100"><span className="mr-2 cursor-grab text-[10px] opacity-40">⋮⋮</span><button onClick={onEdit} className="px-2 py-1 text-[8px] uppercase tracking-[.15em]">Edit</button><button onClick={onDuplicate} disabled={working} className="px-2 py-1 text-[8px] uppercase tracking-[.15em]">Duplicate</button><button onClick={onDelete} disabled={working} className="px-2 py-1 text-[8px] uppercase tracking-[.15em] text-red-700">Delete</button></div><div className="p-7 md:p-10"><div className="mb-5 text-[8px] uppercase tracking-[.2em] opacity-35">{block.type} {block.eyebrow ? `· ${block.eyebrow}` : ""}</div>{block.type === "image" ? <ImageBlock block={block} onMedia={onMedia} /> : block.type === "gallery" ? <GalleryBlock block={block} onMedia={onMedia} /> : <TextBlock block={block} editing={editing} onUpdate={onUpdate} />}{editing && <div className="mt-7 flex flex-wrap gap-2 border-t border-black/10 pt-5"><button onClick={onMedia} className="border border-black/15 px-3 py-2 text-[8px] uppercase tracking-[.15em]">Choose Media</button>{block.type === "gallery" && <select value={block.gallery_layout} onChange={(e) => onUpdate({ gallery_layout: e.target.value as Layout })} className="border border-black/15 bg-transparent px-3 py-2 text-[8px] uppercase tracking-[.15em]"><option value="grid">Grid</option><option value="feature">Feature</option><option value="portrait-pair">Columns</option></select>}</div>}</div></article>; }
+
+function TextBlock({ block, editing, onUpdate }: { block: Block; editing: boolean; onUpdate: (patch: Partial<Block>) => void }) { return <div>{editing ? <><input value={block.title || ""} onChange={(e) => onUpdate({ title: e.target.value })} placeholder="Enter a Heading" className="mb-4 w-full border-b border-black/15 bg-transparent py-2 font-serif text-4xl outline-none"/><textarea value={block.body || ""} onChange={(e) => onUpdate({ body: e.target.value })} placeholder="This is a paragraph. Enter your own text…" rows={6} className="w-full resize-none bg-transparent font-serif text-lg leading-8 outline-none" /></> : <><h2 className="font-serif text-4xl">{block.title || "Enter a Heading"}</h2><p className="mt-4 whitespace-pre-wrap font-serif text-lg leading-8 opacity-70">{block.body || "This is a paragraph. Click Edit and enter your own text."}</p></>}</div>; }
+function ImageBlock({ block, onMedia }: { block: Block; onMedia: () => void }) { const image = block.media[0]; return image ? <div><img src={mediaUrl(image.path)} alt={image.alt || image.filename} className="mx-auto max-h-[620px] w-auto max-w-full object-contain"/><p className="mt-4 text-center text-[9px] uppercase tracking-[.18em] opacity-35">{image.filename}</p></div> : <button onClick={onMedia} className="flex min-h-[360px] w-full items-center justify-center border border-dashed border-black/15 text-[9px] uppercase tracking-[.2em] opacity-45 hover:opacity-100">Click to choose image</button>; }
+function GalleryBlock({ block, onMedia }: { block: Block; onMedia: () => void }) { return block.media.length ? <div className={`grid gap-3 ${block.gallery_layout === "portrait-pair" ? "grid-cols-2" : block.gallery_layout === "feature" ? "grid-cols-1" : "grid-cols-2 md:grid-cols-3"}`}>{block.media.map((m) => <img key={m.id} src={mediaUrl(m.path)} alt={m.alt || m.filename} className="aspect-[4/3] h-full w-full object-cover"/>)}</div> : <button onClick={onMedia} className="flex min-h-[280px] w-full items-center justify-center border border-dashed border-black/15 text-[9px] uppercase tracking-[.2em] opacity-45 hover:opacity-100">Choose multiple images</button>; }
+
+function SettingsPanel({ story, destinations, media, onClose, onSave }: { story: Story; destinations: Destination[]; media: Media[]; onClose: () => void; onSave: (patch?: Partial<Story>) => void }) { const [draft, setDraft] = useState(story); const update = <K extends keyof Story>(key: K, value: Story[K]) => setDraft((d) => ({ ...d, [key]: value })); return <div className="fixed inset-0 z-50 bg-black/25"><aside className="absolute right-0 top-0 h-full w-full max-w-[520px] overflow-y-auto bg-[#f7f5f0] shadow-2xl"><div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-[#f7f5f0]/95 px-7 py-6 backdrop-blur"><div><p className="text-[9px] uppercase tracking-[.25em] opacity-45">Post Settings</p><h2 className="mt-2 font-serif text-4xl">Settings</h2></div><button onClick={onClose} className="text-2xl opacity-40">×</button></div><div className="space-y-10 p-7"><section><label className="text-[9px] uppercase tracking-[.2em] opacity-45">Post Name</label><input value={draft.title} onChange={(e) => update("title", e.target.value)} className="mt-3 w-full border-b border-black/15 bg-transparent py-3 font-serif text-3xl outline-none"/><label className="mt-7 block text-[9px] uppercase tracking-[.2em] opacity-45">Post Status</label><select value={draft.published ? "published" : "draft"} onChange={(e) => update("published", e.target.value === "published" ? 1 : 0)} className="mt-3 w-full border-b border-black/15 bg-transparent py-3 text-sm outline-none"><option value="draft">Draft</option><option value="published">Published</option></select><label className="mt-7 block text-[9px] uppercase tracking-[.2em] opacity-45">Published Date</label><input type="date" value={draft.date || ""} onChange={(e) => update("date", e.target.value || null)} className="mt-3 w-full border-b border-black/15 bg-transparent py-3 text-sm outline-none"/></section><section><p className="text-[9px] uppercase tracking-[.2em] opacity-45">Cover Image</p><button onClick={() => { const first = media[0]; if (first) update("cover_media_id", first.id); }} className="mt-3 flex h-36 w-full items-center justify-center border border-dashed border-black/15 text-[9px] uppercase tracking-[.2em] opacity-50">{draft.cover_media_id ? "Cover selected — click to change" : "Select from Media Library"}</button></section><section><label className="text-[9px] uppercase tracking-[.2em] opacity-45">Destination</label><select value={draft.destination_id || ""} onChange={(e) => update("destination_id", e.target.value || null)} className="mt-3 w-full border-b border-black/15 bg-transparent py-3 text-sm outline-none"><option value="">Select destination</option>{destinations.map((d) => <option key={d.id} value={d.id}>{d.name}{d.country_name ? ` — ${d.country_name}` : ""}</option>)}</select><label className="mt-7 block text-[9px] uppercase tracking-[.2em] opacity-45">Category</label><select value={draft.category || ""} onChange={(e) => update("category", e.target.value || null)} className="mt-3 w-full border-b border-black/15 bg-transparent py-3 text-sm outline-none"><option value="">Select category</option>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></section><section><label className="text-[9px] uppercase tracking-[.2em] opacity-45">URL Slug</label><div className="mt-3 flex border-b border-black/15"><input value={draft.slug} onChange={(e) => update("slug", e.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"/><button onClick={() => update("slug", slugify(draft.title))} className="px-2 text-[8px] uppercase tracking-[.15em] opacity-45">Generate</button></div><label className="mt-7 block text-[9px] uppercase tracking-[.2em] opacity-45">Post Description</label><textarea value={draft.description || ""} onChange={(e) => update("description", e.target.value || null)} rows={5} className="mt-3 w-full border border-black/10 bg-white/30 p-4 font-serif text-lg outline-none"/><label className="mt-7 block text-[9px] uppercase tracking-[.2em] opacity-45">SEO Title</label><input value={draft.seo_title || ""} onChange={(e) => update("seo_title", e.target.value || null)} className="mt-3 w-full border-b border-black/15 bg-transparent py-3 text-sm outline-none"/><label className="mt-7 block text-[9px] uppercase tracking-[.2em] opacity-45">SEO Description</label><textarea value={draft.seo_description || ""} onChange={(e) => update("seo_description", e.target.value || null)} rows={4} className="mt-3 w-full border border-black/10 bg-white/30 p-4 text-sm outline-none"/></section><button onClick={() => { onSave(draft); onClose(); }} className="w-full bg-[#171717] py-4 text-[9px] uppercase tracking-[.2em] text-white">Save Settings</button></div></aside></div>; }
+
+function MediaPicker({ media, selected, query, setQuery, toggle, close, apply }: { media: Media[]; selected: string[]; query: string; setQuery: (v: string) => void; toggle: (id: string) => void; close: () => void; apply: () => void }) { return <div className="fixed inset-0 z-[60] bg-black/40"><div className="absolute inset-x-0 bottom-0 top-8 mx-auto flex max-w-[1100px] flex-col bg-[#f7f5f0] shadow-2xl"><header className="flex items-center justify-between border-b border-black/10 px-6 py-5"><div><p className="text-[9px] uppercase tracking-[.25em] opacity-45">Media Library</p><h2 className="mt-2 font-serif text-3xl">Choose photos</h2></div><button onClick={close} className="text-2xl opacity-40">×</button></header><div className="border-b border-black/10 px-6 py-4"><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search photos…" className="w-full bg-transparent text-sm outline-none"/></div><div className="flex-1 overflow-y-auto p-6"><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-6">{media.map((m) => { const checked = selected.includes(m.id); return <button key={m.id} onClick={() => toggle(m.id)} className={`relative aspect-square overflow-hidden border-2 ${checked ? "border-black" : "border-transparent"}`}><img src={mediaUrl(m.path)} alt={m.alt || m.filename} className="h-full w-full object-cover"/><span className={`absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] ${checked ? "opacity-100" : "opacity-0"}`}>{checked ? "✓" : ""}</span></button>; })}</div>{!media.length && <p className="py-20 text-center text-[10px] uppercase tracking-[.2em] opacity-40">No media found</p>}</div><footer className="flex items-center justify-between border-t border-black/10 px-6 py-5"><span className="text-[9px] uppercase tracking-[.18em] opacity-45">{selected.length} selected</span><div className="flex gap-3"><button onClick={close} className="px-4 py-2 text-[9px] uppercase tracking-[.18em]">Cancel</button><button onClick={apply} disabled={!selected.length} className="bg-[#171717] px-5 py-2 text-[9px] uppercase tracking-[.18em] text-white disabled:opacity-30">Add Selected Photos</button></div></footer></div></div>; }
