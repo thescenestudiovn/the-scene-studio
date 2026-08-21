@@ -13,6 +13,9 @@ import { stories as legacyStories } from "../../../data/stories";
 import { mediaUrl } from "../../../lib/media";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://thescenestudio.asia";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = { params: Promise<{ slug: string }> };
 type DbMedia = { id: string; path: string; filename: string | null; alt: string | null; width: number | null; height: number | null; sort_order: number };
 type DbBlock = { id: string; type: string; sort_order: number; eyebrow: string | null; title: string | null; body: string | null; media_id: string | null; gallery_title: string | null; gallery_layout?: "grid" | "feature" | "portrait-pair" | null; media: DbMedia[] };
