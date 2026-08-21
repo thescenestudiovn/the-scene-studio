@@ -12,6 +12,9 @@ import { mediaUrl } from "../../lib/media";
 
 const baseUrl = "https://thescenestudio.asia";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
     title: "Wedding Stories — The Scene Studio",
     description: "Explore intimate destination wedding stories photographed and filmed by The Scene Studio across Da Nang, Hoi An, and Vietnam.",
