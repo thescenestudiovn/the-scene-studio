@@ -25,8 +25,8 @@ const BLOCKS = [
 function mediaUrl(path: string) {
   const value = (path || "").trim();
   if (!value) return "";
-  if (/^(https?:)?\\/\\//i.test(value)) return value;
-  return `${MEDIA_BASE}/${encodeURI(value.replace(/^\\/+/, ""))}`;
+  if (/^(https?:)?\/\//i.test(value)) return value;
+  return `${MEDIA_BASE}/${encodeURI(value.replace(/^\/+/, ""))}`;
 }
 
 function MediaImage({ media, className = "", alt }: { media: Media; className?: string; alt?: string }) {
