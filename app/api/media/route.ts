@@ -5,15 +5,20 @@ export const runtime = "edge";
 
 const MEDIA_BASE_URL = "https://media.thescenestudio.asia";
 
-export async function GET(request: NextRequest) {
+function getMediaUrl(request: NextRequest) {
   const rawPath = request.nextUrl.searchParams.get("path");
-
-  if (!rawPath) {
-    return new Response("Missing media path", { status: 400 });
-  }
+  if (!rawPath) return null;
 
   const cleanPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-  const url = `${MEDIA_BASE_URL}${cleanPath}`;
+  return `${MEDIA_BASE_URL}${cleanPath}`;
+}
+
+async function proxyMedia(request: NextRequest, includeBody: boolean) {
+  const url = getMediaUrl(request);
+
+  if (!url) {
+    return new Response("Missing media path", { status: 400 });
+  }
 
   try {
     const response = await fetch(url, {
@@ -23,7 +28,7 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
 
-    if (!response.ok || !response.body) {
+    if (!response.ok || (!response.body && includeBody)) {
       return new Response(`Media origin returned ${response.status}`, {
         status: response.status || 502,
         headers: { "Cache-Control": "no-store" },
@@ -39,7 +44,7 @@ export async function GET(request: NextRequest) {
     const contentLength = response.headers.get("content-length");
     if (contentLength) headers.set("Content-Length", contentLength);
 
-    return new Response(response.body, { status: 200, headers });
+    return new Response(includeBody ? response.body : null, { status: 200, headers });
   } catch (error) {
     console.error("Media proxy failed:", error);
     return new Response("Media proxy failed", {
@@ -47,4 +52,12 @@ export async function GET(request: NextRequest) {
       headers: { "Cache-Control": "no-store" },
     });
   }
+}
+
+export async function GET(request: NextRequest) {
+  return proxyMedia(request, true);
+}
+
+export async function HEAD(request: NextRequest) {
+  return proxyMedia(request, false);
 }
