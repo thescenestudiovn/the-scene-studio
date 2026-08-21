@@ -63,7 +63,7 @@ type AddOption = {
 const MEDIA_BASE = "https://media.thescenestudio.asia";
 
 function mediaUrl(path: string) {
-  return `${MEDIA_BASE}/${path.replace(/^\\/+/, "")}`;
+  return `${MEDIA_BASE}/${path.replace(/^\/+/, "")}`;
 }
 
 const categories: { name: AddCategory; description: string }[] = [
