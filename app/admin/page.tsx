@@ -3,17 +3,27 @@
 import { useEffect, useState } from "react";
 
 type Story = { id: string; title: string; published: number };
+type StoriesResponse = { stories?: Story[]; error?: string };
 
 export default function AdminPage() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/stories", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data: { stories?: Story[] }) => setStories(data.stories || []))
-      .catch(() => setStories([]))
-      .finally(() => setLoading(false));
+    async function loadStories() {
+      try {
+        const res = await fetch("/api/admin/stories", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load stories");
+        const data = (await res.json()) as StoriesResponse;
+        setStories(data.stories ?? []);
+      } catch {
+        setStories([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadStories();
   }, []);
 
   const published = stories.filter((story) => Boolean(story.published)).length;
