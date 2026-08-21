@@ -33,9 +33,9 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
     return Response.json({ success: true, blocks: result.results });
   } catch (error) {
-    console.error(error);
+    console.error("GET story blocks error:", error);
     return Response.json(
-      { success: false, error: "Failed to fetch story blocks" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to fetch story blocks" },
       { status: 500 }
     );
   }
@@ -72,27 +72,37 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     const blockId = crypto.randomUUID();
 
-    await db
-      .prepare(`
-        INSERT INTO story_blocks (
-          id, story_id, type, sort_order, eyebrow, title, body,
-          media_id, gallery_title, gallery_layout
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .bind(
-        blockId,
-        id,
-        type,
-        sort_order,
-        eyebrow,
-        title,
-        content,
-        media_id,
-        gallery_title,
-        gallery_layout
-      )
-      .run();
+    try {
+      await db
+        .prepare(`
+          INSERT INTO story_blocks (
+            id, story_id, type, sort_order, eyebrow, title, body,
+            media_id, gallery_title, gallery_layout
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(blockId, id, type, sort_order, eyebrow, title, content, media_id, gallery_title, gallery_layout)
+        .run();
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+
+      // Allow older remote databases to keep creating blocks until migration
+      // 0002 has been applied. New databases use gallery_layout above.
+      if (text.toLowerCase().includes("no such column") && text.includes("gallery_layout")) {
+        await db
+          .prepare(`
+            INSERT INTO story_blocks (
+              id, story_id, type, sort_order, eyebrow, title, body,
+              media_id, gallery_title
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .bind(blockId, id, type, sort_order, eyebrow, title, content, media_id, gallery_title)
+          .run();
+      } else {
+        throw error;
+      }
+    }
 
     const block = await db
       .prepare(`SELECT * FROM story_blocks WHERE id = ? LIMIT 1`)
@@ -101,9 +111,9 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     return Response.json({ success: true, block });
   } catch (error) {
-    console.error(error);
+    console.error("POST story block error:", error);
     return Response.json(
-      { success: false, error: "Failed to create story block" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to create story block" },
       { status: 500 }
     );
   }
