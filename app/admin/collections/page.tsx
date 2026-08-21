@@ -4,6 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 
 type Collection = { id: string; title: string; slug: string; description: string | null; destination_id: string | null; destination_name: string | null; destination_country: string | null };
 type Destination = { id: string; name: string; country_name: string; slug: string };
+type CollectionsResponse = { success?: boolean; collections?: Collection[]; error?: string };
+type DestinationsResponse = { success?: boolean; destinations?: Destination[]; error?: string };
+type CreateCollectionResponse = { success?: boolean; error?: string };
 
 function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -19,13 +22,16 @@ export default function CollectionsPage() {
   const [error, setError] = useState("");
 
   async function load() {
-    const [c, d] = await Promise.all([
-      fetch("/api/admin/collections", { cache: "no-store" }).then((r) => r.json()),
-      fetch("/api/admin/destinations", { cache: "no-store" }).then((r) => r.json()),
+    const [cResponse, dResponse] = await Promise.all([
+      fetch("/api/admin/collections", { cache: "no-store" }),
+      fetch("/api/admin/destinations", { cache: "no-store" }),
     ]);
-    if (!c.success) throw new Error(c.error || "Failed to load collections");
-    setCollections(c.collections || []);
-    setDestinations(d.destinations || []);
+    const c = (await cResponse.json()) as CollectionsResponse;
+    const d = (await dResponse.json()) as DestinationsResponse;
+    if (!cResponse.ok || !c.success) throw new Error(c.error || "Failed to load collections");
+    if (!dResponse.ok || !d.success) throw new Error(d.error || "Failed to load destinations");
+    setCollections(c.collections ?? []);
+    setDestinations(d.destinations ?? []);
   }
 
   useEffect(() => { void load().catch((e) => setError(e instanceof Error ? e.message : "Failed to load")); }, []);
@@ -36,7 +42,7 @@ export default function CollectionsPage() {
     setBusy(true); setError("");
     try {
       const response = await fetch("/api/admin/collections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), slug: slugify(title), description: description.trim() || null, destination_id: destinationId || null }) });
-      const data = await response.json();
+      const data = (await response.json()) as CreateCollectionResponse;
       if (!response.ok || !data.success) throw new Error(data.error || "Failed to create collection");
       setTitle(""); setDescription(""); setDestinationId("");
       await load();
