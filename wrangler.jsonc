@@ -10,6 +10,13 @@
         "binding": "ASSETS",
         "directory": ".open-next/assets"
     },
+    "d1_databases": [
+        {
+            "binding": "the_scene_studio_db",
+            "database_name": "the-scene-studio-db",
+            "database_id": "c8a6b25a-512e-4f8d-b2b0-217d104c92e3"
+        }
+    ],
     "observability": {
         "enabled": true
     }

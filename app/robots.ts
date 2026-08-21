@@ -2,7 +2,7 @@
 import type { MetadataRoute } from "next";
 
 const baseUrl =
-    "https://the-scene-studio.thescenestudio.workers.dev";
+    "https://thescenestudio.asia";
 
 export default function robots(): MetadataRoute.Robots {
     return {

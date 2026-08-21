@@ -11,7 +11,7 @@ import { destinations } from "../../../../data/destinations";
 import { stories } from "../../../../data/stories";
 
 const baseUrl =
-    "https://the-scene-studio.thescenestudio.workers.dev";
+    "https://thescenestudio.asia";
 
 const destinationImages: Record<string, string> = {
     "da-nang": "/images/destinations/da-nang.jpg",
@@ -63,11 +63,8 @@ export async function generateMetadata({
     const canonicalUrl =
         `${baseUrl}/destinations/${destination.country}/${destination.slug}`;
 
-    const title =
-        `${destination.name} Wedding Photography & Films | The Scene Studio`;
-
-    const description =
-        `${destination.description} The Scene Studio photographs and films intimate destination weddings in ${destination.name}, Vietnam.`;
+    const title = destination.seoTitle;
+    const description = destination.seoDescription;
 
     return {
         title,
@@ -336,7 +333,7 @@ export default async function DestinationPage({
                         </p>
 
                         <h1 className="mt-5 font-serif text-[clamp(4rem,10vw,9rem)] leading-[0.85] tracking-[-0.05em]">
-                            {destination.name}
+                            {destination.name} Wedding Photography
                         </h1>
 
                     </div>
@@ -416,8 +413,8 @@ export default async function DestinationPage({
                                         key={story.slug}
                                         href={`/stories/${story.slug}`}
                                         className={`group ${index % 2 === 1
-                                                ? "md:mt-32"
-                                                : ""
+                                            ? "md:mt-32"
+                                            : ""
                                             }`}
                                     >
 

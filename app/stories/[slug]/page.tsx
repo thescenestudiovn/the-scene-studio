@@ -10,9 +10,10 @@ import StoryRenderer from "../../components/story/StoryRenderer";
 
 import { destinations } from "../../../data/destinations";
 import { stories } from "../../../data/stories";
+import { mediaUrl } from "../../../lib/media";
 
 const baseUrl =
-    "https://the-scene-studio.thescenestudio.workers.dev";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://thescenestudio.asia";
 
 type PageProps = {
     params: Promise<{
@@ -67,7 +68,7 @@ export async function generateMetadata({
 
             images: [
                 {
-                    url: `${baseUrl}${story.coverImage}`,
+                    url: mediaUrl(story.coverImage),
                     alt: `${story.title} — ${story.location}`,
                 },
             ],
@@ -79,7 +80,7 @@ export async function generateMetadata({
             description: story.seoDescription,
 
             images: [
-                `${baseUrl}${story.coverImage}`,
+                mediaUrl(story.coverImage),
             ],
         },
 
@@ -171,7 +172,7 @@ export default async function StoryPage({
         description: story.description,
 
         image: [
-            `${baseUrl}${story.coverImage}`,
+            mediaUrl(story.coverImage),
         ],
 
         datePublished: story.date,
@@ -240,7 +241,7 @@ export default async function StoryPage({
                 <div className="absolute inset-0">
 
                     <Image
-                        src={story.coverImage}
+                        src={mediaUrl(story.coverImage)}
                         alt={`${story.title} wedding in ${story.location}`}
                         fill
                         priority

@@ -7,7 +7,7 @@ import { destinations } from "../../data/destinations";
 import { stories } from "../../data/stories";
 
 const baseUrl =
-    "https://the-scene-studio.thescenestudio.workers.dev";
+    "https://thescenestudio.asia";
 
 export const metadata: Metadata = {
     title: "Destination Wedding Photography & Films in Vietnam",

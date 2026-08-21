@@ -7,7 +7,7 @@ import Link from "next/link";
 import { destinations } from "../../../data/destinations";
 
 const baseUrl =
-    "https://the-scene-studio.thescenestudio.workers.dev";
+    "https://thescenestudio.asia";
 
 const destinationImages: Record<string, string> = {
     "da-nang": "/images/destinations/da-nang.jpg",

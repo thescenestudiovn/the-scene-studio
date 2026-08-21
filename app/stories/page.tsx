@@ -8,8 +8,10 @@ import Footer from "../components/Footer";
 import { stories } from "../../data/stories";
 import { destinations } from "../../data/destinations";
 
+import { mediaUrl } from "../../lib/media";
+
 const baseUrl =
-    "https://the-scene-studio.thescenestudio.workers.dev";
+    "https://thescenestudio.asia";
 
 export const metadata: Metadata = {
     title: "Wedding Stories — The Scene Studio",
@@ -220,7 +222,7 @@ export default function StoriesPage() {
                                     <div className="relative aspect-[16/9] overflow-hidden">
 
                                         <Image
-                                            src={story.coverImage}
+                                            src={mediaUrl(story.coverImage)}
                                             alt={`${story.title} — ${story.location}`}
                                             fill
                                             className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"

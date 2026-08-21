@@ -55,7 +55,6 @@ export type Story = {
 
     // Optional wedding film
 
-
     // Story content
     sections: StorySection[];
 };
@@ -73,7 +72,7 @@ export const stories: Story[] = [
         category: "Intimate Wedding",
 
         seoTitle:
-            "Haley & David — Intimate Wedding in Da Nang",
+            "Haley & David — Intimate Wedding Photography in Da Nang | The Scene Studio",
 
         seoDescription:
             "An intimate destination wedding for Haley & David in Da Nang, Vietnam, photographed and filmed by The Scene Studio.",
@@ -81,12 +80,11 @@ export const stories: Story[] = [
         description:
             "An intimate destination wedding by the coast of Da Nang, Vietnam.",
 
+        // NAS / Cloudflare
         coverImage:
-            "/images/stories/haley-david.jpg",
+            "Haley-David/002-NT-HL-01178.jpg",
 
         destination: "da-nang",
-
-
 
         sections: [
             {
@@ -105,7 +103,7 @@ export const stories: Story[] = [
                 type: "image",
 
                 image:
-                    "/images/stories/haley-david.jpg",
+                    "Haley-David/002-NT-HL-01178.jpg",
 
                 alt:
                     "Haley & David intimate wedding in Da Nang, Vietnam",
@@ -121,7 +119,7 @@ export const stories: Story[] = [
                 images: [
                     {
                         src:
-                            "/images/stories/haley-david-01.jpg",
+                            "Haley-David/002-NT-HL-01178.jpg",
 
                         alt:
                             "Haley and David during their wedding in Da Nang",
@@ -129,7 +127,7 @@ export const stories: Story[] = [
 
                     {
                         src:
-                            "/images/stories/haley-david-02.jpg",
+                            "Haley-David/0aae205c-3b87-47f3-b9a5-f53b3194b0c3.jpeg",
 
                         alt:
                             "Intimate wedding moment in Da Nang, Vietnam",
@@ -137,7 +135,7 @@ export const stories: Story[] = [
 
                     {
                         src:
-                            "/images/stories/haley-david-03.jpg",
+                            "Haley-David/Gemini_Generated_Image_ube5c6ube5c6ube5.png",
 
                         alt:
                             "Wedding celebration in Da Nang, Vietnam",
@@ -145,7 +143,7 @@ export const stories: Story[] = [
 
                     {
                         src:
-                            "/images/stories/haley-david-04.jpg",
+                            "Haley-David/SIN09828.jpg",
 
                         alt:
                             "Haley and David wedding portrait in Da Nang",

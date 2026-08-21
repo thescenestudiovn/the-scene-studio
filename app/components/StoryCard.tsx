@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { mediaUrl } from "../../lib/media";
 
 type StoryCardProps = {
     number: string;
@@ -27,7 +28,7 @@ export default function StoryCard({
 
                 <div className="relative aspect-[4/3] overflow-hidden bg-[#ddd8cf] md:aspect-[16/9]">
                     <Image
-                        src={image}
+                        src={mediaUrl(image)}
                         alt={`${couple} — intimate wedding in ${location}`}
                         fill
                         className="object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.02]"

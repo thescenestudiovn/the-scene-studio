@@ -3,11 +3,6 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import StoryCard from "./components/StoryCard";
 import StructuredData from "./components/StructuredData";
-const featuredStory = {
-  couple: "Haley & David",
-  location: "Da Nang, Vietnam",
-  description: "An intimate celebration by the coast.",
-};
 
 export default function Home() {
   return (
@@ -42,8 +37,12 @@ export default function Home() {
               </p>
 
               <h1 className="font-serif text-[clamp(4rem,11vw,10rem)] leading-[0.8] tracking-[-0.04em]">
-                The Scene
+                The Scene Studio
               </h1>
+
+              <p className="mt-6 max-w-md font-sans text-sm leading-6 md:text-base">
+                Destination wedding photography & films in Vietnam and worldwide.
+              </p>
             </div>
 
             <div className="max-w-sm">
@@ -80,8 +79,9 @@ export default function Home() {
             {/* Description */}
             <div className="md:col-span-4 md:col-start-9">
               <p className="font-sans text-sm leading-7 text-[#77736c]">
-                The Scene Studio creates intimate photographs and films for couples
-                celebrating love in beautiful places.
+                The Scene Studio is a destination wedding photography and film studio
+                based in Vietnam, documenting intimate celebrations in Da Nang, Hoi An,
+                and beautiful destinations around the world.
               </p>
 
               <p className="mt-6 font-sans text-sm leading-7 text-[#77736c]">

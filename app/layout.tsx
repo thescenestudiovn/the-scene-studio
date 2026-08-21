@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
+import StructuredData from "./components/StructuredData";
 
 const serif = Cormorant_Garamond({
   variable: "--font-serif",
@@ -14,14 +15,13 @@ const sans = DM_Sans({
   display: "swap",
 });
 
+const siteUrl = "https://thescenestudio.asia";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    "https://the-scene-studio.thescenestudio.workers.dev"
-  ),
+  metadataBase: new URL(siteUrl),
 
   title: {
-    default:
-      "The Scene Studio — Destination Wedding Photography & Films",
+    default: "The Scene Studio — Destination Wedding Photography & Films",
     template: "%s — The Scene Studio",
   },
 
@@ -35,28 +35,27 @@ export const metadata: Metadata = {
     "Da Nang wedding videographer",
     "destination wedding Vietnam",
     "destination wedding photographer",
-    "intimate wedding Vietnam",
     "wedding photography Vietnam",
     "wedding films Vietnam",
     "The Scene Studio",
   ],
 
-  authors: [
-    {
-      name: "The Scene Studio",
-    },
-  ],
-
+  authors: [{ name: "The Scene Studio" }],
   creator: "The Scene Studio",
+  publisher: "The Scene Studio",
+
+  alternates: {
+    canonical: siteUrl,
+  },
 
   verification: {
-    google:
-      "AVvrDHG767WsbMJRETLTgSMg3wow8t6-u_z1b2igpzI",
+    google: "AVvrDHG767WsbMJRETLTgSMg3wow8t6-u_z1b2igpzI",
   },
 
   openGraph: {
     type: "website",
     siteName: "The Scene Studio",
+    url: siteUrl,
     title:
       "The Scene Studio — Destination Wedding Photography & Films",
     description:
@@ -89,25 +88,8 @@ export default function RootLayout({
       className={`${serif.variable} ${sans.variable}`}
     >
       <body>
-
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              "@id":
-                "https://the-scene-studio.thescenestudio.workers.dev/#organization",
-              name: "The Scene Studio",
-              url: "https://the-scene-studio.thescenestudio.workers.dev",
-              description:
-                "The Scene Studio creates intimate, cinematic photographs and films for destination weddings in Vietnam and beyond.",
-            }),
-          }}
-        />
-
+        <StructuredData />
         {children}
-
       </body>
     </html>
   );

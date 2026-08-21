@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { mediaUrl } from "../../../lib/media";
 
 type StoryImageProps = {
     image: string;
@@ -18,13 +19,17 @@ export default function StoryImage({
                     }`}
             >
                 <Image
-                    src={image}
+                    src={mediaUrl(image)}
                     alt={alt}
                     width={2400}
                     height={1600}
-                    className="w-full"
-                    style={{ width: "100%", height: "auto" }}
+                    className="w-full select-none"
+                    style={{
+                        width: "100%",
+                        height: "auto",
+                    }}
                     sizes="100vw"
+                    draggable={false}
                 />
             </div>
         </section>
