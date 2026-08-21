@@ -1,47 +1,49 @@
 import { NextRequest } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
 const MEDIA_BASE_URL = "https://media.thescenestudio.asia";
 
 export async function GET(request: NextRequest) {
-  const path = request.nextUrl.searchParams.get("path");
+  const rawPath = request.nextUrl.searchParams.get("path");
 
-  if (!path || !path.startsWith("/")) {
-    return new Response("Invalid media path", { status: 400 });
+  if (!rawPath) {
+    return new Response("Missing media path", { status: 400 });
   }
 
-  const url = `${MEDIA_BASE_URL}${path}`;
-
-  console.log("MEDIA PROXY:", url);
+  const path = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
+  const url = new URL(path, MEDIA_BASE_URL);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(url.toString(), {
       method: "GET",
       redirect: "follow",
-      cache: "no-store",
+      cf: { cacheEverything: true, cacheTtl: 86400 },
     });
 
-    console.log("MEDIA RESPONSE:", response.status);
-
-    if (!response.ok) {
-      return new Response(`Origin returned ${response.status}`, {
-        status: response.status,
+    if (!response.ok || !response.body) {
+      return new Response(`Media origin returned ${response.status}`, {
+        status: response.status || 502,
+        headers: { "Cache-Control": "no-store" },
       });
     }
 
-    return new Response(response.body, {
-      status: 200,
-      headers: {
-        "Content-Type":
-          response.headers.get("content-type") || "image/jpeg",
-        "Cache-Control": "public, max-age=3600",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  } catch (error) {
-    console.error("MEDIA PROXY ERROR:", error);
+    const headers = new Headers();
+    headers.set("Content-Type", response.headers.get("content-type") || "application/octet-stream");
+    headers.set("Cache-Control", "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400");
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("Cross-Origin-Resource-Policy", "cross-origin");
 
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) headers.set("Content-Length", contentLength);
+
+    return new Response(response.body, { status: 200, headers });
+  } catch (error) {
+    console.error("Media proxy failed:", error);
     return new Response("Media proxy failed", {
       status: 502,
+      headers: { "Cache-Control": "no-store" },
     });
   }
 }
