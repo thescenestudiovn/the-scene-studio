@@ -20,10 +20,7 @@ type UpdateStoryBody = {
   published?: boolean;
 };
 
-export async function GET(
-  _request: Request,
-  { params }: RouteContext
-) {
+export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const db = getDB();
@@ -35,8 +32,7 @@ export async function GET(
           d.name AS destination_name,
           d.country AS destination_country
         FROM stories s
-        LEFT JOIN destinations d
-          ON d.id = s.destination_id
+        LEFT JOIN destinations d ON d.id = s.destination_id
         WHERE s.id = ?
         LIMIT 1
       `)
@@ -44,16 +40,9 @@ export async function GET(
       .first();
 
     if (!story) {
-      return Response.json(
-        {
-          success: false,
-          error: "Story not found",
-        },
-        { status: 404 }
-      );
+      return Response.json({ success: false, error: "Story not found" }, { status: 404 });
     }
 
-    // Get all blocks belonging to this story
     const blocks = await db
       .prepare(`
         SELECT *
@@ -66,10 +55,9 @@ export async function GET(
 
     const blockRows = blocks.results ?? [];
 
-    // Attach media to each block through story_block_media
     const blocksWithMedia = await Promise.all(
       blockRows.map(async (block) => {
-        const media = await db
+        const junctionMedia = await db
           .prepare(`
             SELECT
               m.id,
@@ -82,22 +70,44 @@ export async function GET(
               m.height,
               sbm.sort_order
             FROM story_block_media sbm
-            INNER JOIN media m
-              ON m.id = sbm.media_id
+            INNER JOIN media m ON m.id = sbm.media_id
             WHERE sbm.block_id = ?
             ORDER BY sbm.sort_order ASC
           `)
           .bind(block.id)
           .all();
 
-        return {
-          ...block,
-          media: media.results ?? [],
-        };
+        let media = junctionMedia.results ?? [];
+
+        // Image blocks use the direct media_id relationship. Gallery blocks use
+        // story_block_media so one block can contain an ordered collection.
+        if (media.length === 0 && block.type === "image" && block.media_id) {
+          const directMedia = await db
+            .prepare(`
+              SELECT
+                id,
+                collection_id,
+                type,
+                path,
+                filename,
+                alt,
+                width,
+                height,
+                0 AS sort_order
+              FROM media
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(block.media_id)
+            .first();
+
+          if (directMedia) media = [directMedia];
+        }
+
+        return { ...block, media };
       })
     );
 
-    // Get optional gallery CTA
     const galleryCta = await db
       .prepare(`
         SELECT *
@@ -116,45 +126,26 @@ export async function GET(
     });
   } catch (error) {
     console.error("GET /api/admin/stories/[id] error:", error);
-
     return Response.json(
-      {
-        success: false,
-        error: "Failed to fetch story",
-      },
+      { success: false, error: "Failed to fetch story" },
       { status: 500 }
     );
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: RouteContext
-) {
+export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const body = (await request.json()) as UpdateStoryBody;
-
     const db = getDB();
 
     const existing = await db
-      .prepare(`
-        SELECT id
-        FROM stories
-        WHERE id = ?
-        LIMIT 1
-      `)
+      .prepare(`SELECT id FROM stories WHERE id = ? LIMIT 1`)
       .bind(id)
       .first();
 
     if (!existing) {
-      return Response.json(
-        {
-          success: false,
-          error: "Story not found",
-        },
-        { status: 404 }
-      );
+      return Response.json({ success: false, error: "Story not found" }, { status: 404 });
     }
 
     const fields: string[] = [];
@@ -164,98 +155,69 @@ export async function PATCH(
       fields.push("title = ?");
       values.push(body.title);
     }
-
     if (body.slug !== undefined) {
       fields.push("slug = ?");
       values.push(body.slug);
     }
-
     if (body.location !== undefined) {
       fields.push("location = ?");
       values.push(body.location);
     }
-
     if (body.date !== undefined) {
       fields.push("date = ?");
       values.push(body.date);
     }
-
     if (body.category !== undefined) {
       fields.push("category = ?");
       values.push(body.category);
     }
-
     if (body.description !== undefined) {
       fields.push("description = ?");
       values.push(body.description);
     }
-
     if (body.seo_title !== undefined) {
       fields.push("seo_title = ?");
       values.push(body.seo_title);
     }
-
     if (body.seo_description !== undefined) {
       fields.push("seo_description = ?");
       values.push(body.seo_description);
     }
-
     if (body.destination_id !== undefined) {
       fields.push("destination_id = ?");
       values.push(body.destination_id);
     }
-
     if (body.cover_media_id !== undefined) {
       fields.push("cover_media_id = ?");
       values.push(body.cover_media_id);
     }
-
     if (body.published !== undefined) {
       fields.push("published = ?");
       values.push(body.published ? 1 : 0);
     }
 
     if (fields.length === 0) {
-      return Response.json({
-        success: true,
-        message: "Nothing to update",
-      });
+      return Response.json({ success: true, message: "Nothing to update" });
     }
 
     fields.push("updated_at = CURRENT_TIMESTAMP");
     values.push(id);
 
     await db
-      .prepare(`
-        UPDATE stories
-        SET ${fields.join(", ")}
-        WHERE id = ?
-      `)
+      .prepare(`UPDATE stories SET ${fields.join(", ")} WHERE id = ?`)
       .bind(...values)
       .run();
 
     const story = await db
-      .prepare(`
-        SELECT *
-        FROM stories
-        WHERE id = ?
-        LIMIT 1
-      `)
+      .prepare(`SELECT * FROM stories WHERE id = ? LIMIT 1`)
       .bind(id)
       .first();
 
-    return Response.json({
-      success: true,
-      story,
-    });
+    return Response.json({ success: true, story });
   } catch (error) {
     console.error("PATCH /api/admin/stories/[id] error:", error);
-
     return Response.json(
-      {
-        success: false,
-        error: "Failed to update story",
-      },
+      { success: false, error: "Failed to update story" },
       { status: 500 }
     );
   }
