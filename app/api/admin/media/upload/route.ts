@@ -13,18 +13,19 @@ function safeFilename(name: string) {
 }
 
 function getDimensions(_file: File) {
-  // Dimensions are optional metadata. Browser-side dimensions can be supplied
-  // by the uploader, while the NAS remains the source of truth for the bytes.
   return { width: null as number | null, height: null as number | null };
 }
 
 export async function POST(request: Request) {
   try {
     if (!nasConfigured()) {
-      return Response.json({
-        success: false,
-        error: "NAS upload is not configured. Set NAS_WEBDAV_URL, NAS_USERNAME and NAS_PASSWORD in the Worker secrets.",
-      }, { status: 503 });
+      return Response.json(
+        {
+          success: false,
+          error: "NAS upload is not configured. Set NAS_WEBDAV_URL, NAS_USERNAME and NAS_PASSWORD in the Worker secrets.",
+        },
+        { status: 503 },
+      );
     }
 
     const form = await request.formData();
@@ -39,12 +40,17 @@ export async function POST(request: Request) {
     }
 
     const db = getDB();
-    const collection = await db.prepare("SELECT id, slug FROM collections WHERE id = ?").bind(collectionId).first<{ id: string; slug: string }>();
+    const collection = await db
+      .prepare("SELECT id, slug FROM collections WHERE id = ?")
+      .bind(collectionId)
+      .first<{ id: string; slug: string }>();
+
     if (!collection) {
       return Response.json({ success: false, error: "Collection not found" }, { status: 404 });
     }
 
     const results: Array<Record<string, unknown>> = [];
+
     for (const file of files) {
       if (!ALLOWED_TYPES.has(file.type)) {
         return Response.json({ success: false, error: `${file.name}: unsupported image type` }, { status: 400 });
@@ -54,38 +60,53 @@ export async function POST(request: Request) {
       }
 
       const filename = safeFilename(file.name);
-      const path = `/images/collections/${collection.slug}/${Date.now()}-${filename}`;
+      // NAS_WEBDAV_URL points at the public/WEB WebDAV root. The public URL
+      // therefore maps directly to /collections/<slug>/<filename>.
+      const path = `/collections/${collection.slug}/${Date.now()}-${filename}`;
       const cleanPath = sanitizeNasPath(path);
       await uploadToNas(cleanPath, file);
 
       const id = crypto.randomUUID();
       const dimensions = getDimensions(file);
-      const sort = await db.prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM media WHERE collection_id = ?").bind(collectionId).first<{ next: number }>();
+      const sort = await db
+        .prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM media WHERE collection_id = ?")
+        .bind(collectionId)
+        .first<{ next: number }>();
 
-      await db.prepare(`
-        INSERT INTO media (id, collection_id, type, path, filename, alt, width, height, sort_order)
-        VALUES (?, ?, 'image', ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id,
-        collectionId,
-        `/${cleanPath}`,
-        filename,
-        filename.replace(/\.[^.]+$/, ""),
-        dimensions.width,
-        dimensions.height,
-        sort?.next ?? 0,
-      ).run();
+      await db
+        .prepare(`
+          INSERT INTO media (id, collection_id, type, path, filename, alt, width, height, sort_order)
+          VALUES (?, ?, 'image', ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(
+          id,
+          collectionId,
+          `/${cleanPath}`,
+          filename,
+          filename.replace(/\.[^.]+$/, ""),
+          dimensions.width,
+          dimensions.height,
+          sort?.next ?? 0,
+        )
+        .run();
 
-      const media = await db.prepare(`
-        SELECT id, collection_id, type, path, filename, alt, width, height, sort_order, created_at
-        FROM media WHERE id = ?
-      `).bind(id).first();
+      const media = await db
+        .prepare(`
+          SELECT id, collection_id, type, path, filename, alt, width, height, sort_order, created_at
+          FROM media WHERE id = ?
+        `)
+        .bind(id)
+        .first();
+
       results.push(media || { id });
     }
 
     return Response.json({ success: true, media: results });
   } catch (error) {
     console.error("POST /api/admin/media/upload error:", error);
-    return Response.json({ success: false, error: error instanceof Error ? error.message : "Failed to upload media" }, { status: 500 });
+    return Response.json(
+      { success: false, error: error instanceof Error ? error.message : "Failed to upload media" },
+      { status: 500 },
+    );
   }
 }
