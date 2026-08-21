@@ -47,6 +47,7 @@ async function getDbStory(slug: string) {
       FROM stories s
       LEFT JOIN destinations d ON d.id = s.destination_id
       WHERE s.slug = ?
+        AND s.published = 1
       LIMIT 1
     `)
     .bind(slug)
