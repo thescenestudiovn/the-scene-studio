@@ -1,144 +1,87 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDB } from "../../../../../lib/db";
 
-const NAS_UPLOAD_URL = process.env.NAS_UPLOAD_URL;
-const NAS_UPLOAD_TOKEN = process.env.NAS_UPLOAD_TOKEN;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PUBLIC_MEDIA_BASE_URL = "https://media.thescenestudio.asia";
 
-function cleanRelativePath(value: string) {
+function safeSegment(value: string) {
   return value
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter((part) => part && part !== "." && part !== "..")
-    .join("/");
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "story";
 }
 
-function cleanFilename(value: string) {
-  const filename = value.replace(/\\/g, "/").split("/").pop() || "file";
-  return filename.replace(/[^a-zA-Z0-9._-]/g, "-");
+function extensionForType(type: string) {
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  return "jpg";
 }
 
 export async function POST(request: Request) {
-  if (!NAS_UPLOAD_URL || !NAS_UPLOAD_TOKEN) {
-    return Response.json(
-      { success: false, error: "NAS upload is not configured" },
-      { status: 503 }
-    );
-  }
-
-  const filename = cleanFilename(request.headers.get("x-filename") || "");
-  const uploadPath = cleanRelativePath(
-    request.headers.get("x-upload-path") || "gallery"
-  );
-  const contentType =
-    request.headers.get("content-type") || "application/octet-stream";
-  const width = Number(request.headers.get("x-width") || 0) || null;
-  const height = Number(request.headers.get("x-height") || 0) || null;
-  const alt = request.headers.get("x-alt") || null;
-  const collectionId = request.headers.get("x-collection-id") || null;
-
-  if (!filename) {
-    return Response.json(
-      { success: false, error: "Filename is required" },
-      { status: 400 }
-    );
-  }
-
-  if (!/^image\/(jpeg|png|webp|avif)$/i.test(contentType)) {
-    return Response.json(
-      {
-        success: false,
-        error: "Only JPEG, PNG, WebP and AVIF images are supported",
-      },
-      { status: 400 }
-    );
-  }
-
-  if (!request.body) {
-    return Response.json(
-      { success: false, error: "Request body is empty" },
-      { status: 400 }
-    );
-  }
-
-  const nasUrl = new URL(NAS_UPLOAD_URL);
-  nasUrl.searchParams.set("path", uploadPath);
-  nasUrl.searchParams.set("filename", filename);
-
   try {
-    const response = await fetch(nasUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${NAS_UPLOAD_TOKEN}`,
-        "Content-Type": contentType,
-      },
-      body: request.body,
-    });
+    const form = await request.formData();
+    const file = form.get("file");
+    const storySlug = String(form.get("story_slug") || "story");
+    const filename = file instanceof File ? file.name : "";
+    const alt = String(form.get("alt") || filename || "");
+    const width = Number(form.get("width") || 0) || null;
+    const height = Number(form.get("height") || 0) || null;
 
-    const raw = await response.text();
-    let result: { path?: string; error?: string } = {};
-
-    try {
-      result = JSON.parse(raw) as typeof result;
-    } catch {
-      result = { error: raw || "NAS upload failed" };
+    if (!(file instanceof File)) {
+      return Response.json({ success: false, error: "file is required" }, { status: 400 });
     }
 
-    if (!response.ok || !result.path) {
+    if (!ALLOWED_TYPES.has(file.type)) {
       return Response.json(
-        {
-          success: false,
-          error: result.error || `NAS upload failed (${response.status})`,
-        },
-        { status: 502 }
+        { success: false, error: "Only JPEG, PNG, and WebP images are allowed" },
+        { status: 400 }
       );
     }
 
-    const db = getDB();
+    if (file.size > MAX_FILE_SIZE) {
+      return Response.json(
+        { success: false, error: "Image must be 5 MB or smaller" },
+        { status: 400 }
+      );
+    }
+
+    const { env } = getCloudflareContext();
+    const bucket = (env as unknown as { MEDIA_BUCKET: R2Bucket }).MEDIA_BUCKET;
+
+    if (!bucket) {
+      throw new Error("MEDIA_BUCKET binding is not configured");
+    }
+
     const id = crypto.randomUUID();
-    const normalizedPath = result.path.startsWith("/")
-      ? result.path
-      : `/${result.path}`;
+    const key = `stories/${safeSegment(storySlug)}/${id}.${extensionForType(file.type)}`;
+
+    await bucket.put(key, file.stream(), {
+      httpMetadata: {
+        contentType: file.type,
+        cacheControl: "public, max-age=31536000, immutable",
+      },
+    });
+
+    const path = `${PUBLIC_MEDIA_BASE_URL}/${key}`;
+    const db = getDB();
 
     await db
       .prepare(`
         INSERT INTO media (
-          id,
-          collection_id,
-          type,
-          path,
-          filename,
-          alt,
-          width,
-          height,
-          sort_order
+          id, collection_id, type, path, filename, alt, width, height, sort_order
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .bind(
-        id,
-        collectionId,
-        "image",
-        normalizedPath,
-        filename,
-        alt,
-        width,
-        height,
-        0
-      )
+      .bind(id, null, "image", path, filename, alt, width, height, 0)
       .run();
 
     const media = await db
       .prepare(`
-        SELECT
-          id,
-          collection_id,
-          type,
-          path,
-          filename,
-          alt,
-          width,
-          height,
-          sort_order,
-          created_at
+        SELECT id, collection_id, type, path, filename, alt, width, height, sort_order, created_at
         FROM media
         WHERE id = ?
       `)
@@ -148,10 +91,9 @@ export async function POST(request: Request) {
     return Response.json({ success: true, media });
   } catch (error) {
     console.error("POST /api/admin/media/upload error:", error);
-
     return Response.json(
-      { success: false, error: "Failed to upload image to NAS" },
-      { status: 502 }
+      { success: false, error: "Failed to upload media" },
+      { status: 500 }
     );
   }
 }
