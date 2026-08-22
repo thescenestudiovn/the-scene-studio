@@ -11,7 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <nav style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Link href="/admin" style={navStyle}>Dashboard</Link>
             <Link href="/admin/destinations" style={navStyle}>Destinations</Link>
-            <Link href="/admin/collections" style={navStyle}>Gallery</Link>
+            <Link href="/admin/gallery" style={navStyle}>Gallery</Link>
             <Link href="/admin/stories" style={navStyle}>Stories</Link>
             <Link href="/admin/pages" style={navStyle}>Pages</Link>
             <Link href="/gallery" style={navStyle}>View Gallery ↗</Link>
