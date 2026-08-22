@@ -8,6 +8,7 @@ type Media = { id: string; path: string; filename: string | null; alt: string | 
 type Collection = { id: string; title: string; slug: string; description: string | null; destination_id: string | null; client_name: string | null; event_date: string | null; seo_title: string | null; seo_description: string | null; published: number; cover_media_id: string | null; destination_name: string | null };
 type Destination = { id: string; name: string };
 type SelectionRect = { left: number; top: number; width: number; height: number };
+type DragState = { ids: string[]; previewId: string; x: number; y: number; active: boolean };
 
 export default function AdminCollectionEditor() {
   const { id } = useParams<{ id: string }>();
@@ -15,13 +16,14 @@ export default function AdminCollectionEditor() {
   const photosRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef<{ x: number; y: number; cardId: string | null } | null>(null);
   const marqueeBaseRef = useRef<Set<string>>(new Set());
+  const dragPointerRef = useRef<{ id: string; x: number; y: number; active: boolean } | null>(null);
   const [collection, setCollection] = useState<Collection | null>(null);
   const [media, setMedia] = useState<Media[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -90,67 +92,86 @@ export default function AdminCollectionEditor() {
   function updateMarquee(x: number, y: number) {
     const start = pointerRef.current;
     if (!start) return;
-    const left = Math.min(start.x, x); const top = Math.min(start.y, y);
-    const right = Math.max(start.x, x); const bottom = Math.max(start.y, y);
+    const left = Math.min(start.x, x), top = Math.min(start.y, y), right = Math.max(start.x, x), bottom = Math.max(start.y, y);
     setSelectionRect({ left, top, width: right - left, height: bottom - top });
     const hit = new Set<string>();
     photosRef.current?.querySelectorAll<HTMLElement>("[data-media-card]").forEach(card => {
       const rect = card.getBoundingClientRect();
       if (rect.right >= left && rect.left <= right && rect.bottom >= top && rect.top <= bottom) hit.add(card.dataset.mediaId!);
     });
-
     const next = new Set(marqueeBaseRef.current);
-    hit.forEach(mediaId => {
-      if (marqueeBaseRef.current.has(mediaId)) next.delete(mediaId);
-      else next.add(mediaId);
-    });
+    hit.forEach(mediaId => marqueeBaseRef.current.has(mediaId) ? next.delete(mediaId) : next.add(mediaId));
     setSelected(next);
   }
 
-  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return;
-    const target = event.target as HTMLElement;
-    if (target.closest("button") || target.closest("[data-drag-handle]")) return;
-    const cardId = getCardId(event.target);
-    pointerRef.current = { x: event.clientX, y: event.clientY, cardId };
+  function handleMarqueeDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0 || getCardId(event.target)) return;
+    pointerRef.current = { x: event.clientX, y: event.clientY, cardId: null };
     marqueeBaseRef.current = new Set(selected);
     event.currentTarget.setPointerCapture(event.pointerId);
-    setSelecting(false);
-    setSelectionRect(null);
+    setSelecting(false); setSelectionRect(null);
   }
 
-  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+  function handleMarqueeMove(event: React.PointerEvent<HTMLDivElement>) {
     const start = pointerRef.current;
     if (!start) return;
-    const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-    if (distance < 5 && !selecting) return;
-    setSelecting(true);
-    updateMarquee(event.clientX, event.clientY);
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) return;
+    setSelecting(true); updateMarquee(event.clientX, event.clientY);
   }
 
-  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
-    const start = pointerRef.current;
-    if (!start) return;
-    const wasSelecting = selecting;
-    pointerRef.current = null;
-    setSelecting(false);
-    setSelectionRect(null);
-    if (!wasSelecting && start.cardId) toggleSelected(start.cardId);
+  function handleMarqueeUp(event: React.PointerEvent<HTMLDivElement>) {
+    if (!pointerRef.current) return;
+    pointerRef.current = null; setSelecting(false); setSelectionRect(null);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
-  function moveGroup(dragged: string, target: string) {
-    if (dragged === target) return;
+  function reorderGroup(targetId: string) {
+    const session = dragPointerRef.current;
+    if (!session) return;
     setMedia(current => {
-      const movingIds = selected.has(dragged) && selected.size > 1 ? new Set(selected) : new Set([dragged]);
+      const movingIds = new Set(selected.has(session.id) ? selected : [session.id]);
+      if (movingIds.has(targetId)) return current;
       const moving = current.filter(item => movingIds.has(item.id));
-      if (!moving.length) return current;
       const remaining = current.filter(item => !movingIds.has(item.id));
-      const targetIndex = remaining.findIndex(item => item.id === target);
+      const targetIndex = remaining.findIndex(item => item.id === targetId);
       if (targetIndex < 0) return current;
       remaining.splice(targetIndex, 0, ...moving);
       return remaining;
     });
+  }
+
+  function handleCardPointerDown(event: React.PointerEvent<HTMLDivElement>, itemId: string) {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button")) return;
+    const movingIds = selected.has(itemId) ? [...selected] : [itemId];
+    const preview = media.find(item => item.id === movingIds[0]);
+    if (!preview) return;
+    dragPointerRef.current = { id: itemId, x: event.clientX, y: event.clientY, active: false };
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    setDrag({ ids: movingIds, previewId: preview.id, x: event.clientX, y: event.clientY, active: false });
+  }
+
+  function handleCardPointerMove(event: React.PointerEvent<HTMLDivElement>, itemId: string) {
+    const start = dragPointerRef.current;
+    if (!start || start.id !== itemId) return;
+    const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+    if (!start.active && distance < 6) return;
+    if (!start.active) { start.active = true; setSelecting(false); setSelectionRect(null); }
+    setDrag(current => current ? { ...current, x: event.clientX, y: event.clientY, active: true } : current);
+    const element = document.elementFromPoint(event.clientX, event.clientY);
+    const targetId = getCardId(element);
+    if (targetId) reorderGroup(targetId);
+  }
+
+  function handleCardPointerUp(event: React.PointerEvent<HTMLDivElement>, itemId: string) {
+    const start = dragPointerRef.current;
+    if (!start || start.id !== itemId) return;
+    const wasDrag = start.active;
+    dragPointerRef.current = null;
+    setDrag(null);
+    if (!wasDrag) toggleSelected(itemId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
   async function setCover(mediaId: string) {
@@ -178,6 +199,8 @@ export default function AdminCollectionEditor() {
 
   if (!collection) return <main className="p-10">Loading collection…</main>;
 
+  const dragPreview = drag ? media.find(item => item.id === drag.previewId) : null;
+
   return <main className="min-h-screen bg-[#f7f5f0] px-6 py-10 text-[#171717] md:px-10"><div className="mx-auto max-w-7xl">
     <Link href="/admin/gallery" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Gallery</Link>
     <div className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Collection Editor</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.04em]">{collection.title}</h1><p className="mt-2 text-sm text-[#77736c]">/gallery/{collection.slug}</p></div><div className="flex gap-3"><a href={`/gallery/${collection.slug}`} target="_blank" rel="noreferrer" className="border border-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em]">View Gallery</a><button onClick={save} disabled={saving} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{saving ? "Saving…" : "Save"}</button></div></div>
@@ -192,14 +215,16 @@ export default function AdminCollectionEditor() {
       <label className="text-xs uppercase tracking-[0.12em]">SEO description<textarea className="mt-2 min-h-20 w-full border p-3" value={collection.seo_description ?? ""} onChange={e => setCollection({ ...collection, seo_description: e.target.value })} /></label>
       <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={collection.published === 1} onChange={e => setCollection({ ...collection, published: e.target.checked ? 1 : 0 })} /> Published</label>
     </div></div>
-    <div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Click to select. Click again to deselect. Drag across photos to select a group. Use the drag handle to reorder.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">{selected.size === media.length && media.length ? "Deselect All" : "Select All"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div>
-      <div ref={photosRef} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} className="relative grid grid-cols-1 gap-3 select-none sm:grid-cols-2 lg:grid-cols-3">
-        {media.map(item => <div key={item.id} data-media-card data-media-id={item.id} className={`group relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#e8e5df] transition-shadow ${selected.has(item.id) ? "ring-2 ring-blue-500 bg-blue-500/5" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}>
+    <div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Click to select. Click again to deselect. Drag selected photos directly to reorder.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">{selected.size === media.length && media.length ? "Deselect All" : "Select All"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div>
+      <div ref={photosRef} onPointerDown={handleMarqueeDown} onPointerMove={handleMarqueeMove} onPointerUp={handleMarqueeUp} onPointerCancel={handleMarqueeUp} className="relative grid grid-cols-1 gap-3 select-none sm:grid-cols-2 lg:grid-cols-3">
+        {media.map(item => <div key={item.id} data-media-card data-media-id={item.id} onPointerDown={e => handleCardPointerDown(e, item.id)} onPointerMove={e => handleCardPointerMove(e, item.id)} onPointerUp={e => handleCardPointerUp(e, item.id)} onPointerCancel={e => handleCardPointerUp(e, item.id)} className={`group relative flex aspect-[4/3] touch-none items-center justify-center overflow-hidden bg-[#e8e5df] transition-all ${selected.has(item.id) ? "ring-2 ring-blue-500 bg-blue-500/5" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}>
           <img draggable={false} src={item.path} alt={item.alt ?? item.filename ?? collection.title} className="block h-full w-full object-contain" />
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2"><button onClick={() => setCover(item.id)} className="text-[10px] uppercase tracking-[0.12em] text-white">{collection.cover_media_id === item.id ? "Cover" : "Set cover"}</button><span data-drag-handle draggable onDragStart={() => setDraggedId(item.id)} onDragOver={e => e.preventDefault()} onDrop={() => { if (draggedId) moveGroup(draggedId, item.id); setDraggedId(null); }} className="cursor-grab rounded border border-white/40 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-white">↕ Drag</span></div>
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2"><button onPointerDown={e => e.stopPropagation()} onClick={() => setCover(item.id)} className="text-[10px] uppercase tracking-[0.12em] text-white">{collection.cover_media_id === item.id ? "Cover" : "Set cover"}</button></div>
         </div>)}
         {selectionRect && <div className="pointer-events-none fixed z-50 border border-blue-500 bg-blue-500/10" style={{ left: selectionRect.left, top: selectionRect.top, width: selectionRect.width, height: selectionRect.height }} />}
       </div>
       {media.length === 0 && <div className="border border-dashed border-[#c9c4ba] p-16 text-center text-sm text-[#77736c]">No photos yet.</div>}
-    </div></section>{message && <p className="mt-6 text-sm text-[#77736c]">{message}</p>}</div></main>;
+    </div></section>{message && <p className="mt-6 text-sm text-[#77736c]">{message}</p>}
+    {drag?.active && dragPreview && <div className="pointer-events-none fixed z-[100] w-40 -translate-x-1/2 -translate-y-1/2 rotate-2 overflow-hidden rounded-md bg-white shadow-2xl ring-1 ring-black/10" style={{ left: drag.x, top: drag.y }}><div className="relative aspect-[4/3] bg-[#e8e5df]"><img src={dragPreview.path} alt="" className="h-full w-full object-contain" /><span className="absolute right-2 top-2 flex h-8 min-w-8 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-semibold text-white shadow">{drag.ids.length}</span></div></div>}
+  </div></main>;
 }
