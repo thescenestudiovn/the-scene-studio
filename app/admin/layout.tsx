@@ -10,8 +10,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <nav style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Link href="/admin" style={navStyle}>Dashboard</Link>
+            <Link href="/admin/destinations" style={navStyle}>Destinations</Link>
+            <Link href="/admin/collections" style={navStyle}>Collections</Link>
             <Link href="/admin/stories" style={navStyle}>Stories</Link>
-            <Link href="/admin/media" style={navStyle}>Media</Link>
+            <Link href="/admin/pages" style={navStyle}>Pages</Link>
+            <Link href="/gallery" style={navStyle}>Gallery</Link>
             <Link href="/" target="_blank" style={{ ...navStyle, marginLeft: 8, borderLeft: "1px solid #ddd", paddingLeft: 18 }}>View site ↗</Link>
           </nav>
         </div>
