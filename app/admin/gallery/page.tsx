@@ -3,26 +3,55 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type Collection = { id: string; title: string; slug: string; destination_name?: string | null; media_count?: number; published?: number; cover_path?: string | null };
-type GalleryPage = { id: string; slug: string; title: string; seo_title: string | null; seo_description: string | null; eyebrow: string; description: string };
-type CollectionsResponse = { collections?: Collection[]; galleryPage?: GalleryPage | null };
+type Collection = {
+  id: string;
+  title: string;
+  slug: string;
+  destination_name?: string | null;
+  media_count?: number;
+  published?: number;
+  cover_path?: string | null;
+};
+
+type GalleryPage = {
+  id: string;
+  slug: string;
+  title: string;
+  seo_title: string | null;
+  seo_description: string | null;
+  eyebrow: string;
+  description: string;
+};
+
+type CollectionsResponse = {
+  collections?: Collection[];
+  galleryPage?: GalleryPage | null;
+};
 
 export default function AdminGalleryPage() {
   const [items, setItems] = useState<Collection[]>([]);
   const [galleryPage, setGalleryPage] = useState<GalleryPage | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [savingPage, setSavingPage] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
   async function load() {
-    const response = await fetch("/api/admin/collections", { cache: "no-store" });
-    const data = await response.json() as CollectionsResponse;
-    setItems(data.collections ?? []);
-    setGalleryPage(data.galleryPage ?? null);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/collections", { cache: "no-store" });
+      const data = (await response.json()) as CollectionsResponse;
+      setItems(data.collections ?? []);
+      setGalleryPage(data.galleryPage ?? null);
+    } catch {
+      setMessage("Failed to load Gallery content.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function saveGalleryPage() {
-    if (!galleryPage) return;
+    if (!galleryPage || savingPage) return;
     setSavingPage(true);
     setMessage("");
     try {
@@ -31,12 +60,16 @@ export default function AdminGalleryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ galleryPage }),
       });
-      const data = await response.json() as { success: boolean; error?: string; galleryPage?: GalleryPage };
-      if (!response.ok || !data.success) throw new Error(data.error || "Failed to save Gallery page");
+      const data = (await response.json()) as {
+        success?: boolean;
+        error?: string;
+        galleryPage?: GalleryPage;
+      };
+      if (!response.ok || !data.success) throw new Error(data.error || "Failed to save Gallery content");
       if (data.galleryPage) setGalleryPage(data.galleryPage);
-      setMessage("Gallery page content saved.");
+      setMessage("Gallery content saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save Gallery page");
+      setMessage(error instanceof Error ? error.message : "Failed to save Gallery content");
     } finally {
       setSavingPage(false);
     }
@@ -56,11 +89,112 @@ export default function AdminGalleryPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  function updatePage<K extends keyof GalleryPage>(field: K, value: GalleryPage[K]) {
+    setGalleryPage((current) => (current ? { ...current, [field]: value } : current));
+  }
 
-  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-12 text-[#171717]"><div className="mx-auto max-w-7xl"><div className="flex items-end justify-between gap-6"><div className="min-w-0 flex-1"><label className="block"><span className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-[#77736c]">Gallery Page — Eyebrow</span><input value={galleryPage?.eyebrow ?? ""} onChange={e=>galleryPage&&setGalleryPage({...galleryPage,eyebrow:e.target.value})} className="w-full max-w-md border-0 border-b border-[#d8d3ca] bg-transparent px-0 py-1 text-xs uppercase tracking-[0.2em] text-[#77736c] outline-none" placeholder="Collections" /></label><label className="mt-3 block"><span className="sr-only">Gallery page title</span><input value={galleryPage?.title ?? ""} onChange={e=>galleryPage&&setGalleryPage({...galleryPage,title:e.target.value})} className="w-full border-0 bg-transparent px-0 py-0 font-serif text-5xl tracking-[-0.04em] outline-none placeholder:text-[#b7b1a7]" placeholder="Gallery" /></label><label className="mt-3 block max-w-xl"><span className="sr-only">Gallery page introduction</span><textarea value={galleryPage?.description ?? ""} onChange={e=>galleryPage&&setGalleryPage({...galleryPage,description:e.target.value})} rows={3} className="w-full resize-y border-0 bg-transparent px-0 py-0 text-sm leading-6 text-[#77736c] outline-none placeholder:text-[#b7b1a7]" placeholder="Describe the gallery and its collections…" /></label><div className="mt-4 flex items-center gap-3"><button type="button" onClick={saveGalleryPage} disabled={!galleryPage||savingPage} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{savingPage ? "Saving…" : "Save Gallery Content"}</button>{message && <span className="text-xs text-[#666158]">{message}</span>}</div></div><Link href="/admin/gallery/new" className="shrink-0 bg-[#171717] px-6 py-3 text-xs uppercase tracking-[0.15em] text-white">+ New Collection</Link></div>
+  useEffect(() => { void load(); }, []);
 
-  {galleryPage && <section className="mt-10 border border-[#d8d3ca] bg-white p-6 md:p-8"><div className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">Gallery Page</p><h2 className="mt-2 font-serif text-3xl">Hero & SEO Content</h2><p className="mt-2 text-sm text-[#77736c]">This content appears on the public Gallery page and is also used for its SEO metadata.</p></div><button type="button" onClick={saveGalleryPage} disabled={savingPage} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{savingPage ? "Saving…" : "Save Gallery Content"}</button></div><div className="mt-7 grid gap-5 md:grid-cols-2"><label><span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Eyebrow</span><input value={galleryPage.eyebrow} onChange={e=>setGalleryPage({...galleryPage,eyebrow:e.target.value})} className="w-full border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm outline-none" placeholder="Collections"/></label><label><span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Page Title</span><input value={galleryPage.title} onChange={e=>setGalleryPage({...galleryPage,title:e.target.value})} className="w-full border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm outline-none" placeholder="Gallery"/></label><label className="md:col-span-2"><span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Introduction</span><textarea value={galleryPage.description} onChange={e=>setGalleryPage({...galleryPage,description:e.target.value})} rows={4} className="w-full resize-y border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm leading-6 outline-none" placeholder="Describe the gallery and its collections…"/></label><label><span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">SEO Title</span><input value={galleryPage.seo_title??""} onChange={e=>setGalleryPage({...galleryPage,seo_title:e.target.value})} className="w-full border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm outline-none" placeholder="Gallery — The Scene Studio"/></label><label><span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">SEO Description</span><input value={galleryPage.seo_description??""} onChange={e=>setGalleryPage({...galleryPage,seo_description:e.target.value})} className="w-full border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm outline-none" placeholder="SEO description"/></label></div></section>}
+  return (
+    <main className="min-h-screen bg-[#f7f5f0] px-6 py-12 text-[#171717] md:px-10">
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-col gap-8 border-b border-[#d8d3ca] pb-10 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">Gallery</p>
+            <h1 className="mt-3 font-serif text-5xl tracking-[-0.04em] md:text-6xl">Collections</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#77736c]">
+              Manage your client galleries and the editorial content shown above them.
+            </p>
+          </div>
+          <Link href="/admin/gallery/new" className="inline-flex shrink-0 items-center justify-center bg-[#171717] px-6 py-3 text-[10px] uppercase tracking-[0.16em] text-white">
+            + New Collection
+          </Link>
+        </header>
 
-  <section className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">{items.map(item => <article key={item.id} className="group border border-[#d8d3ca] bg-white p-4"><Link href={`/admin/gallery/${item.id}`}><div className="aspect-[4/3] overflow-hidden bg-[#ddd8cf]">{item.cover_path && <img src={item.cover_path} alt={item.title} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]" />}</div><div className="flex items-start justify-between gap-4 pt-5"><div><h2 className="font-serif text-2xl">{item.title}</h2><p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#77736c]">{item.destination_name ?? "No destination"}</p></div><span className="text-xs text-[#77736c]">{item.media_count ?? 0} photos</span></div></Link><div className="mt-5 flex items-center justify-between border-t border-[#eee9e1] pt-4"><span className="text-[11px] uppercase tracking-[0.12em] text-[#77736c]">{item.published ? "Published" : "Draft"}</span><button type="button" onClick={() => deleteCollection(item.id, item.title)} disabled={deleting === item.id} className="text-[11px] uppercase tracking-[0.12em] text-red-700 disabled:opacity-40">{deleting === item.id ? "Deleting…" : "Delete"}</button></div></article>)}{items.length === 0 && <p className="text-sm text-[#77736c]">No collections yet.</p>}</section></div></main>;
+        <section className="mt-10 border border-[#d8d3ca] bg-white p-6 md:p-8">
+          <div className="flex flex-col gap-5 border-b border-[#eee9e1] pb-7 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">Gallery Page</p>
+              <h2 className="mt-2 font-serif text-3xl tracking-[-0.025em]">Hero & SEO Content</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#77736c]">Edit the content displayed on the public Gallery page. These fields are also used for SEO.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {message && <span className="text-xs text-[#666158]">{message}</span>}
+              <button type="button" onClick={saveGalleryPage} disabled={!galleryPage || savingPage} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:cursor-not-allowed disabled:opacity-40">
+                {savingPage ? "Saving…" : "Save Gallery Content"}
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-10 text-sm text-[#77736c]">Loading Gallery content…</div>
+          ) : galleryPage ? (
+            <div className="mt-7 grid gap-6 md:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Eyebrow</span>
+                <input type="text" value={galleryPage.eyebrow} onChange={(e) => updatePage("eyebrow", e.target.value)} className="block w-full border border-[#cfc9bf] bg-[#faf8f4] px-4 py-3 text-sm text-[#171717] outline-none focus:border-[#171717]" placeholder="Collections" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Page Title</span>
+                <input type="text" value={galleryPage.title} onChange={(e) => updatePage("title", e.target.value)} className="block w-full border border-[#cfc9bf] bg-[#faf8f4] px-4 py-3 text-sm text-[#171717] outline-none focus:border-[#171717]" placeholder="Gallery" />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Introduction</span>
+                <textarea value={galleryPage.description} onChange={(e) => updatePage("description", e.target.value)} rows={5} className="block w-full resize-y border border-[#cfc9bf] bg-[#faf8f4] px-4 py-3 text-sm leading-6 text-[#171717] outline-none focus:border-[#171717]" placeholder="Describe the gallery and its collections…" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">SEO Title</span>
+                <input type="text" value={galleryPage.seo_title ?? ""} onChange={(e) => updatePage("seo_title", e.target.value)} className="block w-full border border-[#cfc9bf] bg-[#faf8f4] px-4 py-3 text-sm text-[#171717] outline-none focus:border-[#171717]" placeholder="Gallery — The Scene Studio" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">SEO Description</span>
+                <textarea value={galleryPage.seo_description ?? ""} onChange={(e) => updatePage("seo_description", e.target.value)} rows={3} className="block w-full resize-y border border-[#cfc9bf] bg-[#faf8f4] px-4 py-3 text-sm leading-6 text-[#171717] outline-none focus:border-[#171717]" placeholder="SEO description" />
+              </label>
+            </div>
+          ) : (
+            <div className="py-10 text-sm text-red-700">Gallery page data could not be loaded.</div>
+          )}
+        </section>
+
+        <section className="mt-12">
+          <div className="flex items-end justify-between gap-6 border-b border-[#d8d3ca] pb-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">Client Galleries</p>
+              <h2 className="mt-2 font-serif text-3xl tracking-[-0.025em]">Collections</h2>
+            </div>
+            <span className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{items.length} {items.length === 1 ? "collection" : "collections"}</span>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="border-b border-[#d8d3ca] py-10 text-sm text-[#77736c]">No collections yet.</div>
+          ) : (
+            <div className="mt-8 grid gap-x-6 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
+              {items.map((item) => (
+                <article key={item.id} className="group min-w-0">
+                  <Link href={`/admin/gallery/${item.id}`} className="block">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-[#ddd8cf]">
+                      {item.cover_path ? <img src={item.cover_path} alt={item.title} className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.03]" /> : <div className="flex h-full items-center justify-center text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">No cover image</div>}
+                    </div>
+                    <div className="flex items-start justify-between gap-4 pt-4">
+                      <div className="min-w-0">
+                        <h3 className="font-serif text-2xl tracking-[-0.02em]">{item.title}</h3>
+                        <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[#77736c]">{item.destination_name ?? "No destination"}</p>
+                      </div>
+                      <span className="shrink-0 pt-1 text-[10px] text-[#77736c]">{item.media_count ?? 0} photos</span>
+                    </div>
+                  </Link>
+                  <div className="mt-4 flex items-center justify-between border-t border-[#eee9e1] pt-3">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">{item.published ? "Published" : "Draft"}</span>
+                    <button type="button" onClick={() => deleteCollection(item.id, item.title)} disabled={deleting === item.id} className="text-[10px] uppercase tracking-[0.14em] text-red-700 disabled:opacity-40">
+                      {deleting === item.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
 }
