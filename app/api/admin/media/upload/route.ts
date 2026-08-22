@@ -19,10 +19,7 @@ function cleanFilename(value: string) {
 export async function POST(request: Request) {
   if (!NAS_UPLOAD_URL || !NAS_UPLOAD_TOKEN) {
     return Response.json(
-      {
-        success: false,
-        error: "NAS upload is not configured",
-      },
+      { success: false, error: "NAS upload is not configured" },
       { status: 503 }
     );
   }
@@ -67,19 +64,12 @@ export async function POST(request: Request) {
   nasUrl.searchParams.set("filename", filename);
 
   try {
-    const headers = new Headers({
-      Authorization: `Bearer ${NAS_UPLOAD_TOKEN}`,
-      "Content-Type": contentType,
-    });
-
-    const contentLength = request.headers.get("content-length");
-    if (contentLength) {
-      headers.set("Content-Length", contentLength);
-    }
-
     const response = await fetch(nasUrl, {
       method: "POST",
-      headers,
+      headers: {
+        Authorization: `Bearer ${NAS_UPLOAD_TOKEN}`,
+        "Content-Type": contentType,
+      },
       body: request.body,
     });
 
@@ -155,18 +145,12 @@ export async function POST(request: Request) {
       .bind(id)
       .first();
 
-    return Response.json({
-      success: true,
-      media,
-    });
+    return Response.json({ success: true, media });
   } catch (error) {
     console.error("POST /api/admin/media/upload error:", error);
 
     return Response.json(
-      {
-        success: false,
-        error: "Failed to upload image to NAS",
-      },
+      { success: false, error: "Failed to upload image to NAS" },
       { status: 502 }
     );
   }
