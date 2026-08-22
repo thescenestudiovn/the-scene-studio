@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null };
@@ -8,57 +9,21 @@ type PagesResponse = { pages?: Page[] };
 type PageBlocksResponse = { blocks?: Array<{ id: string; type: string; data: string | Record<string, unknown> }> };
 const BLOCKS = ["text", "image", "content", "links", "blog", "video", "contact", "social", "others", "flex"];
 
+function parse(value: string | Record<string, unknown>) { if (typeof value !== "string") return value; try { return JSON.parse(value) as Record<string, unknown>; } catch { return {}; } }
+function setValue(data: Record<string, unknown>, key: string, value: string) { return { ...data, [key]: value }; }
+
 export default function AdminPagesPage() {
-  const [pages, setPages] = useState<Page[]>([]);
-  const [page, setPage] = useState<Page | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    const response = await fetch("/api/admin/pages", { cache: "no-store" });
-    const data: PagesResponse = await response.json();
-    setPages(data.pages ?? []);
-    setLoading(false);
-  }
-  useEffect(() => { load(); }, []);
-
-  async function openPage(item: Page) {
-    setPage(item);
-    const response = await fetch(`/api/pages/${item.slug}`, { cache: "no-store" });
-    const data: PageBlocksResponse = await response.json();
-    setBlocks((data.blocks ?? []).map(b => ({ ...b, data: typeof b.data === "string" ? JSON.parse(b.data) as Record<string, unknown> : b.data })));
-  }
-
-  function addBlock(type: string) { setBlocks(prev => [...prev, { id: crypto.randomUUID(), type, data: {} }]); }
-  function move(index: number, direction: -1 | 1) {
-    const next = [...blocks]; const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]]; setBlocks(next);
-  }
-  function remove(id: string) { setBlocks(prev => prev.filter(b => b.id !== id)); }
-
-  async function save() {
-    if (!page) return;
-    await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, blocks }) });
-    alert("Saved");
-  }
-
-  if (loading) return <main style={{ padding: 48 }}>Loading…</main>;
-  if (!page) return (
-    <main style={{ maxWidth: 1000, margin: "0 auto", padding: "48px 24px" }}>
-      <a href="/admin" style={{ color: "#777", fontSize: 12 }}>← Admin</a>
-      <h1 style={{ marginTop: 24, fontSize: 40, fontWeight: 500 }}>Pages</h1>
-      <p style={{ color: "#777" }}>Home and About use the same block system as Stories.</p>
-      <div style={{ marginTop: 32, display: "grid", gap: 12 }}>{pages.map(item => <button key={item.id} onClick={() => openPage(item)} style={{ textAlign: "left", padding: 24, border: "1px solid #e5e5e5", background: "#fff" }}><strong>{item.title}</strong><div style={{ color: "#777", fontSize: 12, marginTop: 5 }}>/{item.slug}</div></button>)}</div>
-    </main>
-  );
-
-  return (
-    <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-      <button onClick={() => setPage(null)} style={{ color: "#777", fontSize: 12 }}>← Pages</button>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginTop: 24 }}><div><h1 style={{ fontSize: 40, fontWeight: 500 }}>{page.title}</h1><p style={{ color: "#777" }}>/{page.slug}</p></div><button onClick={save} style={{ padding: "10px 18px", background: "#171717", color: "#fff" }}>Save</button></div>
-      <section style={{ marginTop: 40 }}><h2 style={{ fontSize: 18, fontWeight: 500 }}>Add Block</h2><div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{BLOCKS.map(type => <button key={type} onClick={() => addBlock(type)} style={{ padding: "8px 12px", border: "1px solid #ddd", background: "#fff" }}>{type}</button>)}</div></section>
-      <section style={{ marginTop: 32, display: "grid", gap: 12 }}>{blocks.map((block, index) => <div key={block.id} style={{ border: "1px solid #ddd", background: "#fff", padding: 18 }}><div style={{ display: "flex", justifyContent: "space-between" }}><strong>{block.type}</strong><div><button onClick={() => move(index, -1)}>↑</button> <button onClick={() => move(index, 1)}>↓</button> <button onClick={() => remove(block.id)}>×</button></div></div><p style={{ color: "#999", fontSize: 12, marginTop: 8 }}>Block content editor will use this block's structured data.</p></div>)}</section>
-    </main>
-  );
+  const [pages, setPages] = useState<Page[]>([]); const [page, setPage] = useState<Page | null>(null); const [blocks, setBlocks] = useState<Block[]>([]); const [loading, setLoading] = useState(true); const [message, setMessage] = useState("");
+  async function load() { const response=await fetch("/api/admin/pages",{cache:"no-store"}); const data=(await response.json()) as PagesResponse; setPages(data.pages??[]); setLoading(false); }
+  useEffect(()=>{load();},[]);
+  async function openPage(item: Page) { setPage(item); const response=await fetch(`/api/pages/${item.slug}`,{cache:"no-store"}); const data=(await response.json()) as PageBlocksResponse; setBlocks((data.blocks??[]).map(b=>({id:b.id,type:b.type,data:parse(b.data)}))); }
+  function addBlock(type:string){setBlocks(prev=>[...prev,{id:crypto.randomUUID(),type,data:{}}]);}
+  function move(index:number,direction:-1|1){const next=[...blocks];const target=index+direction;if(target<0||target>=next.length)return;[next[index],next[target]]=[next[target],next[index]];setBlocks(next);}
+  function remove(id:string){setBlocks(prev=>prev.filter(b=>b.id!==id));}
+  async function save(){if(!page)return;setMessage("");const response=await fetch("/api/admin/pages",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:page.id,title:page.title,seo_title:page.seo_title,seo_description:page.seo_description,blocks})});const data=(await response.json()) as {success:boolean;error?:string};setMessage(response.ok&&data.success?"Saved.":data.error||"Could not save.");}
+  if(loading)return <main className="p-12">Loading…</main>;
+  if(!page)return <main className="min-h-screen bg-[#f7f5f0] px-6 py-12"><div className="mx-auto max-w-5xl"><Link href="/admin" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Admin</Link><h1 className="mt-8 font-serif text-5xl">Pages</h1><p className="mt-3 text-sm text-[#77736c]">Home and About are editable with the same block philosophy as Stories.</p><div className="mt-10 grid gap-4 md:grid-cols-2">{pages.map(item=><button key={item.id} onClick={()=>openPage(item)} className="border border-[#d8d3ca] bg-white p-6 text-left hover:-translate-y-0.5"><p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{item.page_type}</p><h2 className="mt-3 font-serif text-3xl">{item.title}</h2><p className="mt-2 text-xs text-[#77736c]">/{item.slug}</p></button>)}</div></div></main>;
+  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-10"><div className="mx-auto max-w-5xl"><button onClick={()=>setPage(null)} className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Pages</button><div className="mt-7 flex flex-wrap items-end justify-between gap-6"><div><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Page Builder</p><h1 className="mt-3 font-serif text-5xl">{page.title}</h1><p className="mt-2 text-sm text-[#77736c]">/{page.slug}</p></div><button onClick={save} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">Save Page</button></div>{message&&<p className="mt-5 text-sm text-[#77736c]">{message}</p>}
+  <section className="mt-10 border border-[#d8d3ca] bg-white p-6"><h2 className="font-serif text-2xl">SEO</h2><div className="mt-5 grid gap-4"><input className="border p-3" placeholder="SEO title" value={page.seo_title??""} onChange={e=>setPage({...page,seo_title:e.target.value})}/><textarea className="min-h-20 border p-3" placeholder="SEO description" value={page.seo_description??""} onChange={e=>setPage({...page,seo_description:e.target.value})}/></div></section>
+  <section className="mt-10"><div className="flex flex-wrap items-center justify-between gap-4"><h2 className="font-serif text-3xl">Add Block</h2><div className="flex flex-wrap gap-2">{BLOCKS.map(type=><button key={type} onClick={()=>addBlock(type)} className="border border-[#d8d3ca] bg-white px-3 py-2 text-[10px] uppercase tracking-[0.12em]">{type}</button>)}</div></div><div className="mt-6 grid gap-4">{blocks.map((block,index)=>{const data=block.data;return <article key={block.id} className="border border-[#d8d3ca] bg-white p-5"><div className="flex items-center justify-between gap-4"><div><span className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">Block {index+1}</span><h3 className="mt-1 font-serif text-2xl">{block.type}</h3></div><div className="flex gap-2"><button onClick={()=>move(index,-1)} className="border px-3 py-1">↑</button><button onClick={()=>move(index,1)} className="border px-3 py-1">↓</button><button onClick={()=>remove(block.id)} className="border px-3 py-1">×</button></div></div><div className="mt-5 grid gap-3"><input className="border p-3" placeholder="Eyebrow / label" value={String(data.eyebrow??"")} onChange={e=>setBlocks(prev=>prev.map(b=>b.id===block.id?{...b,data:setValue(b.data,"eyebrow",e.target.value)}:b))}/><input className="border p-3" placeholder="Title" value={String(data.title??"")} onChange={e=>setBlocks(prev=>prev.map(b=>b.id===block.id?{...b,data:setValue(b.data,"title",e.target.value)}:b))}/><textarea className="min-h-28 border p-3" placeholder="Body / text" value={String(data.body??"")} onChange={e=>setBlocks(prev=>prev.map(b=>b.id===block.id?{...b,data:setValue(b.data,"body",e.target.value)}:b))}/>{["image","flex"].includes(block.type)&&<input className="border p-3" placeholder="Image URL or media path" value={String(data.image_url??"")} onChange={e=>setBlocks(prev=>prev.map(b=>b.id===block.id?{...b,data:setValue(b.data,"image_url",e.target.value)}:b))}/>} {["video","contact"].includes(block.type)&&<input className="border p-3" placeholder="URL" value={String(data.url??"")} onChange={e=>setBlocks(prev=>prev.map(b=>b.id===block.id?{...b,data:setValue(b.data,"url",e.target.value)}:b))}/>} {block.type==="image"&&<input className="border p-3" placeholder="Alt text" value={String(data.alt??"")} onChange={e=>setBlocks(prev=>prev.map(b=>b.id===block.id?{...b,data:setValue(b.data,"alt",e.target.value)}:b))}/>} </div></article>})}</div></section></div></main>;
 }
