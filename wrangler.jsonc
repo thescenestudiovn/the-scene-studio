@@ -17,6 +17,9 @@
             "database_id": "c8a6b25a-512e-4f8d-b2b0-217d104c92e3"
         }
     ],
+    "vars": {
+        "NAS_UPLOAD_URL": "https://media.thescenestudio.asia/_upload/index.php"
+    },
     "observability": {
         "enabled": true
     }
