@@ -1,290 +1,50 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect,useState,type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import { mediaUrl } from "../../../../lib/media";
 
-type Media = {
-  id: string;
-  collection_id?: string | null;
-  type?: string;
-  path: string;
-  filename: string;
-  alt: string | null;
-  width: number | null;
-  height: number | null;
-  sort_order: number;
-};
+type Media={id:string;collection_id?:string|null;type?:string;path:string;filename:string;alt:string|null;width:number|null;height:number|null;sort_order:number};
+type Collection={id:string;title:string;slug:string;client_name:string|null;destination_name:string|null;media_count:number;cover_path:string|null};
+type Block={id:string;type:string;sort_order:number;eyebrow:string|null;title:string|null;body:string|null;media:Media[]};
+type Story={id:string;slug:string;title:string;location:string|null;date:string|null;category:string|null;description:string|null;destination_id?:string|null;destination_name?:string|null;seo_title?:string|null;seo_description?:string|null;published:number;published_at?:string|null;cover_media_id?:string|null;cover_path?:string|null;cover_filename?:string|null;tags?:string|null;featured:number;hide_from_search:number;social_media_id?:string|null;social_path?:string|null;social_filename?:string|null};
+const BLOCK_TYPES=[["text","Text","Write a text section"],["image","Image","One or more images from a collection"],["content","Content","Heading, text and supporting content"],["links","Links","Add custom links and calls to action"],["blog","Blog","Long-form editorial content"],["video","Video","Embed a video URL"],["contact","Contact","Contact information or enquiry CTA"],["social","Social","Social links and profiles"],["others","Others","Custom block content"],["flex","Flex Block","Flexible custom layout"]] as const;
+const CATEGORIES=["Wedding","Destination Wedding","Prewedding","Engagement","Elopement","Portrait","Travel"];
 
-type Collection = {
-  id: string;
-  title: string;
-  slug: string;
-  client_name: string | null;
-  destination_name: string | null;
-  media_count: number;
-  cover_path: string | null;
-};
-
-type Block = {
-  id: string;
-  type: string;
-  sort_order: number;
-  eyebrow: string | null;
-  title: string | null;
-  body: string | null;
-  media: Media[];
-};
-
-type Story = {
-  id: string;
-  slug: string;
-  title: string;
-  location: string | null;
-  date: string | null;
-  category: string | null;
-  description: string | null;
-  destination_id?: string | null;
-  destination_name?: string | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-  published: number;
-};
-
-const BLOCK_TYPES = [
-  ["text", "Text", "Write a text section"],
-  ["image", "Image", "One or more images from a collection"],
-  ["content", "Content", "Heading, text and supporting content"],
-  ["links", "Links", "Add custom links and calls to action"],
-  ["blog", "Blog", "Long-form editorial content"],
-  ["video", "Video", "Embed a video URL"],
-  ["contact", "Contact", "Contact information or enquiry CTA"],
-  ["social", "Social", "Social links and profiles"],
-  ["others", "Others", "Custom block content"],
-  ["flex", "Flex Block", "Flexible custom layout"],
-] as const;
-
-export default function StoryEditorPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
-
-  const [story, setStory] = useState<Story | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [collectionMedia, setCollectionMedia] = useState<Media[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
-  const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
-  const [mediaPickerBlock, setMediaPickerBlock] = useState<string | null>(null);
-  const [showBlockMenu, setShowBlockMenu] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    void load();
-  }, [id]);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const [storyRes, collectionsRes] = await Promise.all([
-        fetch(`/api/admin/stories/${id}`, { cache: "no-store" }),
-        fetch("/api/admin/collections", { cache: "no-store" }),
-      ]);
-      const storyData = (await storyRes.json()) as { success: boolean; story?: Story; blocks?: Block[]; error?: string };
-      const collectionData = (await collectionsRes.json()) as { success?: boolean; collections?: Collection[] };
-      if (!storyData.success || !storyData.story) throw new Error(storyData.error || "Failed to load story");
-      setStory(storyData.story);
-      setBlocks(storyData.blocks ?? []);
-      setCollections(collectionData.collections ?? []);
-    } catch (error) {
-      console.error(error);
-      setMessage(error instanceof Error ? error.message : "Failed to load story");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function saveStory(published = story?.published === 1) {
-    if (!story) return;
-    setSaving(true);
-    setMessage("");
-    try {
-      const response = await fetch(`/api/admin/stories/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: story.title,
-          slug: story.slug,
-          location: story.location,
-          date: story.date,
-          category: story.category,
-          description: story.description,
-          destination_id: story.destination_id ?? null,
-          seo_title: story.seo_title ?? null,
-          seo_description: story.seo_description ?? null,
-          published,
-        }),
-      });
-      const data = (await response.json()) as { success: boolean; story?: Story; error?: string };
-      if (!response.ok || !data.success || !data.story) throw new Error(data.error || "Failed to save story");
-      setStory(data.story);
-      setMessage(published ? "Story published." : "Draft saved.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save story");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function addBlock(type: string) {
-    const response = await fetch(`/api/admin/stories/${id}/blocks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, sort_order: blocks.length, title: null, body: null, data: {} }),
-    });
-    const data = (await response.json()) as { success: boolean; block?: Block; error?: string };
-    if (!response.ok || !data.success || !data.block) throw new Error(data.error || "Failed to add block");
-    setBlocks((current) => [...current, { ...data.block!, media: [] }]);
-    setShowBlockMenu(false);
-  }
-
-  async function updateBlock(block: Block, patch: Partial<Block>) {
-    try {
-      const response = await fetch(`/api/admin/stories/${id}/blocks/${block.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      const data = (await response.json()) as { success: boolean; error?: string };
-      if (!response.ok || !data.success) throw new Error(data.error || "Failed to update block");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to update block");
-    }
-  }
-
-  async function deleteBlock(blockId: string) {
-    if (!window.confirm("Delete this block?")) return;
-    const response = await fetch(`/api/admin/stories/${id}/blocks/${blockId}`, { method: "DELETE" });
-    const data = (await response.json()) as { success: boolean; error?: string };
-    if (!response.ok || !data.success) throw new Error(data.error || "Failed to delete block");
-    setBlocks((current) => current.filter((block) => block.id !== blockId));
-  }
-
-  function openMediaPicker(blockId: string) {
-    setMediaPickerBlock(blockId);
-    setSelectedMedia([]);
-    setSelectedCollection(null);
-    setCollectionMedia([]);
-  }
-
-  async function chooseCollection(collection: Collection | null) {
-    if (!collection) {
-      setSelectedCollection(null);
-      setSelectedMedia([]);
-      setCollectionMedia([]);
-      return;
-    }
-    setSelectedCollection(collection);
-    setSelectedMedia([]);
-    const response = await fetch(`/api/admin/media?collection_id=${encodeURIComponent(collection.id)}`, { cache: "no-store" });
-    const data = (await response.json()) as { success?: boolean; media?: Media[]; error?: string };
-    if (!response.ok || data.success === false) throw new Error(data.error || "Failed to load collection photos");
-    setCollectionMedia(data.media ?? []);
-  }
-
-  function toggleMedia(mediaId: string) {
-    setSelectedMedia((current) => current.includes(mediaId) ? current.filter((value) => value !== mediaId) : [...current, mediaId]);
-  }
-
-  async function attachSelectedMedia() {
-    if (!mediaPickerBlock || selectedMedia.length === 0) return;
-    const block = blocks.find((item) => item.id === mediaPickerBlock);
-    if (!block) return;
-    const existing = new Set(block.media.map((item) => item.id));
-    const ids = selectedMedia.filter((mediaId) => !existing.has(mediaId));
-    for (let index = 0; index < ids.length; index += 1) {
-      const response = await fetch(`/api/admin/stories/${id}/blocks/${block.id}/media`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ media_id: ids[index], sort_order: block.media.length + index }),
-      });
-      const data = (await response.json()) as { success: boolean; error?: string };
-      if (!response.ok || !data.success) throw new Error(data.error || "Failed to attach photo");
-    }
-    setMediaPickerBlock(null);
-    await load();
-  }
-
-  async function removeMedia(blockId: string, mediaId: string) {
-    const response = await fetch(`/api/admin/stories/${id}/blocks/${blockId}/media`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ media_id: mediaId }),
-    });
-    const data = (await response.json()) as { success: boolean; error?: string };
-    if (!response.ok || !data.success) throw new Error(data.error || "Failed to remove photo");
-    await load();
-  }
-
-  if (loading) return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Loading story…</main>;
-  if (!story) return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Story not found.</main>;
-
-  return (
-    <main className="min-h-screen bg-[#f5f2ec] text-[#171717]">
-      <header className="sticky top-0 z-30 border-b border-[#ddd7cd] bg-[#f5f2ec]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-6 py-4 lg:px-10">
-          <div className="flex items-center gap-5">
-            <Link href="/admin/stories" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Stories</Link>
-            <span className="hidden h-5 w-px bg-[#d5cfc5] sm:block" />
-            <div><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Editor</p><p className="mt-0.5 max-w-[360px] truncate text-sm font-medium">{story.title || "Untitled story"}</p></div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`hidden rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] sm:inline-flex ${story.published ? "bg-[#e3eadf] text-[#43543c]" : "bg-[#e9e5de] text-[#6f6a61]"}`}>{story.published ? "Published" : "Draft"}</span>
-            <a href={`/stories/${story.slug}`} target="_blank" rel="noreferrer" className="hidden border border-[#bdb7ad] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] md:inline-block">Preview</a>
-            <button onClick={() => saveStory(false)} disabled={saving} className="border border-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em]">Save Draft</button>
-            <button onClick={() => saveStory(true)} disabled={saving} className="bg-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] text-white">Publish</button>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[minmax(0,1fr)_330px]">
-        <section className="px-6 py-10 lg:px-16 lg:py-14"><div className="mx-auto max-w-[850px]">
-          {message && <div className="mb-8 border border-[#d8d1c7] bg-white px-5 py-3 text-sm text-[#666158]">{message}</div>}
-          <div className="mb-12"><p className="mb-4 text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story</p><input value={story.title} onChange={(e) => setStory({ ...story, title: e.target.value })} placeholder="Story title" className="w-full border-0 bg-transparent p-0 font-serif text-5xl leading-[1.08] tracking-[-0.04em] outline-none placeholder:text-[#bbb5ab] lg:text-6xl" /><p className="mt-5 text-sm text-[#8a857d]">/stories/{story.slug}</p></div>
-          <div className="space-y-5">
-            {blocks.map((block, index) => <div key={block.id} className="group relative border border-[#d9d3ca] bg-white p-7 shadow-[0_1px_0_rgba(0,0,0,0.02)] lg:p-9">
-              <div className="mb-7 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><span className="text-[10px] uppercase tracking-[0.18em] text-[#8a857d]">{String(index + 1).padStart(2, "0")}</span><span className="rounded-full bg-[#f0ece5] px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#68635b]">{BLOCK_TYPES.find((item) => item[0] === block.type)?.[1] ?? block.type}</span></div><button onClick={() => deleteBlock(block.id)} className="text-[10px] uppercase tracking-[0.14em] text-[#9a4d42] opacity-0 transition group-hover:opacity-100">Delete</button></div>
-              <input value={block.eyebrow ?? ""} onChange={(e) => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, eyebrow: e.target.value } : item))} onBlur={() => void updateBlock(block, { eyebrow: block.eyebrow })} placeholder="Eyebrow / optional" className="mb-3 w-full border-0 border-b border-[#e5e0d8] bg-transparent px-0 py-2 text-[10px] uppercase tracking-[0.18em] outline-none placeholder:text-[#b7b1a7]" />
-              <input value={block.title ?? ""} onChange={(e) => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, title: e.target.value } : item))} onBlur={() => void updateBlock(block, { title: block.title })} placeholder="Block heading" className="mb-4 w-full border-0 bg-transparent px-0 py-2 font-serif text-3xl outline-none placeholder:text-[#bdb7ad]" />
-              <textarea value={block.body ?? ""} onChange={(e) => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, body: e.target.value } : item))} onBlur={() => void updateBlock(block, { body: block.body })} placeholder="Start writing…" rows={block.type === "text" || block.type === "blog" ? 8 : 4} className="w-full resize-y border-0 bg-transparent p-0 text-[15px] leading-7 text-[#5f5a53] outline-none placeholder:text-[#bdb7ad]" />
-              {(block.type === "image" || block.type === "content" || block.type === "flex") && <div className="mt-7 border-t border-[#e7e2da] pt-6">{block.media.length > 0 && <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3">{block.media.map((item) => <div key={item.id} className="group/media relative overflow-hidden bg-[#e8e3db]"><img src={mediaUrl(item.path)} alt={item.alt ?? item.filename} className="aspect-[4/3] h-full w-full object-cover" /><button onClick={() => void removeMedia(block.id, item.id)} className="absolute right-2 top-2 bg-black/70 px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-white opacity-0 transition group-hover/media:opacity-100">Remove</button></div>)}</div>}<button onClick={() => openMediaPicker(block.id)} className="flex w-full items-center justify-center gap-3 border border-dashed border-[#c8c1b7] bg-[#faf8f4] px-5 py-5 text-[10px] uppercase tracking-[0.16em] text-[#6e6961] transition hover:border-[#171717] hover:bg-white">+ Add photos from Collection</button></div>}
-              {block.type !== "image" && block.type !== "content" && block.type !== "flex" && <div className="mt-5 border-t border-[#e7e2da] pt-5 text-xs text-[#989187]">{block.type === "video" ? "Paste your video URL in the content field above." : "Customize this block using its content fields."}</div>}
-            </div>)}
-          </div>
-          <div className="relative mt-8 flex justify-center"><button onClick={() => setShowBlockMenu((value) => !value)} className="border border-[#171717] bg-[#171717] px-7 py-4 text-[10px] uppercase tracking-[0.18em] text-white">+ Add Block</button>{showBlockMenu && <BlockMenu onSelect={(type) => void addBlock(type)} />}</div>
-        </div></section>
-
-        <aside className="border-t border-[#ddd7cd] bg-[#eeebe5] lg:min-h-[calc(100vh-73px)] lg:border-l lg:border-t-0 lg:px-7 lg:py-10"><div className="space-y-8">
-          <section><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story settings</p><div className="mt-4 space-y-4"><Field label="Slug"><input value={story.slug} onChange={(e) => setStory({ ...story, slug: e.target.value })} className="admin-input" /></Field><Field label="Location"><input value={story.location ?? ""} onChange={(e) => setStory({ ...story, location: e.target.value })} className="admin-input" /></Field><Field label="Date"><input type="date" value={story.date ?? ""} onChange={(e) => setStory({ ...story, date: e.target.value })} className="admin-input" /></Field><Field label="Category"><input value={story.category ?? ""} onChange={(e) => setStory({ ...story, category: e.target.value })} className="admin-input" /></Field><Field label="Description"><textarea value={story.description ?? ""} onChange={(e) => setStory({ ...story, description: e.target.value })} rows={4} className="admin-input resize-y" /></Field></div></section>
-          <section className="border-t border-[#d5cfc5] pt-7"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">SEO</p><div className="mt-4 space-y-4"><Field label="SEO title"><input value={story.seo_title ?? ""} onChange={(e) => setStory({ ...story, seo_title: e.target.value })} className="admin-input" /></Field><Field label="SEO description"><textarea value={story.seo_description ?? ""} onChange={(e) => setStory({ ...story, seo_description: e.target.value })} rows={5} className="admin-input resize-y" /></Field></div></section>
-          <section className="border-t border-[#d5cfc5] pt-7"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Destination</p><p className="mt-3 text-sm text-[#666158]">{story.destination_name || "No destination selected"}</p></section>
-        </div></aside>
-      </div>
-      {mediaPickerBlock && <MediaPicker collections={collections} selectedCollection={selectedCollection} media={collectionMedia} selectedMedia={selectedMedia} onChooseCollection={chooseCollection} onToggle={toggleMedia} onClose={() => setMediaPickerBlock(null)} onAttach={() => void attachSelectedMedia()} />}
-    </main>
-  );
+type PickerMode="block"|"cover"|"social";
+export default function StoryEditorPage(){
+ const params=useParams<{id:string}>();const id=params.id;
+ const[story,setStory]=useState<Story|null>(null);const[blocks,setBlocks]=useState<Block[]>([]);const[collections,setCollections]=useState<Collection[]>([]);const[collectionMedia,setCollectionMedia]=useState<Media[]>([]);const[selectedCollection,setSelectedCollection]=useState<Collection|null>(null);const[selectedMedia,setSelectedMedia]=useState<string[]>([]);const[mediaPickerBlock,setMediaPickerBlock]=useState<string|null>(null);const[pickerMode,setPickerMode]=useState<PickerMode|null>(null);const[showBlockMenu,setShowBlockMenu]=useState(false);const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[message,setMessage]=useState("");
+ useEffect(()=>{void load()},[id]);
+ async function load(){setLoading(true);try{const[storyRes,collectionsRes]=await Promise.all([fetch(`/api/admin/stories/${id}`,{cache:"no-store"}),fetch("/api/admin/collections",{cache:"no-store"})]);const storyData=await storyRes.json() as {success:boolean;story?:Story;blocks?:Block[];error?:string};const collectionData=await collectionsRes.json() as {collections?:Collection[]};if(!storyData.success||!storyData.story)throw new Error(storyData.error||"Failed to load story");setStory(storyData.story);setBlocks(storyData.blocks??[]);setCollections(collectionData.collections??[])}catch(e){setMessage(e instanceof Error?e.message:"Failed to load story")}finally{setLoading(false)}}
+ async function saveStory(published=story?.published===1){if(!story)return;setSaving(true);setMessage("");try{const response=await fetch(`/api/admin/stories/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:story.title,slug:story.slug,location:story.location,date:story.date,category:story.category,description:story.description,destination_id:story.destination_id??null,seo_title:story.seo_title??null,seo_description:story.seo_description??null,cover_media_id:story.cover_media_id??null,published,tags:story.tags??null,featured:!!story.featured,hide_from_search:!!story.hide_from_search,social_media_id:story.social_media_id??null})});const data=await response.json() as {success:boolean;story?:Story;error?:string};if(!response.ok||!data.success||!data.story)throw new Error(data.error||"Failed to save story");setStory(data.story);setMessage(published?"Story published.":"Draft saved.")}catch(e){setMessage(e instanceof Error?e.message:"Failed to save story")}finally{setSaving(false)}}
+ async function addBlock(type:string){const response=await fetch(`/api/admin/stories/${id}/blocks`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type,sort_order:blocks.length,title:null,body:null,data:{}})});const data=await response.json() as {success:boolean;block?:Block;error?:string};if(!response.ok||!data.success||!data.block)throw new Error(data.error||"Failed to add block");setBlocks(current=>[...current,{...data.block!,media:[]}]);setShowBlockMenu(false)}
+ async function updateBlock(block:Block,patch:Partial<Block>){try{const response=await fetch(`/api/admin/stories/${id}/blocks/${block.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});const data=await response.json() as {success:boolean;error?:string};if(!response.ok||!data.success)throw new Error(data.error||"Failed to update block")}catch(e){setMessage(e instanceof Error?e.message:"Failed to update block")}}
+ async function deleteBlock(blockId:string){if(!window.confirm("Delete this block?"))return;const response=await fetch(`/api/admin/stories/${id}/blocks/${blockId}`,{method:"DELETE"});const data=await response.json() as {success:boolean;error?:string};if(!response.ok||!data.success)throw new Error(data.error||"Failed to delete block");setBlocks(current=>current.filter(b=>b.id!==blockId))}
+ function openBlockPicker(blockId:string){setPickerMode("block");setMediaPickerBlock(blockId);setSelectedMedia([]);setSelectedCollection(null);setCollectionMedia([])}
+ function openSinglePicker(mode:"cover"|"social"){setPickerMode(mode);setMediaPickerBlock(null);setSelectedMedia([]);setSelectedCollection(null);setCollectionMedia([])}
+ async function chooseCollection(collection:Collection|null){if(!collection){setSelectedCollection(null);setSelectedMedia([]);setCollectionMedia([]);return}setSelectedCollection(collection);setSelectedMedia([]);const response=await fetch(`/api/admin/media?collection_id=${encodeURIComponent(collection.id)}`,{cache:"no-store"});const data=await response.json() as {success?:boolean;media?:Media[];error?:string};if(!response.ok||data.success===false)throw new Error(data.error||"Failed to load collection photos");setCollectionMedia(data.media??[])}
+ function toggleMedia(mediaId:string){if(pickerMode!=="block"){setSelectedMedia([mediaId]);return}setSelectedMedia(current=>current.includes(mediaId)?current.filter(v=>v!==mediaId):[...current,mediaId])}
+ async function attachSelectedMedia(){if(!pickerMode||selectedMedia.length===0)return;if(pickerMode==="cover"){setStory(current=>current?{...current,cover_media_id:selectedMedia[0],cover_path:collectionMedia.find(m=>m.id===selectedMedia[0])?.path??current.cover_path}:current);setPickerMode(null);setSelectedMedia([]);return}if(pickerMode==="social"){setStory(current=>current?{...current,social_media_id:selectedMedia[0],social_path:collectionMedia.find(m=>m.id===selectedMedia[0])?.path??current.social_path}:current);setPickerMode(null);setSelectedMedia([]);return}if(!mediaPickerBlock)return;const block=blocks.find(item=>item.id===mediaPickerBlock);if(!block)return;const existing=new Set(block.media.map(item=>item.id));const ids=selectedMedia.filter(mediaId=>!existing.has(mediaId));for(let index=0;index<ids.length;index++){const response=await fetch(`/api/admin/stories/${id}/blocks/${block.id}/media`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({media_id:ids[index],sort_order:block.media.length+index})});const data=await response.json() as {success:boolean;error?:string};if(!response.ok||!data.success)throw new Error(data.error||"Failed to attach photo")}setPickerMode(null);setMediaPickerBlock(null);await load()}
+ async function removeMedia(blockId:string,mediaId:string){const response=await fetch(`/api/admin/stories/${id}/blocks/${blockId}/media`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({media_id:mediaId})});const data=await response.json() as {success:boolean;error?:string};if(!response.ok||!data.success)throw new Error(data.error||"Failed to remove photo");await load()}
+ if(loading)return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Loading story…</main>;if(!story)return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Story not found.</main>;
+ const tags=(story.tags??"").split(",").map(t=>t.trim()).filter(Boolean);
+ return <main className="min-h-screen bg-[#f5f2ec] text-[#171717]">
+  <header className="sticky top-0 z-30 border-b border-[#ddd7cd] bg-[#f5f2ec]/95 backdrop-blur"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-6 py-4 lg:px-10"><div className="flex items-center gap-5"><Link href="/admin/stories" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Stories</Link><span className="hidden h-5 w-px bg-[#d5cfc5] sm:block"/><div><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Editor</p><p className="mt-0.5 max-w-[360px] truncate text-sm font-medium">{story.title||"Untitled story"}</p></div></div><div className="flex items-center gap-2"><span className={`hidden rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] sm:inline-flex ${story.published?"bg-[#e3eadf] text-[#43543c]":"bg-[#e9e5de] text-[#6f6a61]"}`}>{story.published?"Published":"Draft"}</span><a href={`/stories/${story.slug}`} target="_blank" rel="noreferrer" className="hidden border border-[#bdb7ad] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] md:inline-block">Preview</a><button onClick={()=>saveStory(false)} disabled={saving} className="border border-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em]">Save Draft</button><button onClick={()=>saveStory(true)} disabled={saving} className="bg-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] text-white">Publish</button></div></div></header>
+  <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-10 lg:py-10">{message&&<div className="mb-6 border border-[#d8d1c7] bg-white px-5 py-3 text-sm text-[#666158]">{message}</div>}
+   <section className="relative mb-10 overflow-hidden bg-[#ddd7cd]"><div className="aspect-[16/7] min-h-[340px] w-full">{story.cover_path?<img src={mediaUrl(story.cover_path)} alt={story.title} className="h-full w-full object-contain bg-[#e7e2da]"/>:<div className="flex h-full items-center justify-center text-xs uppercase tracking-[0.2em] text-[#8a857d]">No cover image</div>}</div><button onClick={()=>openSinglePicker("cover")} className="absolute right-5 top-5 border border-white/70 bg-black/45 px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-white backdrop-blur">Edit Cover</button><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-7 pb-7 pt-28 text-white lg:px-10 lg:pb-10"><input value={story.title} onChange={e=>setStory({...story,title:e.target.value})} placeholder="Post Name" className="w-full bg-transparent font-serif text-4xl leading-tight outline-none placeholder:text-white/60 lg:text-6xl"/><div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] uppercase tracking-[0.15em] text-white/85"><span>{story.published?"Published":"Draft"}</span>{story.published_at&&<span>Published {new Date(story.published_at).toLocaleDateString()}</span>}<span>{tags.length?tags.join(" · "):"No tags"}</span><span>{story.category||"No category"}</span></div></div></section>
+   <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_350px]">
+    <section className="min-w-0"><div className="mb-10 border border-[#d9d3ca] bg-white p-6 lg:p-8"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Content</p><p className="mt-2 text-sm text-[#77736c]">The story body stays below. We will continue building the editorial blocks here.</p></div><div className="space-y-5">{blocks.map((block,index)=><div key={block.id} className="group relative border border-[#d9d3ca] bg-white p-7 lg:p-9"><div className="mb-7 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><span className="text-[10px] uppercase tracking-[0.18em] text-[#8a857d]">{String(index+1).padStart(2,"0")}</span><span className="rounded-full bg-[#f0ece5] px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-[#68635b]">{BLOCK_TYPES.find(item=>item[0]===block.type)?.[1]??block.type}</span></div><button onClick={()=>void deleteBlock(block.id)} className="text-[10px] uppercase tracking-[0.14em] text-[#9a4d42] opacity-0 transition group-hover:opacity-100">Delete</button></div><input value={block.eyebrow??""} onChange={e=>setBlocks(current=>current.map(item=>item.id===block.id?{...item,eyebrow:e.target.value}:item))} onBlur={()=>void updateBlock(block,{eyebrow:block.eyebrow})} placeholder="Eyebrow / optional" className="mb-3 w-full border-0 border-b border-[#e5e0d8] bg-transparent px-0 py-2 text-[10px] uppercase tracking-[0.18em] outline-none placeholder:text-[#b7b1a7]"/><input value={block.title??""} onChange={e=>setBlocks(current=>current.map(item=>item.id===block.id?{...item,title:e.target.value}:item))} onBlur={()=>void updateBlock(block,{title:block.title})} placeholder="Block heading" className="mb-4 w-full border-0 bg-transparent px-0 py-2 font-serif text-3xl outline-none placeholder:text-[#bdb7ad]"/><textarea value={block.body??""} onChange={e=>setBlocks(current=>current.map(item=>item.id===block.id?{...item,body:e.target.value}:item))} onBlur={()=>void updateBlock(block,{body:block.body})} placeholder="Start writing…" rows={block.type==="text"||block.type==="blog"?8:4} className="w-full resize-y border-0 bg-transparent p-0 text-[15px] leading-7 text-[#5f5a53] outline-none placeholder:text-[#bdb7ad]"/>{(block.type==="image"||block.type==="content"||block.type==="flex")&&<div className="mt-7 border-t border-[#e7e2da] pt-6">{block.media.length>0&&<div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3">{block.media.map(item=><div key={item.id} className="group/media relative overflow-hidden bg-[#e8e3db]"><img src={mediaUrl(item.path)} alt={item.alt??item.filename} className="aspect-[4/3] h-full w-full object-cover"/><button onClick={()=>void removeMedia(block.id,item.id)} className="absolute right-2 top-2 bg-black/70 px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-white opacity-0 transition group-hover/media:opacity-100">Remove</button></div>)}</div>}<button onClick={()=>openBlockPicker(block.id)} className="flex w-full items-center justify-center border border-dashed border-[#c8c1b7] bg-[#faf8f4] px-5 py-5 text-[10px] uppercase tracking-[0.16em] text-[#6e6961] transition hover:border-[#171717] hover:bg-white">+ Add photos from Collection</button></div>}{block.type!=="image"&&block.type!=="content"&&block.type!=="flex"&&<div className="mt-5 border-t border-[#e7e2da] pt-5 text-xs text-[#989187]">{block.type==="video"?"Paste your video URL in the content field above.":"Customize this block using its content fields."}</div>}</div>)}</div><div className="relative mt-8 flex justify-center"><button onClick={()=>setShowBlockMenu(v=>!v)} className="border border-[#171717] bg-[#171717] px-7 py-4 text-[10px] uppercase tracking-[0.18em] text-white">+ Add Block</button>{showBlockMenu&&<BlockMenu onSelect={type=>void addBlock(type)}/>}</div></section>
+    <aside className="border border-[#d9d3ca] bg-[#eeebe5] p-6 lg:p-7"><div className="space-y-8"><section><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Post</p><div className="mt-4 space-y-4"><Field label="Post Name"><input value={story.title} onChange={e=>setStory({...story,title:e.target.value})} className="admin-input"/></Field><Field label="Post Status"><div className="flex overflow-hidden border border-[#cfc8be] bg-white"><button onClick={()=>setStory({...story,published:0})} className={`flex-1 px-3 py-2.5 text-[10px] uppercase tracking-[0.12em] ${!story.published?"bg-[#171717] text-white":"text-[#77736c]"}`}>Draft</button><button onClick={()=>setStory({...story,published:1})} className={`flex-1 px-3 py-2.5 text-[10px] uppercase tracking-[0.12em] ${story.published?"bg-[#171717] text-white":"text-[#77736c]"}`}>Published</button></div></Field>{!story.published&&<p className="text-xs text-[#77736c]">This post is not visible.</p>}<Field label="Published Date"><div className="admin-input bg-[#f7f5f0] text-xs text-[#77736c]">{story.published_at?new Date(story.published_at).toLocaleString():"Not published yet"}</div></Field></div></section>
+     <section className="border-t border-[#d5cfc5] pt-7"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Categories</p><div className="mt-4"><select value={story.category??""} onChange={e=>setStory({...story,category:e.target.value||null})} className="admin-input"><option value="">Select Category</option>{story.category&&!CATEGORIES.includes(story.category)&&<option value={story.category}>{story.category}</option>}{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>{!story.category&&<p className="mt-2 text-xs text-[#8a857d]">No categories selected.</p>}</div></section>
+     <section className="border-t border-[#d5cfc5] pt-7"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Tags</p><input value={story.tags??""} onChange={e=>setStory({...story,tags:e.target.value})} placeholder="Wedding, Da Nang, Vietnam" className="admin-input mt-4"/><p className="mt-2 text-[11px] text-[#8a857d]">Separate tags with commas.</p>{tags.length>0&&<div className="mt-3 flex flex-wrap gap-1.5">{tags.map(tag=><span key={tag} className="bg-white px-2.5 py-1 text-[10px] text-[#666158]">{tag}</span>)}</div>}</section>
+     <section className="border-t border-[#d5cfc5] pt-7"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Options</p><div className="mt-4 space-y-4"><Field label="URL Slug"><input value={story.slug} onChange={e=>setStory({...story,slug:e.target.value})} className="admin-input"/><p className="mt-2 text-[11px] text-[#8a857d]">Unique URL address slug for this post.</p></Field><Field label="Post Description"><textarea value={story.description??""} onChange={e=>setStory({...story,description:e.target.value})} rows={4} className="admin-input resize-y"/><p className="mt-2 text-[11px] text-[#8a857d]">This description appears in search engine results.</p></Field><button type="button" onClick={()=>setMessage("Generate will be connected to AI in the next step.")} className="border border-[#bdb7ad] px-4 py-2.5 text-[10px] uppercase tracking-[0.14em]">Generate</button><Toggle label="Featured Post" checked={!!story.featured} onChange={v=>setStory({...story,featured:v?1:0})}/><Toggle label="Hide Post from Search Engines" checked={!!story.hide_from_search} onChange={v=>setStory({...story,hide_from_search:v?1:0})}/></div></section>
+     <section className="border-t border-[#d5cfc5] pt-7"><div className="flex items-center justify-between"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Social</p><button onClick={()=>openSinglePicker("social")} className="text-[10px] uppercase tracking-[0.14em] text-[#5f5a53]">Change</button></div><div className="mt-4 overflow-hidden border border-[#d0c9bf] bg-white">{story.social_path?<img src={mediaUrl(story.social_path)} alt="Social image" className="aspect-[1.91/1] w-full object-contain bg-[#eee9e1]"/>:<button onClick={()=>openSinglePicker("social")} className="flex aspect-[1.91/1] w-full flex-col items-center justify-center gap-2 text-xs text-[#8a857d]"><span className="text-2xl">+</span><span>Choose an image from a Collection</span></button>}</div><p className="mt-3 text-[11px] leading-5 text-[#8a857d]">Used when this post is shared on Facebook, X, and other social networks.</p></section>
+    </div></aside>
+   </div>
+  </div>{(pickerMode)&&<MediaPicker collections={collections} selectedCollection={selectedCollection} media={collectionMedia} selectedMedia={selectedMedia} single={pickerMode!=="block"} onChooseCollection={chooseCollection} onToggle={toggleMedia} onClose={()=>{setPickerMode(null);setMediaPickerBlock(null)}} onAttach={()=>void attachSelectedMedia()}/>}</main>
 }
-
-function BlockMenu({ onSelect }: { onSelect: (type: string) => void }) { return <div className="absolute bottom-full z-20 mb-3 grid w-[min(760px,calc(100vw-48px))] grid-cols-2 gap-px border border-[#d7d1c8] bg-[#d7d1c8] p-px shadow-xl md:grid-cols-3 lg:grid-cols-5">{BLOCK_TYPES.map(([type, title, description]) => <button key={type} onClick={() => onSelect(type)} className="bg-white p-4 text-left transition hover:bg-[#f6f2eb]"><span className="block text-xs font-medium">{title}</span><span className="mt-1 block text-[10px] leading-4 text-[#8a857d]">{description}</span></button>)}</div>; }
-
-function MediaPicker({ collections, selectedCollection, media, selectedMedia, onChooseCollection, onToggle, onClose, onAttach }: { collections: Collection[]; selectedCollection: Collection | null; media: Media[]; selectedMedia: string[]; onChooseCollection: (collection: Collection | null) => void; onToggle: (id: string) => void; onClose: () => void; onAttach: () => void }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="flex h-[min(850px,92vh)] w-full max-w-6xl flex-col overflow-hidden bg-[#f7f5f0] text-[#171717] shadow-2xl">
-    <div className="flex items-center justify-between border-b border-[#ddd7cd] bg-white px-6 py-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Media</p><h2 className="mt-1 font-serif text-2xl">{selectedCollection ? selectedCollection.title : "Choose a Collection"}</h2></div><button onClick={onClose} className="text-xl text-[#77736c]">×</button></div>
-    <div className="min-h-0 flex-1 overflow-y-auto p-6 lg:p-8">{!selectedCollection ? <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">{collections.map((collection) => <button key={collection.id} onClick={() => void onChooseCollection(collection)} className="group overflow-hidden border border-[#ddd7cd] bg-white text-left transition hover:border-[#171717]"><div className="aspect-[4/3] overflow-hidden bg-[#e5e0d8]">{collection.cover_path ? <img src={mediaUrl(collection.cover_path)} alt={collection.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-[10px] uppercase tracking-[0.15em] text-[#aaa49a]">No cover</div>}</div><div className="p-4"><p className="text-sm font-medium">{collection.title}</p><p className="mt-1 text-xs text-[#89847b]">{collection.destination_name || "No destination"} · {collection.media_count} photos</p></div></button>)}</div> : <div><button onClick={() => void onChooseCollection(null)} className="mb-5 text-[10px] uppercase tracking-[0.16em] text-[#77736c]">← All Collections</button><div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{media.map((item) => { const selected = selectedMedia.includes(item.id); return <button key={item.id} onClick={() => onToggle(item.id)} className={`relative overflow-hidden bg-[#e5e0d8] text-left ${selected ? "ring-2 ring-[#171717] ring-offset-2" : ""}`}><img src={mediaUrl(item.path)} alt={item.alt ?? item.filename} className="aspect-[4/3] h-full w-full object-cover" />{selected && <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#171717] text-sm text-white">✓</span>}</button>; })}</div>{media.length === 0 && <div className="border border-dashed border-[#c8c1b7] p-16 text-center text-sm text-[#77736c]">This collection has no photos yet.</div>}</div>}</div>
-    {selectedCollection && <div className="flex items-center justify-between border-t border-[#ddd7cd] bg-white px-6 py-4"><p className="text-xs text-[#77736c]">{selectedMedia.length} photo{selectedMedia.length === 1 ? "" : "s"} selected</p><button onClick={onAttach} disabled={!selectedMedia.length} className="bg-[#171717] px-6 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-30">Add Selected Photos</button></div>}
-  </div></div>;
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="block"><span className="mb-2 block text-[9px] uppercase tracking-[0.16em] text-[#858078]">{label}</span>{children}</label>; }
+function BlockMenu({onSelect}:{onSelect:(type:string)=>void}){return <div className="absolute bottom-full z-20 mb-3 grid w-[min(760px,calc(100vw-48px))] grid-cols-2 gap-px border border-[#d7d1c8] bg-[#d7d1c8] p-px shadow-xl md:grid-cols-3 lg:grid-cols-5">{BLOCK_TYPES.map(([type,title,description])=><button key={type} onClick={()=>onSelect(type)} className="bg-white p-4 text-left transition hover:bg-[#f6f2eb]"><span className="block text-xs font-medium">{title}</span><span className="mt-1 block text-[10px] leading-4 text-[#8a857d]">{description}</span></button>)}</div>}
+function MediaPicker({collections,selectedCollection,media,selectedMedia,single,onChooseCollection,onToggle,onClose,onAttach}:{collections:Collection[];selectedCollection:Collection|null;media:Media[];selectedMedia:string[];single:boolean;onChooseCollection:(collection:Collection|null)=>void;onToggle:(id:string)=>void;onClose:()=>void;onAttach:()=>void}){return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="flex h-[min(850px,92vh)] w-full max-w-6xl flex-col overflow-hidden bg-[#f7f5f0] text-[#171717] shadow-2xl"><div className="flex items-center justify-between border-b border-[#ddd7cd] bg-white px-6 py-5"><div><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Media</p><h2 className="mt-1 font-serif text-2xl">{selectedCollection?selectedCollection.title:"Choose a Collection"}</h2></div><button onClick={onClose} className="text-xl text-[#77736c]">×</button></div><div className="min-h-0 flex-1 overflow-y-auto p-6 lg:p-8">{!selectedCollection?<div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">{collections.map(collection=><button key={collection.id} onClick={()=>void onChooseCollection(collection)} className="group overflow-hidden border border-[#ddd7cd] bg-white text-left transition hover:border-[#171717]"><div className="aspect-[4/3] overflow-hidden bg-[#e5e0d8]">{collection.cover_path?<img src={mediaUrl(collection.cover_path)} alt={collection.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>:<div className="flex h-full items-center justify-center text-[10px] uppercase tracking-[0.15em] text-[#aaa49a]">No cover</div>}</div><div className="p-4"><p className="text-sm font-medium">{collection.title}</p><p className="mt-1 text-xs text-[#89847b]">{collection.destination_name||"No destination"} · {collection.media_count} photos</p></div></button>)}</div>:<div><button onClick={()=>void onChooseCollection(null)} className="mb-5 text-[10px] uppercase tracking-[0.16em] text-[#77736c]">← All Collections</button><div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{media.map(item=>{const selected=selectedMedia.includes(item.id);return <button key={item.id} onClick={()=>onToggle(item.id)} className={`relative overflow-hidden bg-[#e5e0d8] text-left ${selected?"ring-2 ring-[#171717] ring-offset-2":""}`}><img src={mediaUrl(item.path)} alt={item.alt??item.filename} className="aspect-[4/3] h-full w-full object-cover"/>{selected&&<span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#171717] text-sm text-white">✓</span>}</button>})}</div>{media.length===0&&<div className="border border-dashed border-[#c8c1b7] p-16 text-center text-sm text-[#77736c]">This collection has no photos yet.</div>}</div>}</div>{selectedCollection&&<div className="flex items-center justify-between border-t border-[#ddd7cd] bg-white px-6 py-4"><p className="text-xs text-[#77736c]">{selectedMedia.length} photo{selectedMedia.length===1?"":"s"} selected</p><button onClick={onAttach} disabled={!selectedMedia.length} className="bg-[#171717] px-6 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-30">{single?"Use Photo":"Add Selected Photos"}</button></div>}</div></div>}
+function Toggle({label,checked,onChange}:{label:string;checked:boolean;onChange:(value:boolean)=>void}){return <button type="button" onClick={()=>onChange(!checked)} className="flex w-full items-center justify-between border-t border-[#ddd7cd] pt-4 text-left"><span className="text-xs text-[#5f5a53]">{label}</span><span className={`relative h-5 w-9 rounded-full transition ${checked?"bg-[#171717]":"bg-[#cfc9bf]"}`}><span className={`absolute top-1 h-3 w-3 rounded-full bg-white transition ${checked?"left-5":"left-1"}`}/></span></button>}
+function Field({label,children}:{label:string;children:ReactNode}){return <label className="block"><span className="mb-2 block text-[9px] uppercase tracking-[0.16em] text-[#858078]">{label}</span>{children}</label>}
