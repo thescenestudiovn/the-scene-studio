@@ -5,7 +5,7 @@
  * Deploy this file to:
  *   /mnt/md0/public/WEB/_upload/upload.php
  *
- * The Next.js API calls this endpoint server-to-server. The image bytes are
+ * The Next.js API calls this endpoint server-to-server. Image bytes are
  * streamed directly from php://input to the NAS filesystem.
  */
 
@@ -115,7 +115,7 @@ try {
         throw new RuntimeException('Rename failed');
     }
 
-    $publicPath = '/' . implode('/', array_filter([$relativeDir, $filename]));
+    $publicPath = '/_upload/' . implode('/', array_filter([$relativeDir, $filename]));
 
     json_response(201, [
         'ok' => true,
