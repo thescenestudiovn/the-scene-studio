@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 interface Collection { id: string; title: string; slug: string; description?: string | null; destination_name?: string | null; }
 interface Destination { id: string; name: string; }
+interface CollectionsResponse { collections?: Collection[] }
+interface DestinationsResponse { destinations?: Destination[] }
 
 export default function AdminCollectionsPage() {
   const [items, setItems] = useState<Collection[]>([]);
@@ -11,10 +13,12 @@ export default function AdminCollectionsPage() {
   const [form, setForm] = useState({ title: "", slug: "", description: "", destination_id: "" });
 
   async function load() {
-    const [collections, destinations] = await Promise.all([
-      fetch("/api/admin/collections", { cache: "no-store" }).then(r => r.json()),
-      fetch("/api/admin/destinations", { cache: "no-store" }).then(r => r.json()),
+    const [collectionsResponse, destinationsResponse] = await Promise.all([
+      fetch("/api/admin/collections", { cache: "no-store" }),
+      fetch("/api/admin/destinations", { cache: "no-store" }),
     ]);
+    const collections: CollectionsResponse = await collectionsResponse.json();
+    const destinations: DestinationsResponse = await destinationsResponse.json();
     setItems(collections.collections ?? []);
     setDestinations(destinations.destinations ?? []);
   }
