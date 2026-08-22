@@ -1,24 +1,40 @@
-const NAS_UPLOAD_URL = (process.env.NAS_UPLOAD_URL || "").trim();
-const NAS_UPLOAD_TOKEN = (process.env.NAS_UPLOAD_TOKEN || "").trim();
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
+type RuntimeEnv = {
+  NAS_UPLOAD_URL?: string;
+  NAS_UPLOAD_TOKEN?: string;
+};
+
+function getConfig() {
+  const { env } = getCloudflareContext();
+  const runtimeEnv = env as unknown as RuntimeEnv;
+
+  return {
+    url: String(runtimeEnv.NAS_UPLOAD_URL || process.env.NAS_UPLOAD_URL || "").trim(),
+    token: String(runtimeEnv.NAS_UPLOAD_TOKEN || process.env.NAS_UPLOAD_TOKEN || "").trim(),
+  };
+}
 
 export function nasConfigured() {
-  return Boolean(NAS_UPLOAD_URL && NAS_UPLOAD_TOKEN);
+  const { url, token } = getConfig();
+  return Boolean(url && token);
 }
 
 export function nasConfigurationError() {
-  if (!NAS_UPLOAD_URL) return "NAS_UPLOAD_URL is not configured.";
-  if (!NAS_UPLOAD_TOKEN) return "NAS_UPLOAD_TOKEN is not configured.";
+  const { url, token } = getConfig();
 
+  if (!url) return "NAS_UPLOAD_URL is not configured.";
+  if (!token) return "NAS_UPLOAD_TOKEN is not configured.";
+
+  let parsed: URL;
   try {
-    const url = new URL(NAS_UPLOAD_URL);
-    if (url.protocol !== "https:") {
-      return "NAS_UPLOAD_URL must use HTTPS.";
-    }
-    if (url.hostname === "media.thescenestudio.asia") {
-      return "NAS_UPLOAD_URL points to the read-only media CDN. Point it to the private NAS upload API exposed through scene-nas instead.";
-    }
+    parsed = new URL(url);
   } catch {
     return "NAS_UPLOAD_URL is invalid.";
+  }
+
+  if (parsed.protocol !== "https:") {
+    return "NAS_UPLOAD_URL must use HTTPS.";
   }
 
   return null;
@@ -26,14 +42,17 @@ export function nasConfigurationError() {
 
 export function sanitizeNasPath(value: string) {
   const parts = value
+    .replaceAll("\\", "/")
     .split("/")
     .map((part) => part.trim())
     .filter(Boolean)
     .filter((part) => part !== "." && part !== "..");
+
   return parts.map((part) => encodeURIComponent(part)).join("/");
 }
 
 export async function uploadToNas(path: string, file: File) {
+  const { url, token } = getConfig();
   const configurationError = nasConfigurationError();
   if (configurationError) throw new Error(configurationError);
 
@@ -46,29 +65,26 @@ export async function uploadToNas(path: string, file: File) {
   form.set("path", cleanPath);
   form.set("file", file, file.name);
 
-  const response = await fetch(NAS_UPLOAD_URL, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${NAS_UPLOAD_TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     body: form,
     cache: "no-store",
   });
 
-  const contentType = response.headers.get("content-type") || "";
   const raw = await response.text();
   let payload: { success?: boolean; error?: string; path?: string } = {};
 
-  if (contentType.includes("application/json")) {
-    try {
-      payload = JSON.parse(raw);
-    } catch {
-      throw new Error(`NAS upload returned invalid JSON (${response.status})`);
-    }
+  try {
+    payload = JSON.parse(raw) as typeof payload;
+  } catch {
+    throw new Error(`NAS upload returned invalid JSON (${response.status}): ${raw.slice(0, 300)}`);
   }
 
   if (!response.ok || !payload.success) {
-    const detail = payload.error || raw.slice(0, 500) || `HTTP ${response.status}`;
+    const detail = payload.error || `HTTP ${response.status}`;
     throw new Error(`NAS upload failed (${response.status}): ${detail}`);
   }
 
