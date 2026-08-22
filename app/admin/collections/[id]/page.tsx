@@ -14,6 +14,7 @@ export default function AdminCollectionEditor() {
   const inputRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef<{ x: number; y: number; cardId: string | null } | null>(null);
+  const marqueeBaseRef = useRef<Set<string>>(new Set());
   const [collection, setCollection] = useState<Collection | null>(null);
   const [media, setMedia] = useState<Media[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -97,7 +98,13 @@ export default function AdminCollectionEditor() {
       const rect = card.getBoundingClientRect();
       if (rect.right >= left && rect.left <= right && rect.bottom >= top && rect.top <= bottom) hit.add(card.dataset.mediaId!);
     });
-    setSelected(hit);
+
+    const next = new Set(marqueeBaseRef.current);
+    hit.forEach(mediaId => {
+      if (marqueeBaseRef.current.has(mediaId)) next.delete(mediaId);
+      else next.add(mediaId);
+    });
+    setSelected(next);
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
@@ -106,6 +113,7 @@ export default function AdminCollectionEditor() {
     if (target.closest("button") || target.closest("[data-drag-handle]")) return;
     const cardId = getCardId(event.target);
     pointerRef.current = { x: event.clientX, y: event.clientY, cardId };
+    marqueeBaseRef.current = new Set(selected);
     event.currentTarget.setPointerCapture(event.pointerId);
     setSelecting(false);
     setSelectionRect(null);
@@ -186,13 +194,11 @@ export default function AdminCollectionEditor() {
     </div></div>
     <div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Click to select. Click again to deselect. Drag across photos to select a group. Use the drag handle to reorder.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">{selected.size === media.length && media.length ? "Deselect All" : "Select All"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div>
       <div ref={photosRef} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} className="relative grid grid-cols-1 gap-3 select-none sm:grid-cols-2 lg:grid-cols-3">
-        {media.map((item, index) => <div key={item.id} data-media-card data-media-id={item.id} className={`group relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#e8e5df] ${selected.has(item.id) ? "ring-2 ring-red-600" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}>
+        {media.map(item => <div key={item.id} data-media-card data-media-id={item.id} className={`group relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#e8e5df] transition-shadow ${selected.has(item.id) ? "ring-2 ring-blue-500 bg-blue-500/5" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}>
           <img draggable={false} src={item.path} alt={item.alt ?? item.filename ?? collection.title} className="block h-full w-full object-contain" />
-          <div className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center bg-white/90 text-[11px] font-medium">{index + 1}</div>
-          <button type="button" onClick={() => toggleSelected(item.id)} className={`absolute right-2 top-2 h-8 w-8 border text-xs shadow-sm ${selected.has(item.id) ? "border-red-600 bg-red-600 text-white" : "border-white bg-white/90 text-[#171717]"}`}>{selected.has(item.id) ? "✓" : ""}</button>
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2"><button onClick={() => setCover(item.id)} className="text-[10px] uppercase tracking-[0.12em] text-white">{collection.cover_media_id === item.id ? "Cover" : "Set cover"}</button><span data-drag-handle draggable onDragStart={() => setDraggedId(item.id)} onDragOver={e => e.preventDefault()} onDrop={() => { if (draggedId) moveGroup(draggedId, item.id); setDraggedId(null); }} className="cursor-grab rounded border border-white/40 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-white">↕ Drag</span></div>
         </div>)}
-        {selectionRect && <div className="pointer-events-none fixed z-50 border border-red-500 bg-red-500/10" style={{ left: selectionRect.left, top: selectionRect.top, width: selectionRect.width, height: selectionRect.height }} />}
+        {selectionRect && <div className="pointer-events-none fixed z-50 border border-blue-500 bg-blue-500/10" style={{ left: selectionRect.left, top: selectionRect.top, width: selectionRect.width, height: selectionRect.height }} />}
       </div>
       {media.length === 0 && <div className="border border-dashed border-[#c9c4ba] p-16 text-center text-sm text-[#77736c]">No photos yet.</div>}
     </div></section>{message && <p className="mt-6 text-sm text-[#77736c]">{message}</p>}</div></main>;
