@@ -20,8 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$expectedToken = getenv('NAS_UPLOAD_TOKEN') ?: '';
-$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$tokenFile = '/mnt/md0/.scene-upload-token';
+$expectedToken = trim((string)(getenv('NAS_UPLOAD_TOKEN') ?: (is_readable($tokenFile) ? file_get_contents($tokenFile) : '')));
+$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 $token = '';
 if (preg_match('/^Bearer\s+(.+)$/i', $authorization, $m)) {
     $token = trim($m[1]);
