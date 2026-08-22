@@ -23,13 +23,15 @@ const fields = `c.id, c.title, c.slug, c.description, c.destination_id, c.client
 
 async function getGalleryPage() {
   const db = getDB();
-  const page = await db.prepare(`SELECT id, slug, title, seo_title, seo_description FROM pages WHERE slug = 'gallery' LIMIT 1`).first<{ id: string; slug: string; title: string; seo_title: string | null; seo_description: string | null }>();
+  const page = await db.prepare(`SELECT id, slug, title, seo_title, seo_description, published FROM pages WHERE slug = 'gallery' LIMIT 1`).first<{ id: string; slug: string; title: string; seo_title: string | null; seo_description: string | null; published: number }>();
   if (!page) return null;
+
   const block = await db.prepare(`SELECT id, data FROM page_blocks WHERE page_id = ? AND type = 'hero' ORDER BY sort_order ASC LIMIT 1`).bind(page.id).first<{ id: string; data: string }>();
   let data: { eyebrow?: string; body?: string } = {};
   if (block?.data) {
     try { data = JSON.parse(block.data) as { eyebrow?: string; body?: string }; } catch { data = {}; }
   }
+
   return { ...page, eyebrow: data.eyebrow ?? "", description: data.body ?? "" };
 }
 
@@ -67,11 +69,28 @@ export async function PATCH(request: Request) {
     if (body.galleryPage) {
       const page = await db.prepare(`SELECT id FROM pages WHERE slug = 'gallery' LIMIT 1`).first<{ id: string }>();
       if (!page) return Response.json({ success: false, error: "Gallery page is not initialized. Run the latest D1 migration first." }, { status: 500 });
-      await db.prepare(`UPDATE pages SET title=?, seo_title=?, seo_description=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-        .bind(body.galleryPage.title?.trim() || "Gallery", body.galleryPage.seo_title?.trim() || null, body.galleryPage.seo_description?.trim() || null, page.id).run();
-      const heroData = JSON.stringify({ eyebrow: body.galleryPage.eyebrow?.trim() || "", body: body.galleryPage.description?.trim() || "" });
-      await db.prepare(`INSERT INTO page_blocks (id,page_id,type,sort_order,data) VALUES ('gallery-hero',?,'hero',0,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=CURRENT_TIMESTAMP`)
-        .bind(page.id, heroData).run();
+
+      // /gallery only reads published pages, so saving from the admin must keep
+      // the Gallery page published. Otherwise the admin appears to save while
+      // the public page falls back to its default copy.
+      await db.prepare(`UPDATE pages SET title=?, seo_title=?, seo_description=?, published=1, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .bind(
+          body.galleryPage.title?.trim() || "Gallery",
+          body.galleryPage.seo_title?.trim() || null,
+          body.galleryPage.seo_description?.trim() || null,
+          page.id,
+        )
+        .run();
+
+      const heroData = JSON.stringify({
+        eyebrow: body.galleryPage.eyebrow?.trim() || "",
+        body: body.galleryPage.description?.trim() || "",
+      });
+
+      await db.prepare(`INSERT INTO page_blocks (id,page_id,type,sort_order,data) VALUES ('gallery-hero',?,'hero',0,?) ON CONFLICT(id) DO UPDATE SET page_id=excluded.page_id, type=excluded.type, sort_order=excluded.sort_order, data=excluded.data, updated_at=CURRENT_TIMESTAMP`)
+        .bind(page.id, heroData)
+        .run();
+
       return Response.json({ success: true, galleryPage: await getGalleryPage() });
     }
 
