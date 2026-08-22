@@ -5,69 +5,25 @@ import { mediaUrl } from "../../lib/media";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-export const metadata: Metadata = {
-  title: "Gallery — The Scene Studio",
-  description: "Destination wedding photography collections by The Scene Studio.",
-};
-
+export const metadata: Metadata = { title: "Gallery — The Scene Studio", description: "Wedding photography collections by The Scene Studio." };
 export const dynamic = "force-dynamic";
 
-type CollectionRow = { id: string; title: string; slug: string; destination_name: string | null; cover_path: string | null };
+type CollectionRow = { id: string; title: string; slug: string; client_name: string | null; destination_name: string | null; destination_slug: string | null; destination_country: string | null; cover_path: string | null; media_count: number };
 type DestinationRow = { id: string; name: string; slug: string; country: string };
 
 export default async function GalleryPage() {
   const db = getDB();
   const result = await db.prepare(`
-    SELECT c.id, c.title, c.slug, d.name AS destination_name,
-      (SELECT m.path FROM media m WHERE m.collection_id = c.id AND m.type = 'image' ORDER BY m.sort_order ASC, m.created_at ASC LIMIT 1) AS cover_path
-    FROM collections c
-    LEFT JOIN destinations d ON d.id = c.destination_id
-    ORDER BY c.created_at DESC
+    SELECT c.id,c.title,c.slug,c.client_name,d.name AS destination_name,d.slug AS destination_slug,d.country AS destination_country,
+      COALESCE((SELECT m.path FROM media m WHERE m.id=c.cover_media_id AND m.type='image'),(SELECT m.path FROM media m WHERE m.collection_id=c.id AND m.type='image' ORDER BY m.sort_order ASC,m.created_at ASC LIMIT 1)) AS cover_path,
+      (SELECT COUNT(*) FROM media m WHERE m.collection_id=c.id AND m.type='image') AS media_count
+    FROM collections c LEFT JOIN destinations d ON d.id=c.destination_id
+    WHERE c.published=1
+    ORDER BY COALESCE(c.event_date,c.created_at) DESC,c.created_at DESC
   `).all<CollectionRow>();
-
-  const destinations = await db.prepare(`
-    SELECT id, name, slug, country
-    FROM destinations
-    ORDER BY name ASC
-  `).all<DestinationRow>();
-
+  const destinations = await db.prepare(`SELECT id,name,slug,country FROM destinations ORDER BY name ASC`).all<DestinationRow>();
   const collections = result.results ?? [];
   const destinationList = destinations.results ?? [];
 
-  return (
-    <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
-      <Header light />
-      <section className="px-6 pb-20 pt-40 md:px-10 md:pt-52">
-        <div className="mx-auto max-w-7xl">
-          <p className="font-sans text-xs tracking-[0.2em] uppercase">Gallery</p>
-          <h1 className="mt-8 max-w-4xl font-serif text-6xl leading-[0.9] tracking-[-0.04em] md:text-8xl">Collections</h1>
-          <p className="mt-8 max-w-xl font-sans text-sm leading-7 text-[#77736c]">A collection of celebrations photographed by The Scene Studio.</p>
-          <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-3 border-t border-[#d8d3ca] pt-6 font-sans text-xs tracking-[0.15em] uppercase">
-            <Link href="/gallery" className="transition-opacity hover:opacity-50">All</Link>
-            {destinationList.map(destination => (
-              <Link key={destination.id} href={`/destinations/${destination.country}/${destination.slug}`} className="transition-opacity hover:opacity-50">{destination.name}</Link>
-            ))}
-          </nav>
-        </div>
-      </section>
-      <section className="px-6 pb-32 md:px-10 md:pb-48">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-8 gap-y-16 md:grid-cols-2 lg:grid-cols-3">
-          {collections.map(collection => {
-            const cover = collection.cover_path ? mediaUrl(collection.cover_path) : null;
-            return (
-              <Link key={collection.id} href={`/gallery/${collection.slug}`} className="group block">
-                <div className="relative aspect-[4/5] overflow-hidden bg-[#ddd8cf]">{cover && <img src={cover} alt={collection.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />}</div>
-                <div className="mt-5 flex items-start justify-between gap-6">
-                  <div><h2 className="font-serif text-2xl tracking-[-0.02em]">{collection.title}</h2>{collection.destination_name && <p className="mt-2 font-sans text-xs tracking-[0.15em] uppercase text-[#77736c]">{collection.destination_name}</p>}</div>
-                  <span className="font-sans text-xs uppercase">→</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-        {collections.length === 0 && <div className="mx-auto max-w-7xl border-t border-[#d8d3ca] pt-10 font-sans text-sm text-[#77736c]">No collections published yet.</div>}
-      </section>
-      <Footer />
-    </main>
-  );
+  return <main className="min-h-screen bg-[#f7f5f0] text-[#171717]"><Header light /><section className="px-6 pb-16 pt-36 md:px-10 md:pt-44"><div className="mx-auto max-w-[1500px]"><p className="text-[10px] uppercase tracking-[0.24em] text-[#77736c]">The Scene Studio</p><div className="mt-5 flex flex-wrap items-end justify-between gap-8"><h1 className="font-serif text-6xl tracking-[-0.05em] md:text-8xl">Gallery</h1><p className="max-w-sm text-sm leading-6 text-[#77736c]">A living archive of celebrations, destinations and stories photographed around the world.</p></div><nav className="mt-12 flex flex-wrap gap-x-7 gap-y-3 border-t border-[#d8d3ca] pt-5 text-[10px] uppercase tracking-[0.18em]"><Link href="/gallery" className="hover:opacity-50">All</Link>{destinationList.map(d=><Link key={d.id} href={`/destinations/${d.country}/${d.slug}`} className="hover:opacity-50">{d.name}</Link>)}</nav></div></section><section className="px-6 pb-32 md:px-10 md:pb-48"><div className="mx-auto grid max-w-[1500px] grid-cols-1 gap-x-5 gap-y-14 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{collections.map((collection,index)=>{const cover=collection.cover_path?mediaUrl(collection.cover_path):null;return <Link key={collection.id} href={`/gallery/${collection.slug}`} className={`group block ${index%7===0?"xl:col-span-2":""}`}><div className={`relative overflow-hidden bg-[#ddd8cf] ${index%7===0?"aspect-[16/10]":"aspect-[4/5]"}`}>{cover?<img src={cover} alt={collection.title} className="h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.025]" />:<div className="h-full w-full" />}<div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" /><div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between p-5 text-white opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100"><span className="text-[10px] uppercase tracking-[0.16em]">View collection</span><span>→</span></div></div><div className="mt-4 flex items-start justify-between gap-4"><div><h2 className="font-serif text-2xl tracking-[-0.02em]">{collection.title}</h2><p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-[#77736c]">{collection.destination_name ?? ""}</p></div><span className="pt-1 text-[10px] text-[#77736c]">{collection.media_count}</span></div></Link>})}</div>{collections.length===0&&<div className="mx-auto max-w-[1500px] border-t border-[#d8d3ca] pt-10 text-sm text-[#77736c]">No collections published yet.</div>}</section><Footer /></main>;
 }
