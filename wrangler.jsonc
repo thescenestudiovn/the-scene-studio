@@ -1,23 +1,29 @@
 {
-    "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "the-scene-studio",
-    "main": ".open-next/worker.js",
-    "compatibility_date": "2026-08-16",
-    "compatibility_flags": [
-        "nodejs_compat"
-    ],
-    "assets": {
-        "binding": "ASSETS",
-        "directory": ".open-next/assets"
-    },
-    "d1_databases": [
-        {
-            "binding": "the_scene_studio_db",
-            "database_name": "the-scene-studio-db",
-            "database_id": "c8a6b25a-512e-4f8d-b2b0-217d104c92e3"
-        }
-    ],
-    "observability": {
-        "enabled": true
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "the-scene-studio",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets"
+  },
+  "d1_databases": [
+    {
+      "binding": "the_scene_studio_db",
+      "database_name": "the-scene-studio-db",
+      "database_id": "c8a6b25a-512e-4f8d-b2b0-217d104c92e3"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "the-scene-studio-media"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
 }
