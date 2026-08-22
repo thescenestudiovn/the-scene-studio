@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null };
 type Block = { id: string; type: string; data: Record<string, unknown> };
+type PagesResponse = { pages?: Page[] };
+type PageBlocksResponse = { blocks?: Array<{ id: string; type: string; data: string | Record<string, unknown> }> };
 const BLOCKS = ["text", "image", "content", "links", "blog", "video", "contact", "social", "others", "flex"];
 
 export default function AdminPagesPage() {
@@ -14,7 +16,7 @@ export default function AdminPagesPage() {
 
   async function load() {
     const response = await fetch("/api/admin/pages", { cache: "no-store" });
-    const data = await response.json();
+    const data: PagesResponse = await response.json();
     setPages(data.pages ?? []);
     setLoading(false);
   }
@@ -23,8 +25,8 @@ export default function AdminPagesPage() {
   async function openPage(item: Page) {
     setPage(item);
     const response = await fetch(`/api/pages/${item.slug}`, { cache: "no-store" });
-    const data = await response.json();
-    setBlocks((data.blocks ?? []).map((b: { id: string; type: string; data: string | Record<string, unknown> }) => ({ ...b, data: typeof b.data === "string" ? JSON.parse(b.data) : b.data })));
+    const data: PageBlocksResponse = await response.json();
+    setBlocks((data.blocks ?? []).map(b => ({ ...b, data: typeof b.data === "string" ? JSON.parse(b.data) as Record<string, unknown> : b.data })));
   }
 
   function addBlock(type: string) { setBlocks(prev => [...prev, { id: crypto.randomUUID(), type, data: {} }]); }
