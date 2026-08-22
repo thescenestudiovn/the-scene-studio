@@ -12,6 +12,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+type CollectionRow = { id: string; title: string; slug: string; destination_name: string | null; cover_path: string | null };
+type DestinationRow = { id: string; name: string; slug: string; country: string };
+
 export default async function GalleryPage() {
   const db = getDB();
   const result = await db.prepare(`
@@ -20,16 +23,16 @@ export default async function GalleryPage() {
     FROM collections c
     LEFT JOIN destinations d ON d.id = c.destination_id
     ORDER BY c.created_at DESC
-  `).all();
+  `).all<CollectionRow>();
 
   const destinations = await db.prepare(`
     SELECT id, name, slug, country
     FROM destinations
     ORDER BY name ASC
-  `).all();
+  `).all<DestinationRow>();
 
-  const collections = (result.results ?? []) as Array<Record<string, unknown>>;
-  const destinationList = (destinations.results ?? []) as Array<Record<string, unknown>>;
+  const collections = result.results ?? [];
+  const destinationList = destinations.results ?? [];
 
   return (
     <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
@@ -37,57 +40,32 @@ export default async function GalleryPage() {
       <section className="px-6 pb-20 pt-40 md:px-10 md:pt-52">
         <div className="mx-auto max-w-7xl">
           <p className="font-sans text-xs tracking-[0.2em] uppercase">Gallery</p>
-          <h1 className="mt-8 max-w-4xl font-serif text-6xl leading-[0.9] tracking-[-0.04em] md:text-8xl">
-            Collections
-          </h1>
-          <p className="mt-8 max-w-xl font-sans text-sm leading-7 text-[#77736c]">
-            A collection of celebrations photographed by The Scene Studio.
-          </p>
-
+          <h1 className="mt-8 max-w-4xl font-serif text-6xl leading-[0.9] tracking-[-0.04em] md:text-8xl">Collections</h1>
+          <p className="mt-8 max-w-xl font-sans text-sm leading-7 text-[#77736c]">A collection of celebrations photographed by The Scene Studio.</p>
           <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-3 border-t border-[#d8d3ca] pt-6 font-sans text-xs tracking-[0.15em] uppercase">
             <Link href="/gallery" className="transition-opacity hover:opacity-50">All</Link>
-            {destinationList.map((destination) => (
-              <Link
-                key={String(destination.id)}
-                href={`/destinations/${String(destination.country)}/${String(destination.slug)}`}
-                className="transition-opacity hover:opacity-50"
-              >
-                {String(destination.name)}
-              </Link>
+            {destinationList.map(destination => (
+              <Link key={destination.id} href={`/destinations/${destination.country}/${destination.slug}`} className="transition-opacity hover:opacity-50">{destination.name}</Link>
             ))}
           </nav>
         </div>
       </section>
-
       <section className="px-6 pb-32 md:px-10 md:pb-48">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-8 gap-y-16 md:grid-cols-2 lg:grid-cols-3">
-          {collections.map((collection) => {
-            const cover = collection.cover_path ? mediaUrl(String(collection.cover_path)) : null;
+          {collections.map(collection => {
+            const cover = collection.cover_path ? mediaUrl(collection.cover_path) : null;
             return (
-              <Link key={String(collection.id)} href={`/gallery/${String(collection.slug)}`} className="group block">
-                <div className="relative aspect-[4/5] overflow-hidden bg-[#ddd8cf]">
-                  {cover && (
-                    <img src={cover} alt={String(collection.title)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
-                  )}
-                </div>
+              <Link key={collection.id} href={`/gallery/${collection.slug}`} className="group block">
+                <div className="relative aspect-[4/5] overflow-hidden bg-[#ddd8cf]">{cover && <img src={cover} alt={collection.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />}</div>
                 <div className="mt-5 flex items-start justify-between gap-6">
-                  <div>
-                    <h2 className="font-serif text-2xl tracking-[-0.02em]">{String(collection.title)}</h2>
-                    {collection.destination_name && (
-                      <p className="mt-2 font-sans text-xs tracking-[0.15em] uppercase text-[#77736c]">{String(collection.destination_name)}</p>
-                    )}
-                  </div>
+                  <div><h2 className="font-serif text-2xl tracking-[-0.02em]">{collection.title}</h2>{collection.destination_name && <p className="mt-2 font-sans text-xs tracking-[0.15em] uppercase text-[#77736c]">{collection.destination_name}</p>}</div>
                   <span className="font-sans text-xs uppercase">→</span>
                 </div>
               </Link>
             );
           })}
         </div>
-        {collections.length === 0 && (
-          <div className="mx-auto max-w-7xl border-t border-[#d8d3ca] pt-10 font-sans text-sm text-[#77736c]">
-            No collections published yet.
-          </div>
-        )}
+        {collections.length === 0 && <div className="mx-auto max-w-7xl border-t border-[#d8d3ca] pt-10 font-sans text-sm text-[#77736c]">No collections published yet.</div>}
       </section>
       <Footer />
     </main>
