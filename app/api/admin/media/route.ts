@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDB } from "../../../../lib/db";
 
 export async function GET(request: Request) {
@@ -49,8 +50,24 @@ export async function DELETE(request: Request) {
   try {
     const { id } = (await request.json()) as { id?: string };
     if (!id) return Response.json({ success: false, error: "id is required" }, { status: 400 });
-    const db = getDB(); const result = await db.prepare("DELETE FROM media WHERE id=?").bind(id).run();
-    if (!result.meta.changes) return Response.json({ success: false, error: "Media not found" }, { status: 404 });
+    const db = getDB();
+    const media = await db.prepare("SELECT id, path FROM media WHERE id=?").bind(id).first<{ id: string; path: string }>();
+    if (!media) return Response.json({ success: false, error: "Media not found" }, { status: 404 });
+
+    try {
+      const { env } = await getCloudflareContext({ async: true });
+      const bucket = (env as unknown as { MEDIA_BUCKET?: R2Bucket }).MEDIA_BUCKET;
+      if (bucket && media.path) {
+        const parsed = new URL(media.path);
+        const key = parsed.pathname.replace(/^\//, "");
+        if (key) await bucket.delete(key);
+      }
+    } catch (storageError) {
+      console.error("Failed to delete R2 object; continuing with DB deletion:", storageError);
+    }
+
+    await db.prepare("DELETE FROM media WHERE id=?").bind(id).run();
+    await db.prepare("UPDATE collections SET cover_media_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE cover_media_id=?").bind(id).run();
     return Response.json({ success: true, deleted: id });
   } catch (error) {
     console.error("DELETE /api/admin/media error:", error);
