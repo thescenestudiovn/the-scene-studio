@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 interface Destination { id: string; name: string; slug: string; country: string; country_name: string; region?: string | null; }
+interface DestinationsResponse { destinations?: Destination[] }
 
 export default function AdminDestinationsPage() {
   const [items, setItems] = useState<Destination[]>([]);
@@ -12,7 +13,7 @@ export default function AdminDestinationsPage() {
   async function load() {
     setLoading(true);
     const response = await fetch("/api/admin/destinations", { cache: "no-store" });
-    const data = await response.json();
+    const data: DestinationsResponse = await response.json();
     setItems(data.destinations ?? []);
     setLoading(false);
   }
