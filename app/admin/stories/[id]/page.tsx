@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { mediaUrl } from "../../../lib/media";
+import { mediaUrl } from "../../../../lib/media";
 
 type Media = {
   id: string;
