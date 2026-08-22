@@ -1,99 +1,140 @@
 <?php
-// The Scene Studio — NAS upload endpoint
-// Deploy this file under the TerraMaster Web Server document root.
-// Example: /mnt/md0/public/WEB/_upload/index.php
-// Expose it only through the Cloudflare Tunnel; do not publish the NAS port directly.
+// The Scene Studio — NAS media gateway
+// Deploy as /mnt/md0/public/WEB/_upload/index.php
+// Public files are stored under /mnt/md0/public/WEB/collections/...
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: https://thescenestudio.asia');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Methods: POST, DELETE, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-    exit;
+$tokenFile = '/mnt/md0/.scene-upload-token';
+$expectedToken = '';
+
+if (is_readable($tokenFile)) {
+    $expectedToken = trim((string)file_get_contents($tokenFile));
 }
 
-$tokenFile = '/mnt/md0/.scene-upload-token';
-$expectedToken = trim((string)(getenv('NAS_UPLOAD_TOKEN') ?: (is_readable($tokenFile) ? file_get_contents($tokenFile) : '')));
+if ($expectedToken === '') {
+    $expectedToken = trim((string)(getenv('NAS_UPLOAD_TOKEN') ?: ''));
+}
+
 $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 $token = '';
 if (preg_match('/^Bearer\s+(.+)$/i', $authorization, $m)) {
     $token = trim($m[1]);
 }
 
-if (!$expectedToken || !$token || !hash_equals($expectedToken, $token)) {
+if ($expectedToken === '' || $token === '' || !hash_equals($expectedToken, $token)) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     exit;
 }
 
 $root = '/mnt/md0/public/WEB';
-$requestedPath = trim((string)($_POST['path'] ?? ''));
 
-if ($requestedPath === '' || str_contains($requestedPath, "\0")) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'path is required']);
+function fail_response(int $status, string $message): never {
+    http_response_code($status);
+    echo json_encode(['success' => false, 'error' => $message]);
     exit;
 }
 
-$requestedPath = str_replace('\\', '/', $requestedPath);
-$requestedPath = ltrim($requestedPath, '/');
+function safe_relative_path(string $input): string {
+    $input = str_replace('\\', '/', trim($input));
+    $input = ltrim($input, '/');
 
-$parts = array_values(array_filter(explode('/', $requestedPath), fn($part) => $part !== '' && $part !== '.' && $part !== '..'));
-if (!$parts || $parts[0] !== 'collections') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Only collections/ paths are allowed']);
+    $parts = [];
+    foreach (explode('/', $input) as $part) {
+        $part = trim($part);
+        if ($part === '' || $part === '.' || $part === '..') {
+            continue;
+        }
+        if (!preg_match('/^[a-zA-Z0-9._-]+$/', $part)) {
+            fail_response(400, 'Invalid path segment');
+        }
+        $parts[] = $part;
+    }
+
+    return implode('/', $parts);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $requestedPath = safe_relative_path((string)($_POST['path'] ?? ''));
+
+    if ($requestedPath === '' || !str_starts_with($requestedPath, 'collections/')) {
+        fail_response(400, 'Only collections/ paths are allowed');
+    }
+
+    if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
+        fail_response(400, 'file is required');
+    }
+
+    $file = $_FILES['file'];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        fail_response(400, 'Upload failed with PHP error code ' . (int)$file['error']);
+    }
+
+    if (!is_uploaded_file($file['tmp_name'])) {
+        fail_response(400, 'Invalid uploaded file');
+    }
+
+    $mime = (string)($file['type'] ?? '');
+    $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+    if (!in_array($mime, $allowed, true)) {
+        $detected = function_exists('mime_content_type') ? mime_content_type($file['tmp_name']) : '';
+        if (!in_array($detected, $allowed, true)) {
+            fail_response(400, 'Unsupported image type');
+        }
+    }
+
+    $destination = $root . '/' . $requestedPath;
+    $directory = dirname($destination);
+
+    if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+        fail_response(500, 'Failed to create destination directory');
+    }
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        fail_response(500, 'Failed to move uploaded file to NAS storage');
+    }
+
+    @chmod($destination, 0644);
+
+    $size = filesize($destination);
+    echo json_encode([
+        'success' => true,
+        'path' => '/' . $requestedPath,
+        'size' => $size === false ? null : $size,
+    ]);
     exit;
 }
 
-$relativePath = implode('/', $parts);
-$destination = $root . '/' . $relativePath;
-$directory = dirname($destination);
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $raw = file_get_contents('php://input');
+    $body = json_decode($raw ?: '{}', true);
+    $requestedPath = safe_relative_path((string)($body['path'] ?? ''));
 
-if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Failed to create destination directory']);
+    if ($requestedPath === '' || !str_starts_with($requestedPath, 'collections/')) {
+        fail_response(400, 'Only collections/ paths are allowed');
+    }
+
+    $target = $root . '/' . $requestedPath;
+    if (!is_file($target)) {
+        fail_response(404, 'File not found');
+    }
+
+    if (!unlink($target)) {
+        fail_response(500, 'Failed to delete file');
+    }
+
+    echo json_encode(['success' => true, 'deleted' => '/' . $requestedPath]);
     exit;
 }
 
-if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'file is required']);
-    exit;
-}
-
-$file = $_FILES['file'];
-if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Upload failed with PHP error code ' . (int)$file['error']]);
-    exit;
-}
-
-if (!is_uploaded_file($file['tmp_name'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid uploaded file']);
-    exit;
-}
-
-if (!move_uploaded_file($file['tmp_name'], $destination)) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Failed to move uploaded file to NAS storage']);
-    exit;
-}
-
-@chmod($destination, 0644);
-
-$size = filesize($destination);
-
-echo json_encode([
-    'success' => true,
-    'path' => '/' . $relativePath,
-    'size' => $size === false ? null : $size,
-]);
+http_response_code(405);
+echo json_encode(['success' => false, 'error' => 'Method not allowed']);
