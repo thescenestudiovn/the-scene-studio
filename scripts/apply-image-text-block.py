@@ -24,5 +24,12 @@ if needle not in text:
     raise SystemExit('Could not find story block render anchor')
 text = text.replace(needle, replacement, 1)
 
+# Limit media attached to an Image with Text block to the selected layout's maximum.
+needle = 'const existing=new Set(block.media.map(item=>item.id));const ids=selectedMedia.filter(mediaId=>!existing.has(mediaId));'
+replacement = 'const existing=new Set(block.media.map(item=>item.id));let ids=selectedMedia.filter(mediaId=>!existing.has(mediaId));if(block.type==="image-text"){const maxByLayout:{[key:string]:number}={overlay:1,"2-columns":2,"3-columns":3,"4-columns":4,caption:1,"small-caption":1,"image-text":1,"text-image":1};let layout="image-text";try{const parsed=typeof block.data==="string"?JSON.parse(block.data):block.data;layout=typeof parsed?.layout==="string"?parsed.layout:"image-text";}catch{}const max=maxByLayout[layout]??1;ids=ids.slice(0,Math.max(0,max-block.media.length));}'
+if needle not in text:
+    raise SystemExit('Could not find media attach anchor')
+text = text.replace(needle, replacement, 1)
+
 path.write_text(text)
 print(f'Updated {path}')
