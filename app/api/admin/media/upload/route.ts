@@ -31,7 +31,8 @@ export async function POST(request: Request) {
   const uploadPath = cleanRelativePath(
     request.headers.get("x-upload-path") || "gallery"
   );
-  const contentType = request.headers.get("content-type") || "application/octet-stream";
+  const contentType =
+    request.headers.get("content-type") || "application/octet-stream";
   const width = Number(request.headers.get("x-width") || 0) || null;
   const height = Number(request.headers.get("x-height") || 0) || null;
   const alt = request.headers.get("x-alt") || null;
@@ -46,7 +47,10 @@ export async function POST(request: Request) {
 
   if (!/^image\/(jpeg|png|webp|avif)$/i.test(contentType)) {
     return Response.json(
-      { success: false, error: "Only JPEG, PNG, WebP and AVIF images are supported" },
+      {
+        success: false,
+        error: "Only JPEG, PNG, WebP and AVIF images are supported",
+      },
       { status: 400 }
     );
   }
@@ -63,13 +67,19 @@ export async function POST(request: Request) {
   nasUrl.searchParams.set("filename", filename);
 
   try {
+    const headers = new Headers({
+      Authorization: `Bearer ${NAS_UPLOAD_TOKEN}`,
+      "Content-Type": contentType,
+    });
+
+    const contentLength = request.headers.get("content-length");
+    if (contentLength) {
+      headers.set("Content-Length", contentLength);
+    }
+
     const response = await fetch(nasUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${NAS_UPLOAD_TOKEN}`,
-        "Content-Type": contentType,
-        "Content-Length": request.headers.get("content-length") || "",
-      },
+      headers,
       body: request.body,
     });
 
