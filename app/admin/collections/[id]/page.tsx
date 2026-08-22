@@ -38,10 +38,16 @@ export default function AdminCollectionEditor() {
   async function save() {
     if (!collection) return;
     setSaving(true); setMessage("");
-    const response = await fetch("/api/admin/collections", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(collection) });
-    const data = (await response.json()) as { success: boolean; error?: string };
-    setSaving(false); setMessage(response.ok && data.success ? "Saved." : data.error || "Could not save.");
-    if (response.ok && data.success) await load();
+    try {
+      const collectionResponse = await fetch("/api/admin/collections", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(collection) });
+      const collectionData = (await collectionResponse.json()) as { success: boolean; error?: string };
+      if (!collectionResponse.ok || !collectionData.success) throw new Error(collectionData.error || "Could not save collection.");
+      const orderResponse = await fetch("/api/admin/media", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: media.map((item, index) => ({ id: item.id, sort_order: index })) }) });
+      const orderData = (await orderResponse.json()) as { success: boolean; error?: string };
+      if (!orderResponse.ok || !orderData.success) throw new Error(orderData.error || "Could not save photo order.");
+      setMessage("Saved."); await load();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save."); }
+    finally { setSaving(false); }
   }
 
   async function upload(files: FileList | null) {
@@ -59,7 +65,27 @@ export default function AdminCollectionEditor() {
         if (!response.ok || !data.success) throw new Error(data.error || `Failed to upload ${file.name}`);
       }
       setMessage("Images uploaded to R2."); await load();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Upload failed"); } finally { setUploading(false); if (inputRef.current) inputRef.current.value = ""; }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Upload failed"); }
+    finally { setUploading(false); if (inputRef.current) inputRef.current.value = ""; }
+  }
+
+  function toggleSelected(mediaId: string) {
+    setSelected(current => { const next = new Set(current); next.has(mediaId) ? next.delete(mediaId) : next.add(mediaId); return next; });
+  }
+  function selectAll() { setSelected(selected.size === media.length ? new Set() : new Set(media.map(item => item.id))); }
+
+  function moveGroup(dragged: string, target: string) {
+    if (dragged === target) return;
+    setMedia(current => {
+      const movingIds = selected.has(dragged) && selected.size > 1 ? new Set(selected) : new Set([dragged]);
+      const moving = current.filter(item => movingIds.has(item.id));
+      if (!moving.length) return current;
+      const remaining = current.filter(item => !movingIds.has(item.id));
+      const targetIndex = remaining.findIndex(item => item.id === target);
+      if (targetIndex < 0) return current;
+      remaining.splice(targetIndex, 0, ...moving);
+      return remaining;
+    });
   }
 
   async function setCover(mediaId: string) {
@@ -67,28 +93,6 @@ export default function AdminCollectionEditor() {
     const updated = { ...collection, cover_media_id: mediaId }; setCollection(updated);
     await fetch("/api/admin/collections", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updated) });
     setMessage("Cover updated.");
-  }
-
-  function toggleSelected(mediaId: string) {
-    setSelected(current => { const next = new Set(current); if (next.has(mediaId)) next.delete(mediaId); else next.add(mediaId); return next; });
-  }
-
-  function movePhoto(dragged: string, target: string) {
-    if (dragged === target) return;
-    setMedia(current => {
-      const from = current.findIndex(item => item.id === dragged); const to = current.findIndex(item => item.id === target);
-      if (from < 0 || to < 0) return current;
-      const next = [...current]; const [item] = next.splice(from, 1); next.splice(to, 0, item); return next;
-    });
-  }
-
-  async function saveOrder() {
-    setSaving(true); setMessage("");
-    try {
-      const response = await fetch("/api/admin/media", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: media.map((item, index) => ({ id: item.id, sort_order: index })) }) });
-      const data = (await response.json()) as { success: boolean; error?: string };
-      setMessage(response.ok && data.success ? "Photo order saved." : data.error || "Could not save photo order.");
-    } finally { setSaving(false); }
   }
 
   async function deleteSelected() {
@@ -103,14 +107,33 @@ export default function AdminCollectionEditor() {
       setMedia(current => current.filter(item => !selected.has(item.id)));
       if (collection && selected.has(collection.cover_media_id ?? "")) setCollection({ ...collection, cover_media_id: null });
       setSelected(new Set()); setMessage(`${ids.length} photo${ids.length > 1 ? "s" : ""} deleted.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not delete photos."); } finally { setDeleting(false); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not delete photos."); }
+    finally { setDeleting(false); }
   }
 
   if (!collection) return <main className="p-10">Loading collection…</main>;
 
-  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-10 text-[#171717] md:px-10"><div className="mx-auto max-w-7xl"><Link href="/admin/gallery" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Gallery</Link><div className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Collection Editor</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.04em]">{collection.title}</h1><p className="mt-2 text-sm text-[#77736c]">/gallery/{collection.slug}</p></div><div className="flex gap-3"><a href={`/gallery/${collection.slug}`} target="_blank" rel="noreferrer" className="border border-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em]">View Gallery</a><button onClick={save} disabled={saving} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{saving ? "Saving…" : "Save"}</button></div></div>
+  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-10 text-[#171717] md:px-10"><div className="mx-auto max-w-7xl">
+    <Link href="/admin/gallery" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Gallery</Link>
+    <div className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Collection Editor</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.04em]">{collection.title}</h1><p className="mt-2 text-sm text-[#77736c]">/gallery/{collection.slug}</p></div><div className="flex gap-3"><a href={`/gallery/${collection.slug}`} target="_blank" rel="noreferrer" className="border border-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em]">View Gallery</a><button onClick={save} disabled={saving} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{saving ? "Saving…" : "Save"}</button></div></div>
 
-<section className="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]"><div className="border border-[#d8d3ca] bg-white p-6"><div className="grid gap-4"><label className="text-xs uppercase tracking-[0.12em]">Title<input className="mt-2 w-full border p-3" value={collection.title} onChange={e => setCollection({ ...collection, title: e.target.value })} /></label><label className="text-xs uppercase tracking-[0.12em]">Slug<input className="mt-2 w-full border p-3" value={collection.slug} onChange={e => setCollection({ ...collection, slug: e.target.value })} /></label><label className="text-xs uppercase tracking-[0.12em]">Client<input className="mt-2 w-full border p-3" value={collection.client_name ?? ""} onChange={e => setCollection({ ...collection, client_name: e.target.value })} /></label><label className="text-xs uppercase tracking-[0.12em]">Destination<select className="mt-2 w-full border p-3" value={collection.destination_id ?? ""} onChange={e => setCollection({ ...collection, destination_id: e.target.value || null })}><option value="">None</option>{destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><label className="text-xs uppercase tracking-[0.12em]">Event date<input type="date" className="mt-2 w-full border p-3" value={collection.event_date ?? ""} onChange={e => setCollection({ ...collection, event_date: e.target.value })} /></label><label className="text-xs uppercase tracking-[0.12em]">Description<textarea className="mt-2 min-h-28 w-full border p-3" value={collection.description ?? ""} onChange={e => setCollection({ ...collection, description: e.target.value })} /></label><label className="text-xs uppercase tracking-[0.12em]">SEO title<input className="mt-2 w-full border p-3" value={collection.seo_title ?? ""} onChange={e => setCollection({ ...collection, seo_title: e.target.value })} /></label><label className="text-xs uppercase tracking-[0.12em]">SEO description<textarea className="mt-2 min-h-20 w-full border p-3" value={collection.seo_description ?? ""} onChange={e => setCollection({ ...collection, seo_description: e.target.value })} /></label><label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={collection.published === 1} onChange={e => setCollection({ ...collection, published: e.target.checked ? 1 : 0 })} /> Published</label></div></div>
+    <section className="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]"><div className="border border-[#d8d3ca] bg-white p-6"><div className="grid gap-4">
+      <label className="text-xs uppercase tracking-[0.12em]">Title<input className="mt-2 w-full border p-3" value={collection.title} onChange={e => setCollection({ ...collection, title: e.target.value })} /></label>
+      <label className="text-xs uppercase tracking-[0.12em]">Slug<input className="mt-2 w-full border p-3" value={collection.slug} onChange={e => setCollection({ ...collection, slug: e.target.value })} /></label>
+      <label className="text-xs uppercase tracking-[0.12em]">Client<input className="mt-2 w-full border p-3" value={collection.client_name ?? ""} onChange={e => setCollection({ ...collection, client_name: e.target.value })} /></label>
+      <label className="text-xs uppercase tracking-[0.12em]">Destination<select className="mt-2 w-full border p-3" value={collection.destination_id ?? ""} onChange={e => setCollection({ ...collection, destination_id: e.target.value || null })}><option value="">None</option>{destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+      <label className="text-xs uppercase tracking-[0.12em]">Event date<input type="date" className="mt-2 w-full border p-3" value={collection.event_date ?? ""} onChange={e => setCollection({ ...collection, event_date: e.target.value })} /></label>
+      <label className="text-xs uppercase tracking-[0.12em]">Description<textarea className="mt-2 min-h-28 w-full border p-3" value={collection.description ?? ""} onChange={e => setCollection({ ...collection, description: e.target.value })} /></label>
+      <label className="text-xs uppercase tracking-[0.12em]">SEO title<input className="mt-2 w-full border p-3" value={collection.seo_title ?? ""} onChange={e => setCollection({ ...collection, seo_title: e.target.value })} /></label>
+      <label className="text-xs uppercase tracking-[0.12em]">SEO description<textarea className="mt-2 min-h-20 w-full border p-3" value={collection.seo_description ?? ""} onChange={e => setCollection({ ...collection, seo_description: e.target.value })} /></label>
+      <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={collection.published === 1} onChange={e => setCollection({ ...collection, published: e.target.checked ? 1 : 0 })} /> Published</label>
+    </div></div>
 
-<div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Drag photos to change their order. Select multiple photos to delete.</p></div><div className="flex flex-wrap gap-2"><button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={saveOrder} disabled={saving || media.length < 2} className="border border-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em]">{saving ? "Saving order…" : "Save Order"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div><div className="grid grid-cols-2 gap-3 md:grid-cols-3">{media.map((item, index) => <div key={item.id} draggable onDragStart={() => setDraggedId(item.id)} onDragOver={e => e.preventDefault()} onDrop={() => { if (draggedId) movePhoto(draggedId, item.id); setDraggedId(null); }} className={`group relative cursor-grab overflow-hidden bg-[#ddd8cf] ${selected.has(item.id) ? "ring-2 ring-red-600" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}><img src={item.path} alt={item.alt ?? item.filename ?? collection.title} className="aspect-[4/5] h-full w-full object-cover" /><div className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center bg-white/90 text-[11px] font-medium">{index + 1}</div><button type="button" onClick={() => toggleSelected(item.id)} className={`absolute right-2 top-2 h-7 w-7 border text-xs ${selected.has(item.id) ? "border-red-600 bg-red-600 text-white" : "border-white bg-white/90 text-[#171717]"}`}>{selected.has(item.id) ? "✓" : ""}</button><div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2"><button onClick={() => setCover(item.id)} className="text-[10px] uppercase tracking-[0.12em] text-white">{collection.cover_media_id === item.id ? "Cover" : "Set cover"}</button><span className="text-[10px] uppercase tracking-[0.12em] text-white/80">Drag</span></div></div>)}</div>{media.length === 0 && <div className="border border-dashed border-[#c9c4ba] p-16 text-center text-sm text-[#77736c]">No photos yet.</div>}</div></section>{message && <p className="mt-6 text-sm text-[#77736c]">{message}</p>}</div></main>;
+    <div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Select multiple photos, then drag any selected photo to move the whole group.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">{selected.size === media.length && media.length ? "Deselect All" : "Select All"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div>
+      <div className="columns-1 gap-3 sm:columns-2 lg:columns-3">{media.map((item, index) => <div key={item.id} draggable onDragStart={() => setDraggedId(item.id)} onDragOver={e => e.preventDefault()} onDrop={() => { if (draggedId) moveGroup(draggedId, item.id); setDraggedId(null); }} className={`group relative mb-3 break-inside-avoid cursor-grab overflow-hidden bg-[#e8e5df] ${selected.has(item.id) ? "ring-2 ring-red-600" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}>
+        <img src={item.path} alt={item.alt ?? item.filename ?? collection.title} className="block h-auto w-full object-contain" />
+        <div className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center bg-white/90 text-[11px] font-medium">{index + 1}</div><button type="button" onClick={() => toggleSelected(item.id)} className={`absolute right-2 top-2 h-7 w-7 border text-xs ${selected.has(item.id) ? "border-red-600 bg-red-600 text-white" : "border-white bg-white/90 text-[#171717]"}`}>{selected.has(item.id) ? "✓" : ""}</button>
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2"><button onClick={() => setCover(item.id)} className="text-[10px] uppercase tracking-[0.12em] text-white">{collection.cover_media_id === item.id ? "Cover" : "Set cover"}</button><span className="text-[10px] uppercase tracking-[0.12em] text-white/80">Drag</span></div>
+      </div>)}</div>{media.length === 0 && <div className="border border-dashed border-[#c9c4ba] p-16 text-center text-sm text-[#77736c]">No photos yet.</div>}
+    </div></section>{message && <p className="mt-6 text-sm text-[#77736c]">{message}</p>}</div></main>;
 }
