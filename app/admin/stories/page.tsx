@@ -3,80 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type Story = {
-  id: string;
-  slug: string;
-  title: string;
-  location: string | null;
-  date: string | null;
-  category: string | null;
-  published: number;
-  destination_name: string | null;
-};
-
-type StoriesResponse = {
-  success: boolean;
-  stories: Story[];
-};
-
-export default function AdminStoriesPage() {
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadStories() {
-      try {
-        const res = await fetch("/api/admin/stories", { cache: "no-store" });
-        const data = (await res.json()) as StoriesResponse;
-        if (data.success) setStories(data.stories);
-      } catch (error) {
-        console.error("Failed to load stories:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadStories();
-  }, []);
-
-  return (
-    <main style={{ maxWidth: 1400, margin: "0 auto", padding: "48px 28px 80px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, marginBottom: 36 }}>
-        <div>
-          <p style={eyebrow}>Content</p>
-          <h1 style={{ margin: 0, fontSize: 36, fontWeight: 500, letterSpacing: -1 }}>Stories</h1>
-          <p style={{ margin: "10px 0 0", color: "#777" }}>Manage your published stories and galleries.</p>
-        </div>
-        <Link href="/" target="_blank" style={secondaryButton}>View website ↗</Link>
-      </div>
-
-      {loading ? (
-        <div style={emptyState}>Loading stories...</div>
-      ) : stories.length === 0 ? (
-        <div style={emptyState}>No stories found.</div>
-      ) : (
-        <div style={{ border: "1px solid #e5e5e5", background: "#fff" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 2fr) 1fr 1fr 110px 100px", gap: 16, padding: "13px 18px", borderBottom: "1px solid #e5e5e5", color: "#888", fontSize: 11, letterSpacing: 1, textTransform: "uppercase" }}>
-            <span>Story</span><span>Destination</span><span>Date</span><span>Status</span><span />
-          </div>
-          {stories.map((story) => (
-            <div key={story.id} style={{ display: "grid", gridTemplateColumns: "minmax(280px, 2fr) 1fr 1fr 110px 100px", gap: 16, alignItems: "center", padding: "18px", borderBottom: "1px solid #eee" }}>
-              <div>
-                <div style={{ fontSize: 16, marginBottom: 5 }}>{story.title}</div>
-                <div style={{ fontSize: 12, color: "#999" }}>{story.category || "Uncategorised"} · /stories/{story.slug}</div>
-              </div>
-              <span style={{ fontSize: 13, color: "#666" }}>{story.destination_name || story.location || "—"}</span>
-              <span style={{ fontSize: 13, color: "#666" }}>{story.date || "—"}</span>
-              <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.8, color: story.published ? "#333" : "#999" }}>{story.published ? "Published" : "Draft"}</span>
-              <Link href={`/admin/stories/${story.id}`} style={editButton}>Edit</Link>
-            </div>
-          ))}
-        </div>
-      )}
-    </main>
-  );
-}
-
-const eyebrow: React.CSSProperties = { margin: "0 0 8px", color: "#999", fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase" };
-const secondaryButton: React.CSSProperties = { display: "inline-block", padding: "10px 14px", border: "1px solid #ddd", color: "#333", textDecoration: "none", fontSize: 13, background: "#fff" };
-const editButton: React.CSSProperties = { display: "inline-block", textAlign: "center", padding: "8px 12px", border: "1px solid #ddd", color: "#222", textDecoration: "none", fontSize: 12, background: "#fff" };
-const emptyState: React.CSSProperties = { padding: 60, border: "1px dashed #ddd", background: "#fff", color: "#888", textAlign: "center" };
+type Story={id:string;slug:string;title:string;location:string|null;date:string|null;category:string|null;published:number;destination_name:string|null};
+type Destination={id:string;name:string};
+export default function AdminStoriesPage(){const[stories,setStories]=useState<Story[]>([]);const[dests,setDests]=useState<Destination[]>([]);const[form,setForm]=useState({title:"",slug:"",location:"",date:"",category:"",description:"",destination_id:""});const[message,setMessage]=useState("");
+async function load(){const[a,b]=await Promise.all([fetch("/api/admin/stories",{cache:"no-store"}),fetch("/api/admin/destinations",{cache:"no-store"})]);const sa=(await a.json()) as {stories?:Story[]};const db=(await b.json()) as {destinations?:Destination[]};setStories(sa.stories??[]);setDests(db.destinations??[]);}useEffect(()=>{load();},[]);
+async function create(){if(!form.title||!form.slug)return setMessage("Title and slug are required.");const r=await fetch("/api/admin/stories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,destination_id:form.destination_id||null})});const d=(await r.json()) as {success:boolean;story?:Story;error?:string};if(!r.ok||!d.success)return setMessage(d.error||"Could not create story.");setMessage("Draft story created.");if(d.story)window.location.href=`/admin/stories/${d.story.id}`;}
+return <main className="min-h-screen bg-[#f7f5f0] px-6 py-12 text-[#171717] md:px-10"><div className="mx-auto max-w-7xl"><Link href="/admin" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Admin</Link><div className="mt-8"><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Editorial</p><h1 className="mt-3 font-serif text-5xl">Stories</h1><p className="mt-3 text-sm text-[#77736c]">Long-form, SEO-friendly stories built from reusable blocks. Images can come from any Collection.</p></div><section className="mt-10 border border-[#d8d3ca] bg-white p-6"><h2 className="font-serif text-2xl">New Story</h2><div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><input className="border p-3" placeholder="Title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/><input className="border p-3" placeholder="Slug" value={form.slug} onChange={e=>setForm({...form,slug:e.target.value})}/><input className="border p-3" placeholder="Category" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}/><select className="border p-3" value={form.destination_id} onChange={e=>setForm({...form,destination_id:e.target.value})}><option value="">Destination</option>{dests.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></div><div className="mt-3 grid gap-3 md:grid-cols-2"><input className="border p-3" placeholder="Location" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/><input className="border p-3" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div><textarea className="mt-3 min-h-24 w-full border p-3" placeholder="Story description / SEO intro" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/><button onClick={create} className="mt-4 bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">Create draft</button>{message&&<p className="mt-4 text-sm text-[#77736c]">{message}</p>}</section><section className="mt-10 border border-[#d8d3ca] bg-white">{stories.map(story=><div key={story.id} className="grid gap-4 border-b border-[#eee] p-5 md:grid-cols-[2fr_1fr_1fr_110px_80px] md:items-center"><div><h2 className="font-serif text-2xl">{story.title}</h2><p className="mt-1 text-xs text-[#77736c]">{story.category||"Uncategorised"} · /stories/{story.slug}</p></div><span className="text-sm text-[#77736c]">{story.destination_name||story.location||"—"}</span><span className="text-sm text-[#77736c]">{story.date||"—"}</span><span className="text-[10px] uppercase tracking-[0.12em]">{story.published?"Published":"Draft"}</span><Link href={`/admin/stories/${story.id}`} className="border px-3 py-2 text-center text-xs">Edit</Link></div>)}{stories.length===0&&<p className="p-10 text-sm text-[#77736c]">No stories yet.</p>}</section></div></main>}
