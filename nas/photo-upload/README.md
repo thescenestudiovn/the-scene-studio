@@ -1,68 +1,68 @@
-# NAS Photo Upload Service
+# NAS photo upload
 
-A tiny streaming HTTP upload service for the TerraMaster NAS.
+This version does **not** use `cloudflared`, a custom init script, Docker, or a daemon on the NAS.
 
-The Next.js app sends the image stream to this service. The service writes directly to the NAS filesystem and returns the public media path. It does not buffer the whole image in memory.
+It uses the TerraMaster Web Server that is already serving `/mnt/md0/public/WEB`.
 
-## Environment
+## NAS path
+
+The discovered upload directory is:
 
 ```text
-HOST=0.0.0.0
-PORT=8787
-UPLOAD_ROOT=/mnt/md0/media
-AUTH_TOKEN=<long-random-secret>
+/mnt/md0/public/WEB/_upload
 ```
 
-`UPLOAD_ROOT` must be the filesystem directory that is already exposed by `media.thescenestudio.asia`.
+Deploy `upload.php` to:
+
+```text
+/mnt/md0/public/WEB/_upload/upload.php
+```
+
+The uploaded images will be written below that directory, for example:
+
+```text
+/mnt/md0/public/WEB/_upload/gallery/example.jpg
+```
+
+and should therefore be publicly reachable as:
+
+```text
+https://media.thescenestudio.asia/_upload/gallery/example.jpg
+```
+
+## One-time NAS setup
+
+Create a token file outside the public web directory:
+
+```sh
+sudo sh -c 'umask 077; printf "%s" "REPLACE_WITH_LONG_RANDOM_TOKEN" > /mnt/md0/public/.scene_upload_token'
+```
+
+Then copy `upload.php` into `/mnt/md0/public/WEB/_upload/`.
+
+The token is never stored in the web directory.
 
 ## Endpoint
 
 ```text
-POST /upload?path=gallery&filename=image.jpg
-Authorization: Bearer <AUTH_TOKEN>
+POST https://media.thescenestudio.asia/_upload/upload.php?path=gallery&filename=image.jpg
+Authorization: Bearer <same-token>
 Content-Type: image/jpeg
 ```
 
-The request body is the raw image bytes.
-
-Successful response:
-
-```json
-{
-  "ok": true,
-  "path": "/gallery/image.jpg",
-  "filename": "image.jpg"
-}
-```
-
-## Docker
-
-Build the ARM64-compatible image on the NAS/container host:
-
-```sh
-docker build -t scene-photo-upload /path/to/nas/photo-upload
-```
-
-Run it with the media directory mounted:
-
-```sh
-docker run -d \
-  --name scene-photo-upload \
-  --restart unless-stopped \
-  -p 8787:8787 \
-  -e AUTH_TOKEN='<long-random-secret>' \
-  -e UPLOAD_ROOT=/mnt/md0/media \
-  -v /mnt/md0/media:/mnt/md0/media \
-  scene-photo-upload
-```
-
-Only the private network path from the Next.js server to the NAS upload service should be allowed. Do not expose port 8787 publicly.
+The request body is the raw image stream. The PHP endpoint writes it directly to the NAS without loading the entire image into memory.
 
 ## Next.js environment
 
-Set these on the Next.js/Cloudflare deployment:
+Set these deployment variables:
 
 ```text
-NAS_UPLOAD_URL=http://<private-nas-address>:8787/upload
-NAS_UPLOAD_TOKEN=<same-secret-as-AUTH_TOKEN>
+NAS_UPLOAD_URL=https://media.thescenestudio.asia/_upload/upload.php
+NAS_UPLOAD_TOKEN=<same-token-as-/mnt/md0/public/.scene_upload_token>
 ```
+
+No Cloudflare Tunnel is required for the upload path.
+
+## Important
+
+This assumes `media.thescenestudio.asia` already maps to `/mnt/md0/public/WEB`. Verify the public URL with a small test image before enabling production uploads.
