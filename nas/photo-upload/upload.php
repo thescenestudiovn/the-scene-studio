@@ -2,19 +2,27 @@
 /**
  * Minimal NAS upload endpoint for TerraMaster Web Server.
  *
- * Deploy this file to:
+ * Deploy to:
  *   /mnt/md0/public/WEB/_upload/upload.php
  *
- * The Next.js API calls this endpoint server-to-server. Image bytes are
- * streamed directly from php://input to the NAS filesystem.
+ * Token file (recommended):
+ *   /mnt/md0/public/.scene_upload_token
  */
 
 declare(strict_types=1);
 
-$AUTH_TOKEN = getenv('SCENE_UPLOAD_TOKEN') ?: '';
-$UPLOAD_ROOT = getenv('SCENE_UPLOAD_ROOT') ?: '/mnt/md0/public/WEB/_upload';
+$UPLOAD_ROOT = '/mnt/md0/public/WEB/_upload';
+$TOKEN_FILE = '/mnt/md0/public/.scene_upload_token';
+$AUTH_TOKEN = '';
 
-function json_response(int $status, array $payload): never
+if (is_readable($TOKEN_FILE)) {
+    $AUTH_TOKEN = trim((string)file_get_contents($TOKEN_FILE));
+}
+if ($AUTH_TOKEN === '') {
+    $AUTH_TOKEN = trim((string)getenv('SCENE_UPLOAD_TOKEN'));
+}
+
+function json_response(int $status, array $payload): void
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
