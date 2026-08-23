@@ -117,20 +117,36 @@ export async function DELETE(request: Request) {
     if (!id) { try { id = ((await request.json()) as { id?: string }).id ?? null; } catch {} }
     if (!id) return Response.json({ success: false, error: "id is required" }, { status: 400 });
     const db = getDB();
-    const collection = await db.prepare("SELECT id FROM collections WHERE id=?").bind(id).first<{ id: string }>();
+    const collection = await db.prepare("SELECT id,cover_media_id FROM collections WHERE id=?").bind(id).first<{ id: string; cover_media_id: string | null }>();
     if (!collection) return Response.json({ success: false, error: "Collection not found" }, { status: 404 });
+
     const media = await db.prepare("SELECT id,path FROM media WHERE collection_id=?").bind(id).all<{ id: string; path: string }>();
+    const coverMedia = collection.cover_media_id
+      ? await db.prepare("SELECT id,path FROM media WHERE id=?").bind(collection.cover_media_id).first<{ id: string; path: string }>()
+      : null;
+
     try {
       const { env } = await getCloudflareContext({ async: true });
       const bucket = (env as unknown as { MEDIA_BUCKET?: R2Bucket }).MEDIA_BUCKET;
-      if (bucket) for (const item of media.results) { try { const key = new URL(item.path).pathname.replace(/^\//, ""); if (key) await bucket.delete(key); } catch {} }
+      if (bucket) {
+        for (const item of media.results) {
+          try { const key = new URL(item.path).pathname.replace(/^\//, ""); if (key) await bucket.delete(key); } catch {}
+        }
+        if (coverMedia && !media.results.some(item => item.id === coverMedia.id)) {
+          try { const key = new URL(coverMedia.path).pathname.replace(/^\//, ""); if (key) await bucket.delete(key); } catch {}
+        }
+      }
     } catch {}
+
     await db.prepare("DELETE FROM story_block_media WHERE media_id IN (SELECT id FROM media WHERE collection_id=?)").bind(id).run();
     await db.prepare("DELETE FROM media WHERE collection_id=?").bind(id).run();
+    if (coverMedia && !media.results.some(item => item.id === coverMedia.id)) {
+      await db.prepare("DELETE FROM media WHERE id=?").bind(coverMedia.id).run();
+    }
     await db.prepare("DELETE FROM story_gallery_cta WHERE collection_id=?").bind(id).run();
     await db.prepare("DELETE FROM collection_cover_positions WHERE collection_id=?").bind(id).run();
     await db.prepare("DELETE FROM collections WHERE id=?").bind(id).run();
-    return Response.json({ success: true, deleted: id, deleted_media: media.results.length });
+    return Response.json({ success: true, deleted: id, deleted_media: media.results.length, deleted_cover: Boolean(coverMedia && !media.results.some(item => item.id === coverMedia.id)) });
   } catch (error) {
     console.error("DELETE /api/admin/collections error:", error);
     return Response.json({ success: false, error: "Failed to delete collection" }, { status: 500 });
