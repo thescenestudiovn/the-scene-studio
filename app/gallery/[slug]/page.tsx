@@ -13,7 +13,7 @@ type MediaRow = { id: string; path: string; type: string; filename: string | nul
 
 async function getCollection(slug: string) {
   const db = getDB();
-  const collection = await db.prepare(`SELECT c.id,c.title,c.slug,c.client_name,c.event_date,c.description,c.seo_title,c.seo_description,d.name AS destination_name,d.slug AS destination_slug,d.country AS destination_country,COALESCE((SELECT m.path FROM media m WHERE m.id=c.cover_media_id AND m.type='image'),(SELECT m.path FROM media m WHERE m.collection_id=c.id AND m.type='image' ORDER BY m.sort_order ASC,m.created_at ASC LIMIT 1)) AS cover_path FROM collections c LEFT JOIN destinations d ON d.id=c.destination_id WHERE c.slug=? AND c.published=1`).bind(slug).first<CollectionRow>();
+  const collection = await db.prepare(`SELECT c.id,c.title,c.slug,c.client_name,c.event_date,c.description,c.seo_title,c.seo_description,d.name AS destination_name,d.slug AS destination_slug,d.country AS destination_country,(SELECT m.path FROM media m WHERE m.id=c.cover_media_id AND m.type='image') AS cover_path FROM collections c LEFT JOIN destinations d ON d.id=c.destination_id WHERE c.slug=? AND c.published=1`).bind(slug).first<CollectionRow>();
   if (!collection) return null;
 
   let coverPosition = { x: 50, y: 50 };
@@ -43,10 +43,10 @@ export default async function CollectionPage({ params }: Props) {
     <section className="px-6 pb-16 pt-36 md:px-10 md:pt-44">
       <div className="mx-auto max-w-[1180px]">
         <Link href="/gallery" className="text-[10px] uppercase tracking-[0.18em] text-[#77736c] hover:opacity-50">← Gallery</Link>
-        <div className="mt-10 overflow-hidden bg-[#ddd8cf]" style={{ aspectRatio: "16 / 7" }}>
-          {cover && <img src={cover} alt={collection.title} className="h-full w-full object-cover" style={{ objectPosition: `${collection.cover_position_x ?? 50}% ${collection.cover_position_y ?? 50}%` }} />}
-        </div>
-        <div className="mt-10 flex flex-wrap items-end justify-between gap-8">
+        {cover && <div className="mt-10 overflow-hidden bg-[#ddd8cf]" style={{ aspectRatio: "16 / 7" }}>
+          <img src={cover} alt={collection.title} className="h-full w-full object-cover" style={{ objectPosition: `${collection.cover_position_x ?? 50}% ${collection.cover_position_y ?? 50}%` }} />
+        </div>}
+        <div className={`${cover ? "mt-10" : "mt-16"} flex flex-wrap items-end justify-between gap-8`}>
           <div><p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">{collection.destination_name ?? "Collection"}</p><h1 className="mt-4 max-w-5xl font-serif text-6xl leading-[0.9] tracking-[-0.05em] md:text-8xl">{collection.title}</h1></div>
           <div className="max-w-sm text-sm leading-6 text-[#77736c]">{collection.description && <p>{collection.description}</p>}{collection.client_name && <p className="mt-4 text-[10px] uppercase tracking-[0.15em]">{collection.client_name}{collection.event_date ? ` · ${collection.event_date}` : ""}</p>}</div>
         </div>
