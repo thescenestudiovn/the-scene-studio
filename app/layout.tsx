@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import StructuredData from "./components/StructuredData";
+import CoverPositionEditor from "./components/CoverPositionEditor";
 
 const serif = Cormorant_Garamond({
   variable: "--font-serif",
@@ -89,6 +90,7 @@ export default function RootLayout({
     >
       <body>
         <StructuredData />
+        <CoverPositionEditor />
         {children}
       </body>
     </html>
