@@ -4,6 +4,7 @@ import { getDB } from "../../../lib/db";
 import { mediaUrl } from "../../../lib/media";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import GalleryLightbox from "./GalleryLightbox";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -75,18 +76,14 @@ export default async function CollectionPage({ params }: Props) {
         </div>
       </section>
 
-      <section className="w-full px-2 pb-24 sm:px-3 md:px-4 md:pb-40">
-        <div className="columns-1 gap-2 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5">
-          {images.map(item => (
-            <figure key={item.id} className="mb-2 break-inside-avoid">
-              <img
-                src={mediaUrl(item.path)}
-                alt={item.alt ?? item.filename ?? collection.title}
-                className="block h-auto w-full"
-              />
-            </figure>
-          ))}
-        </div>
+      <section className="w-full px-0 pb-24 md:px-10 md:pb-40">
+        <GalleryLightbox
+          images={images.map(item => ({
+            id: item.id,
+            src: mediaUrl(item.path),
+            alt: item.alt ?? item.filename ?? collection.title,
+          }))}
+        />
 
         {images.length === 0 && (
           <p className="mx-auto max-w-[1180px] border-t border-[#d8d3ca] pt-8 text-sm text-[#77736c]">
