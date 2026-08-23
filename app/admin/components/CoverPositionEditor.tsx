@@ -41,17 +41,17 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
     if (file.size > 5 * 1024 * 1024) { setMessage("Maximum 5 MB."); return; }
     setUploading(true); setMessage("");
     try {
+      const previousCoverId = cover?.id ?? null;
       const url = URL.createObjectURL(file); const image = new Image();
       const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => { image.onload = () => { URL.revokeObjectURL(url); resolve({ width: image.naturalWidth, height: image.naturalHeight }); }; image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read image")); }; image.src = url; });
       const form = new FormData();
       form.append("file", file); form.append("alt", file.name.replace(/\.[^/.]+$/, "")); form.append("width", String(dimensions.width)); form.append("height", String(dimensions.height));
-      // No collection_id: cover is stored in the global media library, not in the collection album.
       const response = await fetch("/api/admin/media/upload", { method: "POST", body: form });
       const data = await response.json() as { success?: boolean; error?: string; media?: Media };
       if (!response.ok || !data.success || !data.media) throw new Error(data.error || "Failed to upload cover");
       setCover(data.media);
+      setPosition({ x: 50, y: 50 });
 
-      // Use the same collection save endpoint as the normal Collection editor.
       const collectionsRes = await fetch("/api/admin/collections", { cache: "no-store" });
       const collectionsData = await collectionsRes.json() as { collections?: Array<Record<string, unknown>> };
       const collection = (collectionsData.collections ?? []).find(item => item.id === collectionId);
@@ -59,7 +59,13 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
       const saveResponse = await fetch("/api/admin/collections", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...collection, cover_media_id: data.media.id }) });
       const saveData = await saveResponse.json() as { success?: boolean; error?: string };
       if (!saveResponse.ok || !saveData.success) throw new Error(saveData.error || "Failed to save cover");
-      setMessage("Cover uploaded and saved. Use the main Collection Save button for the rest of the collection.");
+
+      if (previousCoverId && previousCoverId !== data.media.id) {
+        const deleteResponse = await fetch("/api/admin/media", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: previousCoverId }) });
+        if (!deleteResponse.ok) console.error("Failed to remove previous collection cover media", previousCoverId);
+      }
+
+      setMessage("Cover uploaded and saved. Previous cover removed.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to upload cover"); }
     finally { setUploading(false); if (inputRef.current) inputRef.current.value = ""; }
   }
@@ -79,7 +85,8 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
     startRef.current = null; setDragging(false);
     if (frameRef.current?.hasPointerCapture(event.pointerId)) frameRef.current.releasePointerCapture(event.pointerId);
     try {
-      await fetch("/api/admin/collection-cover", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection_id: collectionId, position_x: position.x, position_y: position.y }) });
+      const response = await fetch("/api/admin/collection-cover", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection_id: collectionId, position_x: position.x, position_y: position.y }) });
+      if (!response.ok) throw new Error("save failed");
       setMessage("Cover position saved.");
     } catch { setMessage("Cover position changed but could not be saved."); }
   }
