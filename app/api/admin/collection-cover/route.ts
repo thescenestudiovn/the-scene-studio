@@ -2,12 +2,17 @@ import { getDB } from "../../../../lib/db";
 
 type PositionPayload = { collection_id?: string; position_x?: number; position_y?: number };
 
+async function ensureTable(db: D1Database) {
+  await db.prepare(`CREATE TABLE IF NOT EXISTS collection_cover_positions (collection_id TEXT PRIMARY KEY, position_x REAL NOT NULL DEFAULT 50, position_y REAL NOT NULL DEFAULT 50, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`).run();
+}
+
 export async function GET(request: Request) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return Response.json({ success: false, error: "id is required" }, { status: 400 });
 
   try {
     const db = getDB();
+    await ensureTable(db);
     const position = await db.prepare("SELECT collection_id,position_x,position_y FROM collection_cover_positions WHERE collection_id=?").bind(id).first();
     return Response.json({ success: true, position: position ?? { collection_id: id, position_x: 50, position_y: 50 } });
   } catch (error) {
@@ -24,6 +29,7 @@ export async function PATCH(request: Request) {
     const position_x = Math.max(0, Math.min(100, Number(body.position_x ?? 50)));
     const position_y = Math.max(0, Math.min(100, Number(body.position_y ?? 50)));
     const db = getDB();
+    await ensureTable(db);
 
     await db.prepare(`INSERT INTO collection_cover_positions (collection_id,position_x,position_y,updated_at) VALUES (?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(collection_id) DO UPDATE SET position_x=excluded.position_x,position_y=excluded.position_y,updated_at=CURRENT_TIMESTAMP`).bind(body.collection_id, position_x, position_y).run();
 
