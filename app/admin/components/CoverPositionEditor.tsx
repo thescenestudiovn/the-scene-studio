@@ -200,7 +200,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
     </div>
 
     {cover && <div className="mt-6 overflow-hidden border border-[#d8d3ca] bg-white">
-      <div className="aspect-[21/7] w-full overflow-hidden bg-[#ddd8cf]">
+      <div className="aspect-[2/1] w-full overflow-hidden bg-[#ddd8cf]">
         <img src={mediaUrl(cover.path)} alt={cover.alt ?? cover.filename ?? "Collection cover"} className="h-full w-full object-cover" style={{ objectPosition: `${position.x}% ${position.y}%` }} />
       </div>
       <div className="flex items-center justify-between px-4 py-3 text-[10px] uppercase tracking-[0.14em] text-[#77736c]">
