@@ -13,6 +13,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
@@ -161,31 +162,48 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
     void savePosition({ x: 50, y: 50 }, "Focus reset to center.");
   }
 
-  return <section className="border border-[#d8d3ca] bg-white p-6">
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <p className="text-xs uppercase tracking-[0.16em] text-[#77736c]">Collection Cover</p>
-        <h2 className="mt-2 font-serif text-3xl">Cover image</h2>
-        <p className="mt-2 max-w-2xl text-sm text-[#77736c]">Upload a dedicated cover directly from your computer. Click or drag the focus point to choose which part of the image stays visible.</p>
-      </div>
-      <div className="flex gap-2">
-        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-white disabled:opacity-40">{uploading ? "Uploading…" : cover ? "Replace Cover" : "Upload Cover"}</button>
-        <button type="button" onClick={reset} disabled={!cover} className="border border-[#171717] px-4 py-3 text-[10px] uppercase tracking-[0.14em] disabled:opacity-30">Reset Focus</button>
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => upload(e.target.files?.[0] ?? null)} />
-      </div>
+  return <>
+    <div className="flex justify-end">
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setMessage(""); void load(); }}
+        className="border border-[#171717] bg-white px-5 py-3 text-[10px] uppercase tracking-[0.14em] transition hover:bg-[#171717] hover:text-white"
+      >
+        {cover ? "Manage Cover" : "Add Cover"}
+      </button>
     </div>
 
-    {cover ? <div ref={frameRef} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`relative mx-auto mt-6 max-h-[520px] w-full overflow-hidden bg-[#ddd8cf] touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-crosshair"}`}>
-      <img src={mediaUrl(cover.path)} alt={cover.alt ?? cover.filename ?? "Collection cover preview"} draggable={false} className="block h-auto max-h-[520px] w-full select-none object-contain" />
-      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10" />
-      <div className="pointer-events-none absolute" style={{ left: `${position.x}%`, top: `${position.y}%`, transform: "translate(-50%, -50%)" }}>
-        <div className="h-7 w-7 rounded-full border-2 border-white bg-black/20 shadow-[0_0_0_1px_rgba(0,0,0,0.45)] md:h-8 md:w-8" />
+    {open && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 md:p-8" role="dialog" aria-modal="true" aria-label="Collection cover editor">
+      <div className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto bg-[#f7f5f0] p-5 shadow-2xl md:p-8">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-[#77736c]">Collection Cover</p>
+            <h2 className="mt-2 font-serif text-3xl md:text-4xl">Cover image</h2>
+            <p className="mt-2 max-w-2xl text-sm text-[#77736c]">The cover is stored separately from the collection photos. Upload it here, then click or drag to choose the focus point.</p>
+          </div>
+          <button type="button" onClick={() => setOpen(false)} className="shrink-0 border border-[#171717] px-4 py-3 text-[10px] uppercase tracking-[0.14em]">Close</button>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-white disabled:opacity-40">{uploading ? "Uploading…" : cover ? "Replace Cover" : "Upload Cover"}</button>
+          <button type="button" onClick={reset} disabled={!cover || uploading} className="border border-[#171717] px-4 py-3 text-[10px] uppercase tracking-[0.14em] disabled:opacity-30">Reset Focus</button>
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => upload(e.target.files?.[0] ?? null)} />
+        </div>
+
+        {cover ? <div ref={frameRef} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`relative mx-auto mt-6 max-h-[60vh] w-full overflow-hidden bg-[#ddd8cf] touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-crosshair"}`}>
+          <img src={mediaUrl(cover.path)} alt={cover.alt ?? cover.filename ?? "Collection cover preview"} draggable={false} className="block max-h-[60vh] w-full select-none object-contain" />
+          <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10" />
+          <div className="pointer-events-none absolute" style={{ left: `${position.x}%`, top: `${position.y}%`, transform: "translate(-50%, -50%)" }}>
+            <div className="h-7 w-7 rounded-full border-2 border-white bg-black/20 shadow-[0_0_0_1px_rgba(0,0,0,0.45)] md:h-8 md:w-8" />
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/45 px-4 py-3 text-[10px] uppercase tracking-[0.14em] text-white">
+            <span>{dragging ? "Move focus point" : "Click or drag to set focus"}</span>
+            <span>{Math.round(position.x)}% · {Math.round(position.y)}%</span>
+          </div>
+        </div> : <div className="mt-6 flex min-h-64 w-full items-center justify-center border border-dashed border-[#d8d3ca] bg-white text-sm text-[#77736c]">No cover selected — upload an image from your computer.</div>}
+
+        {message && <p className="mt-3 text-xs text-[#666158]">{message}</p>}
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/45 px-4 py-3 text-[10px] uppercase tracking-[0.14em] text-white">
-        <span>{dragging ? "Move focus point" : "Click or drag to set focus"}</span>
-        <span>{Math.round(position.x)}% · {Math.round(position.y)}%</span>
-      </div>
-    </div> : <div className="mx-auto mt-6 flex min-h-64 w-full items-center justify-center border border-dashed border-[#d8d3ca] bg-[#faf8f4] text-sm text-[#77736c]">No cover selected — upload an image from your computer.</div>}
-    {message && <p className="mt-3 text-xs text-[#666158]">{message}</p>}
-  </section>;
+    </div>}
+  </>;
 }
