@@ -43,16 +43,23 @@ export default async function CollectionPage({ params }: Props) {
     <section className="px-6 pb-16 pt-36 md:px-10 md:pt-44">
       <div className="mx-auto max-w-[1180px]">
         <Link href="/gallery" className="text-[10px] uppercase tracking-[0.18em] text-[#77736c] hover:opacity-50">← Gallery</Link>
-        {cover && <div className="mt-10 overflow-hidden bg-[#ddd8cf]" style={{ aspectRatio: "16 / 7" }}>
-          <img src={cover} alt={collection.title} className="h-full w-full object-cover" style={{ objectPosition: `${collection.cover_position_x ?? 50}% ${collection.cover_position_y ?? 50}%` }} />
-        </div>}
-        <div className={`${cover ? "mt-10" : "mt-16"} flex flex-wrap items-end justify-between gap-8`}>
-          <div><p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">{collection.destination_name ?? "Collection"}</p><h1 className="mt-4 max-w-5xl font-serif text-6xl leading-[0.9] tracking-[-0.05em] md:text-8xl">{collection.title}</h1></div>
-          <div className="max-w-sm text-sm leading-6 text-[#77736c]">{collection.description && <p>{collection.description}</p>}{collection.client_name && <p className="mt-4 text-[10px] uppercase tracking-[0.15em]">{collection.client_name}{collection.event_date ? ` · ${collection.event_date}` : ""}</p>}</div>
-        </div>
+      </div>
+      {cover && <div className="mt-10 w-full overflow-hidden bg-[#ddd8cf]" style={{ aspectRatio: "16 / 7" }}>
+        <img src={cover} alt={collection.title} className="h-full w-full object-cover" style={{ objectPosition: `${collection.cover_position_x ?? 50}% ${collection.cover_position_y ?? 50}%` }} />
+      </div>}
+      <div className={`${cover ? "mt-10" : "mt-16"} mx-auto max-w-[1180px]`}>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">{collection.destination_name ?? "Collection"}</p>
+        <h1 className="mt-4 max-w-5xl font-serif text-4xl leading-[0.95] tracking-[-0.04em]">{collection.title}</h1>
+        {collection.description && <p className="mt-6 max-w-2xl text-sm leading-6 text-[#77736c]">{collection.description}</p>}
+        {collection.client_name && <p className="mt-4 text-[10px] uppercase tracking-[0.15em] text-[#77736c]">{collection.client_name}{collection.event_date ? ` · ${collection.event_date}` : ""}</p>}
       </div>
     </section>
-    <section className="px-6 pb-32 md:px-10 md:pb-48"><div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">{images.map(item => <figure key={item.id}><img src={mediaUrl(item.path)} alt={item.alt ?? item.filename ?? collection.title} className="block h-auto w-full object-cover" /></figure>)}</div>{images.length === 0 && <p className="mx-auto max-w-[1180px] border-t border-[#d8d3ca] pt-8 text-sm text-[#77736c]">No photos have been added to this collection yet.</p>}</section>
+    <section className="px-6 pb-32 md:px-10 md:pb-48">
+      <div className="mx-auto max-w-[1180px] columns-1 gap-2 sm:columns-2 lg:columns-3">
+        {images.map(item => <figure key={item.id} className="mb-2 break-inside-avoid"><img src={mediaUrl(item.path)} alt={item.alt ?? item.filename ?? collection.title} className="block h-auto w-full" /></figure>)}
+      </div>
+      {images.length === 0 && <p className="mx-auto max-w-[1180px] border-t border-[#d8d3ca] pt-8 text-sm text-[#77736c]">No photos have been added to this collection yet.</p>}
+    </section>
     <Footer />
   </main>;
 }
