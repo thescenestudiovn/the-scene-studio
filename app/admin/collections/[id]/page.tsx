@@ -173,13 +173,6 @@ export default function AdminCollectionEditor() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
-  async function setCover(mediaId: string) {
-    if (!collection) return;
-    const updated = { ...collection, cover_media_id: mediaId }; setCollection(updated);
-    await fetch("/api/admin/collections", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updated) });
-    setMessage("Cover updated.");
-  }
-
   async function deleteSelected() {
     if (!selected.size) return;
     if (!window.confirm(`Delete ${selected.size} selected photo${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
@@ -216,9 +209,9 @@ export default function AdminCollectionEditor() {
     </div></div>
     <div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Click to select. Drag selected photos directly to reorder. Drag on empty space to select multiple.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">{selected.size === media.length && media.length ? "Deselect All" : "Select All"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div>
       <div ref={photosRef} onPointerDown={handleMarqueeDown} onPointerMove={handleMarqueeMove} onPointerUp={handleMarqueeUp} onPointerCancel={handleMarqueeUp} className="relative grid grid-cols-1 gap-3 select-none sm:grid-cols-2 lg:grid-cols-3">
-        {media.map(item => <div key={item.id} data-media-card data-media-id={item.id} onPointerDown={e => handleCardPointerDown(e, item.id)} onPointerMove={e => handleCardPointerMove(e, item.id)} onPointerUp={e => handleCardPointerUp(e, item.id)} onPointerCancel={e => handleCardPointerUp(e, item.id)} className={`group relative flex aspect-[4/3] touch-none items-center justify-center overflow-hidden bg-[#e8e5df] transition-all ${selected.has(item.id) ? "ring-2 ring-blue-500 bg-blue-500/10" : collection.cover_media_id === item.id ? "ring-2 ring-[#171717]" : ""}`}>
+        {media.map(item => <div key={item.id} data-media-card data-media-id={item.id} onPointerDown={e => handleCardPointerDown(e, item.id)} onPointerMove={e => handleCardPointerMove(e, item.id)} onPointerUp={e => handleCardPointerUp(e, item.id)} onPointerCancel={e => handleCardPointerUp(e, item.id)} className={`group relative flex aspect-[4/3] touch-none items-center justify-center overflow-hidden bg-[#e8e5df] transition-all ${selected.has(item.id) ? "ring-2 ring-blue-500 bg-blue-500/10" : ""}`}>
           <img draggable={false} src={item.path} alt={item.alt ?? item.filename ?? collection.title} className="block h-full w-full object-contain" />
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2"><button onPointerDown={e => e.stopPropagation()} onClick={() => setCover(item.id)} className="text-[10px] uppercase tracking-[0.12em] text-white">{collection.cover_media_id === item.id ? "Cover" : "Set cover"}</button></div>
+          <div className="pointer-events-none absolute inset-0 border border-transparent group-hover:border-black/10" />
         </div>)}
         {selectionRect && <div className="pointer-events-none fixed z-50 border border-blue-500 bg-blue-500/10" style={{ left: selectionRect.left, top: selectionRect.top, width: selectionRect.width, height: selectionRect.height }} />}
       </div>
