@@ -77,146 +77,20 @@ export default function AdminCollectionEditor() {
     finally { setUploading(false); if (inputRef.current) inputRef.current.value = ""; }
   }
 
-  function toggleSelected(mediaId: string) {
-    setSelected(current => { const next = new Set(current); next.has(mediaId) ? next.delete(mediaId) : next.add(mediaId); return next; });
-  }
-
-  function selectAll() {
-    setSelected(selected.size === media.length ? new Set() : new Set(media.map(item => item.id)));
-  }
-
-  function getCardId(target: EventTarget | null) {
-    return target instanceof Element ? target.closest<HTMLElement>("[data-media-card]")?.dataset.mediaId ?? null : null;
-  }
-
-  function updateMarquee(x: number, y: number) {
-    const start = pointerRef.current;
-    if (!start) return;
-    const left = Math.min(start.x, x), top = Math.min(start.y, y), right = Math.max(start.x, x), bottom = Math.max(start.y, y);
-    setSelectionRect({ left, top, width: right - left, height: bottom - top });
-    const hit = new Set<string>();
-    photosRef.current?.querySelectorAll<HTMLElement>("[data-media-card]").forEach(card => {
-      const rect = card.getBoundingClientRect();
-      if (rect.right >= left && rect.left <= right && rect.bottom >= top && rect.top <= bottom) hit.add(card.dataset.mediaId!);
-    });
-    const next = new Set(marqueeBaseRef.current);
-    hit.forEach(mediaId => marqueeBaseRef.current.has(mediaId) ? next.delete(mediaId) : next.add(mediaId));
-    setSelected(next);
-  }
-
-  function handleMarqueeDown(event: React.PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || getCardId(event.target) || (event.target as HTMLElement).closest("button")) return;
-    pointerRef.current = { x: event.clientX, y: event.clientY };
-    marqueeBaseRef.current = new Set(selected);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setSelecting(false); setSelectionRect(null);
-  }
-
-  function handleMarqueeMove(event: React.PointerEvent<HTMLDivElement>) {
-    const start = pointerRef.current;
-    if (!start || dragPointerRef.current) return;
-    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) return;
-    setSelecting(true); updateMarquee(event.clientX, event.clientY);
-  }
-
-  function handleMarqueeUp(event: React.PointerEvent<HTMLDivElement>) {
-    if (!pointerRef.current) return;
-    pointerRef.current = null; setSelecting(false); setSelectionRect(null);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-  }
-
-  function reorderGroup(targetId: string) {
-    const session = dragPointerRef.current;
-    if (!session) return;
-    setMedia(current => {
-      const movingIds = new Set(selected.has(session.id) ? selected : [session.id]);
-      if (movingIds.has(targetId)) return current;
-      const moving = current.filter(item => movingIds.has(item.id));
-      const remaining = current.filter(item => !movingIds.has(item.id));
-      const targetIndex = remaining.findIndex(item => item.id === targetId);
-      if (targetIndex < 0) return current;
-      remaining.splice(targetIndex, 0, ...moving);
-      return remaining;
-    });
-  }
-
-  function handleCardPointerDown(event: React.PointerEvent<HTMLDivElement>, itemId: string) {
-    if (event.button !== 0) return;
-    const target = event.target as HTMLElement;
-    if (target.closest("button")) return;
-    const movingIds = selected.has(itemId) ? [...selected] : [itemId];
-    const preview = media.find(item => item.id === movingIds[0]);
-    if (!preview) return;
-    dragPointerRef.current = { id: itemId, x: event.clientX, y: event.clientY, active: false };
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    setDrag({ ids: movingIds, previewId: preview.id, x: event.clientX, y: event.clientY, active: false });
-  }
-
-  function handleCardPointerMove(event: React.PointerEvent<HTMLDivElement>, itemId: string) {
-    const start = dragPointerRef.current;
-    if (!start || start.id !== itemId) return;
-    const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-    if (!start.active && distance < 6) return;
-    if (!start.active) { start.active = true; pointerRef.current = null; setSelecting(false); setSelectionRect(null); }
-    setDrag(current => current ? { ...current, x: event.clientX, y: event.clientY, active: true } : current);
-    const targetId = getCardId(document.elementFromPoint(event.clientX, event.clientY));
-    if (targetId) reorderGroup(targetId);
-  }
-
-  function handleCardPointerUp(event: React.PointerEvent<HTMLDivElement>, itemId: string) {
-    const start = dragPointerRef.current;
-    if (!start || start.id !== itemId) return;
-    const wasDrag = start.active;
-    dragPointerRef.current = null;
-    setDrag(null);
-    if (!wasDrag) toggleSelected(itemId);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-  }
-
-  async function deleteSelected() {
-    if (!selected.size) return;
-    if (!window.confirm(`Delete ${selected.size} selected photo${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
-    setDeleting(true); setMessage("");
-    try {
-      const ids = [...selected];
-      const response = await fetch("/api/admin/media", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
-      const data = (await response.json()) as { success: boolean; error?: string };
-      if (!response.ok || !data.success) throw new Error(data.error || "Could not delete photos.");
-      setMedia(current => current.filter(item => !selected.has(item.id)));
-      if (collection && selected.has(collection.cover_media_id ?? "")) setCollection({ ...collection, cover_media_id: null });
-      setSelected(new Set()); setMessage(`${ids.length} photo${ids.length > 1 ? "s" : ""} deleted.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not delete photos."); }
-    finally { setDeleting(false); }
-  }
-
-  if (!collection) return <main className="p-10">Loading collection…</main>;
-
-  const dragPreview = drag ? media.find(item => item.id === drag.previewId) : null;
-
-  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-10 text-[#171717] md:px-10"><div className="mx-auto max-w-7xl">
-    <Link href="/admin/gallery" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Gallery</Link>
-    <div className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Collection Editor</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.04em]">{collection.title}</h1><p className="mt-2 text-sm text-[#77736c]">/gallery/{collection.slug}</p></div><div className="flex gap-3"><a href={`/gallery/${collection.slug}`} target="_blank" rel="noreferrer" className="border border-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em]">View Gallery</a><button onClick={save} disabled={saving} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{saving ? "Saving…" : "Save"}</button></div></div>
-    <section className="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]"><div className="border border-[#d8d3ca] bg-white p-6"><div className="grid gap-4">
-      <label className="text-xs uppercase tracking-[0.12em]">Title<input className="mt-2 w-full border p-3" value={collection.title} onChange={e => setCollection({ ...collection, title: e.target.value })} /></label>
-      <label className="text-xs uppercase tracking-[0.12em]">Slug<input className="mt-2 w-full border p-3" value={collection.slug} onChange={e => setCollection({ ...collection, slug: e.target.value })} /></label>
-      <label className="text-xs uppercase tracking-[0.12em]">Client<input className="mt-2 w-full border p-3" value={collection.client_name ?? ""} onChange={e => setCollection({ ...collection, client_name: e.target.value })} /></label>
-      <label className="text-xs uppercase tracking-[0.12em]">Destination<select className="mt-2 w-full border p-3" value={collection.destination_id ?? ""} onChange={e => setCollection({ ...collection, destination_id: e.target.value || null })}><option value="">None</option>{destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-      <label className="text-xs uppercase tracking-[0.12em]">Event date<input type="date" className="mt-2 w-full border p-3" value={collection.event_date ?? ""} onChange={e => setCollection({ ...collection, event_date: e.target.value })} /></label>
-      <label className="text-xs uppercase tracking-[0.12em]">Description<textarea className="mt-2 min-h-28 w-full border p-3" value={collection.description ?? ""} onChange={e => setCollection({ ...collection, description: e.target.value })} /></label>
-      <label className="text-xs uppercase tracking-[0.12em]">SEO title<input className="mt-2 w-full border p-3" value={collection.seo_title ?? ""} onChange={e => setCollection({ ...collection, seo_title: e.target.value })} /></label>
-      <label className="text-xs uppercase tracking-[0.12em]">SEO description<textarea className="mt-2 min-h-20 w-full border p-3" value={collection.seo_description ?? ""} onChange={e => setCollection({ ...collection, seo_description: e.target.value })} /></label>
-      <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={collection.published === 1} onChange={e => setCollection({ ...collection, published: e.target.checked ? 1 : 0 })} /> Published</label>
-    </div></div>
-    <div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Click to select. Drag selected photos directly to reorder. Drag on empty space to select multiple.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">{selected.size === media.length && media.length ? "Deselect All" : "Select All"}</button>{selected.size > 0 && <button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting ? "Deleting…" : `Delete ${selected.size}`}</button>}<button onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading ? "Uploading…" : "Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => upload(e.target.files)} /></div>
-      <div ref={photosRef} onPointerDown={handleMarqueeDown} onPointerMove={handleMarqueeMove} onPointerUp={handleMarqueeUp} onPointerCancel={handleMarqueeUp} className="relative grid grid-cols-1 gap-3 select-none sm:grid-cols-2 lg:grid-cols-3">
-        {media.map(item => <div key={item.id} data-media-card data-media-id={item.id} onPointerDown={e => handleCardPointerDown(e, item.id)} onPointerMove={e => handleCardPointerMove(e, item.id)} onPointerUp={e => handleCardPointerUp(e, item.id)} onPointerCancel={e => handleCardPointerUp(e, item.id)} className={`group relative flex aspect-[4/3] touch-none items-center justify-center overflow-hidden bg-[#e8e5df] transition-all ${selected.has(item.id) ? "ring-2 ring-blue-500 bg-blue-500/10" : ""}`}>
-          <img draggable={false} src={item.path} alt={item.alt ?? item.filename ?? collection.title} className="block h-full w-full object-contain" />
-          <div className="pointer-events-none absolute inset-0 border border-transparent group-hover:border-black/10" />
-        </div>)}
-        {selectionRect && <div className="pointer-events-none fixed z-50 border border-blue-500 bg-blue-500/10" style={{ left: selectionRect.left, top: selectionRect.top, width: selectionRect.width, height: selectionRect.height }} />}
-      </div>
-      {media.length === 0 && <div className="border border-dashed border-[#c9c4ba] p-16 text-center text-sm text-[#77736c]">No photos yet.</div>}
-    </div></section>{message && <p className="mt-6 text-sm text-[#77736c]">{message}</p>}
-    {drag?.active && dragPreview && <div className="pointer-events-none fixed z-[100] w-40 -translate-x-1/2 -translate-y-1/2 rotate-2" style={{ left: drag.x, top: drag.y }}><div className="relative aspect-[4/3] overflow-hidden rounded-md bg-white shadow-2xl ring-1 ring-black/10"><img src={dragPreview.path} alt="" className="h-full w-full object-contain" /><span className="absolute right-2 top-2 flex h-8 min-w-8 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-semibold text-white shadow">{drag.ids.length}</span></div></div>}
-  </div></main>;
+  function toggleSelected(mediaId: string) { setSelected(current => { const next = new Set(current); next.has(mediaId) ? next.delete(mediaId) : next.add(mediaId); return next; }); }
+  function selectAll() { setSelected(selected.size === media.length ? new Set() : new Set(media.map(item => item.id))); }
+  function deselectAll() { setSelected(new Set()); setSelectionRect(null); setSelecting(false); }
+  function getCardId(target: EventTarget | null) { return target instanceof Element ? target.closest<HTMLElement>("[data-media-card]")?.dataset.mediaId ?? null : null; }
+  function updateMarquee(x: number, y: number) { const start = pointerRef.current; if (!start) return; const left = Math.min(start.x,x),top=Math.min(start.y,y),right=Math.max(start.x,x),bottom=Math.max(start.y,y); setSelectionRect({left,top,width:right-left,height:bottom-top}); const hit=new Set<string>(); photosRef.current?.querySelectorAll<HTMLElement>("[data-media-card]").forEach(card=>{const rect=card.getBoundingClientRect();if(rect.right>=left&&rect.left<=right&&rect.bottom>=top&&rect.top<=bottom)hit.add(card.dataset.mediaId!);}); const next=new Set(marqueeBaseRef.current); hit.forEach(mediaId=>marqueeBaseRef.current.has(mediaId)?next.delete(mediaId):next.add(mediaId)); setSelected(next); }
+  function handleMarqueeDown(event: React.PointerEvent<HTMLDivElement>) { if(event.button!==0||getCardId(event.target)||(event.target as HTMLElement).closest("button"))return; pointerRef.current={x:event.clientX,y:event.clientY};marqueeBaseRef.current=new Set(selected);event.currentTarget.setPointerCapture(event.pointerId);setSelecting(false);setSelectionRect(null); }
+  function handleMarqueeMove(event: React.PointerEvent<HTMLDivElement>) { const start=pointerRef.current;if(!start||dragPointerRef.current)return;if(Math.hypot(event.clientX-start.x,event.clientY-start.y)<5)return;setSelecting(true);updateMarquee(event.clientX,event.clientY); }
+  function handleMarqueeUp(event: React.PointerEvent<HTMLDivElement>) { if(!pointerRef.current)return;pointerRef.current=null;setSelecting(false);setSelectionRect(null);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId); }
+  function reorderGroup(targetId:string){const session=dragPointerRef.current;if(!session)return;setMedia(current=>{const movingIds=new Set(selected.has(session.id)?selected:[session.id]);if(movingIds.has(targetId))return current;const moving=current.filter(item=>movingIds.has(item.id));const remaining=current.filter(item=>!movingIds.has(item.id));const targetIndex=remaining.findIndex(item=>item.id===targetId);if(targetIndex<0)return current;remaining.splice(targetIndex,0,...moving);return remaining;});}
+  function handleCardPointerDown(event:React.PointerEvent<HTMLDivElement>,itemId:string){if(event.button!==0)return;const target=event.target as HTMLElement;if(target.closest("button"))return;const movingIds=selected.has(itemId)?[...selected]:[itemId];const preview=media.find(item=>item.id===movingIds[0]);if(!preview)return;dragPointerRef.current={id:itemId,x:event.clientX,y:event.clientY,active:false};event.currentTarget.setPointerCapture(event.pointerId);setDrag({ids:movingIds,previewId:preview.id,x:event.clientX,y:event.clientY,active:false});}
+  function handleCardPointerMove(event:React.PointerEvent<HTMLDivElement>,itemId:string){const start=dragPointerRef.current;if(!start||start.id!==itemId)return;const distance=Math.hypot(event.clientX-start.x,event.clientY-start.y);if(!start.active&&distance<6)return;if(!start.active){start.active=true;pointerRef.current=null;setSelecting(false);setSelectionRect(null);}setDrag(current=>current?{...current,x:event.clientX,y:event.clientY,active:true}:current);const targetId=getCardId(document.elementFromPoint(event.clientX,event.clientY));if(targetId)reorderGroup(targetId);}
+  function handleCardPointerUp(event:React.PointerEvent<HTMLDivElement>,itemId:string){const start=dragPointerRef.current;if(!start||start.id!==itemId)return;const wasDrag=start.active;dragPointerRef.current=null;setDrag(null);if(!wasDrag)toggleSelected(itemId);if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);}
+  async function deleteSelected(){if(!selected.size)return;if(!window.confirm(`Delete ${selected.size} selected photo${selected.size>1?"s":""}? This cannot be undone.`))return;setDeleting(true);setMessage("");try{const ids=[...selected];const response=await fetch("/api/admin/media",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({ids})});const data=(await response.json()) as {success:boolean;error?:string};if(!response.ok||!data.success)throw new Error(data.error||"Could not delete photos.");setMedia(current=>current.filter(item=>!selected.has(item.id)));setSelected(new Set());setMessage(`${ids.length} photo${ids.length>1?"s":""} deleted.`);}catch(error){setMessage(error instanceof Error?error.message:"Could not delete photos.");}finally{setDeleting(false);}}
+  if(!collection)return <main className="p-10">Loading collection…</main>;
+  const dragPreview=drag?media.find(item=>item.id===drag.previewId):null;
+  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-10 text-[#171717] md:px-10"><div className="mx-auto max-w-7xl"><Link href="/admin/gallery" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Gallery</Link><div className="mt-8 flex flex-wrap items-end justify-between gap-6"><div><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Collection Editor</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.04em]">{collection.title}</h1><p className="mt-2 text-sm text-[#77736c]">/gallery/{collection.slug}</p></div><div className="flex gap-3"><a href={`/gallery/${collection.slug}`} target="_blank" rel="noreferrer" className="border border-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em]">View Gallery</a><button onClick={save} disabled={saving} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{saving?"Saving…":"Save"}</button></div></div><section className="mt-10 grid gap-8 lg:grid-cols-[1fr_2fr]"><div className="border border-[#d8d3ca] bg-white p-6"><div className="grid gap-4"><label className="text-xs uppercase tracking-[0.12em]">Title<input className="mt-2 w-full border p-3" value={collection.title} onChange={e=>setCollection({...collection,title:e.target.value})}/></label><label className="text-xs uppercase tracking-[0.12em]">Slug<input className="mt-2 w-full border p-3" value={collection.slug} onChange={e=>setCollection({...collection,slug:e.target.value})}/></label><label className="text-xs uppercase tracking-[0.12em]">Client<input className="mt-2 w-full border p-3" value={collection.client_name??""} onChange={e=>setCollection({...collection,client_name:e.target.value})}/></label><label className="text-xs uppercase tracking-[0.12em]">Destination<select className="mt-2 w-full border p-3" value={collection.destination_id??""} onChange={e=>setCollection({...collection,destination_id:e.target.value||null})}><option value="">None</option>{destinations.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label><label className="text-xs uppercase tracking-[0.12em]">Event date<input type="date" className="mt-2 w-full border p-3" value={collection.event_date??""} onChange={e=>setCollection({...collection,event_date:e.target.value})}/></label><label className="text-xs uppercase tracking-[0.12em]">Description<textarea className="mt-2 min-h-28 w-full border p-3" value={collection.description??""} onChange={e=>setCollection({...collection,description:e.target.value})}/></label><label className="text-xs uppercase tracking-[0.12em]">SEO title<input className="mt-2 w-full border p-3" value={collection.seo_title??""} onChange={e=>setCollection({...collection,seo_title:e.target.value})}/></label><label className="text-xs uppercase tracking-[0.12em]">SEO description<textarea className="mt-2 min-h-20 w-full border p-3" value={collection.seo_description??""} onChange={e=>setCollection({...collection,seo_description:e.target.value})}/></label><label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={collection.published===1} onChange={e=>setCollection({...collection,published:e.target.checked?1:0})}/> Published</label></div></div><div><div className="mb-4 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-serif text-3xl">Photos</h2><p className="mt-1 text-sm text-[#77736c]">Click to select. Drag selected photos directly to reorder. Drag on empty space to select multiple.</p></div><div className="flex flex-wrap gap-2"><button onClick={selectAll} disabled={!media.length} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em]">Select All</button><button onClick={deselectAll} disabled={!selected.size} className="border border-[#171717] px-4 py-3 text-xs uppercase tracking-[0.12em] disabled:cursor-not-allowed disabled:opacity-40">Deselect All</button>{selected.size>0&&<button onClick={deleteSelected} disabled={deleting} className="border border-red-700 px-5 py-3 text-xs uppercase tracking-[0.15em] text-red-700">{deleting?"Deleting…":`Delete ${selected.size}`}</button>}<button onClick={()=>inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.15em] text-white">{uploading?"Uploading…":"Upload Photos"}</button></div><input ref={inputRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e=>upload(e.target.files)}/></div><div ref={photosRef} onPointerDown={handleMarqueeDown} onPointerMove={handleMarqueeMove} onPointerUp={handleMarqueeUp} onPointerCancel={handleMarqueeUp} className="relative grid grid-cols-1 gap-3 select-none sm:grid-cols-2 lg:grid-cols-3">{media.map(item=><div key={item.id} data-media-card data-media-id={item.id} onPointerDown={e=>handleCardPointerDown(e,item.id)} onPointerMove={e=>handleCardPointerMove(e,item.id)} onPointerUp={e=>handleCardPointerUp(e,item.id)} onPointerCancel={e=>handleCardPointerUp(e,item.id)} className={`group relative flex aspect-[4/3] touch-none items-center justify-center overflow-hidden bg-[#e8e5df] transition-all ${selected.has(item.id)?"ring-2 ring-blue-500 bg-blue-500/10":""}`}><img draggable={false} src={item.path} alt={item.alt??item.filename??collection.title} className="block h-full w-full object-contain"/><div className="pointer-events-none absolute inset-0 border border-transparent group-hover:border-black/10"/></div>)}{selectionRect&&<div className="pointer-events-none fixed z-50 border border-blue-500 bg-blue-500/10" style={{left:selectionRect.left,top:selectionRect.top,width:selectionRect.width,height:selectionRect.height}}/>}</div>{media.length===0&&<div className="border border-dashed border-[#c9c4ba] p-16 text-center text-sm text-[#77736c]">No photos yet.</div>}</div></section>{message&&<p className="mt-6 text-sm text-[#77736c]">{message}</p>}{drag?.active&&dragPreview&&<div className="pointer-events-none fixed z-[100] w-40 -translate-x-1/2 -translate-y-1/2 rotate-2" style={{left:drag.x,top:drag.y}}><div className="relative aspect-[4/3] overflow-hidden rounded-md bg-white shadow-2xl ring-1 ring-black/10"><img src={dragPreview.path} alt="" className="h-full w-full object-contain"/><span className="absolute right-2 top-2 flex h-8 min-w-8 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-semibold text-white shadow">{drag.ids.length}</span></div></div>}</div></main>;
 }
