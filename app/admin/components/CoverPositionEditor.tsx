@@ -5,7 +5,6 @@ import { mediaUrl } from "../../../lib/media";
 
 type Media = { id: string; path: string; filename: string | null; alt: string | null; width: number | null; height: number | null; type?: string; collection_id?: string | null };
 type Collection = { id: string; cover_media_id?: string | null };
-
 type Point = { x: number; y: number };
 
 export default function CoverPositionEditor({ collectionId }: { collectionId: string }) {
@@ -77,8 +76,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
       const data = await response.json() as { success?: boolean; error?: string; media?: Media };
       if (!response.ok || !data.success || !data.media) throw new Error(data.error || "Failed to upload cover");
       setCover(data.media);
-      const nextPosition = { x: 50, y: 50 };
-      setPosition(nextPosition);
+      setPosition({ x: 50, y: 50 });
 
       const collectionsRes = await fetch("/api/admin/collections", { cache: "no-store" });
       const collectionsData = await collectionsRes.json() as { collections?: Array<Record<string, unknown>> };
@@ -106,7 +104,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
         });
         if (!deleteResponse.ok) console.error("Failed to remove previous collection cover media", previousCoverId);
       }
-      setMessage("Cover uploaded and saved. Set the focus point on the image.");
+      setMessage("Cover uploaded and saved. Set the focus point on the 4:5 preview.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to upload cover");
     } finally {
@@ -155,8 +153,6 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
     const moved = Math.hypot(event.clientX - start.pointerX, event.clientY - start.pointerY);
     const point = pointFromPointer(event);
     if (!point) return;
-    // A simple click places the focus point exactly where the user clicked.
-    // A drag moves the existing focus point while preserving the interaction from the previous editor.
     const next = moved < 5 ? point : position;
     await savePosition(next);
   }
@@ -170,7 +166,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-[#77736c]">Collection Cover</p>
         <h2 className="mt-2 font-serif text-3xl">Cover image</h2>
-        <p className="mt-2 max-w-2xl text-sm text-[#77736c]">Upload a dedicated cover directly from your computer. Click or drag the focus point to choose which part of the image stays visible when the 16:7 cover is cropped.</p>
+        <p className="mt-2 max-w-2xl text-sm text-[#77736c]">Upload a dedicated cover directly from your computer. This preview uses the exact 4:5 frame used by the public Gallery grid. Click or drag the focus point to choose which part of the image stays visible.</p>
       </div>
       <div className="flex gap-2">
         <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-white disabled:opacity-40">{uploading ? "Uploading…" : cover ? "Replace Cover" : "Upload Cover"}</button>
@@ -179,7 +175,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
       </div>
     </div>
 
-    {cover ? <div ref={frameRef} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`relative mt-6 aspect-[16/7] overflow-hidden bg-[#ddd8cf] touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-crosshair"}`}>
+    {cover ? <div ref={frameRef} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`relative mx-auto mt-6 aspect-[4/5] w-full max-w-[360px] overflow-hidden bg-[#ddd8cf] touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-crosshair"}`}>
       <img src={mediaUrl(cover.path)} alt={cover.alt ?? cover.filename ?? "Collection cover preview"} draggable={false} className="h-full w-full select-none object-cover" style={{ objectPosition: `${position.x}% ${position.y}%` }} />
       <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10" />
       <div className="pointer-events-none absolute" style={{ left: `${position.x}%`, top: `${position.y}%`, transform: "translate(-50%, -50%)" }}>
@@ -189,7 +185,7 @@ export default function CoverPositionEditor({ collectionId }: { collectionId: st
         <span>{dragging ? "Move focus point" : "Click or drag to set focus"}</span>
         <span>{Math.round(position.x)}% · {Math.round(position.y)}%</span>
       </div>
-    </div> : <div className="mt-6 flex aspect-[16/7] items-center justify-center border border-dashed border-[#d8d3ca] bg-[#faf8f4] text-sm text-[#77736c]">No cover selected — upload an image from your computer.</div>}
+    </div> : <div className="mx-auto mt-6 flex aspect-[4/5] w-full max-w-[360px] items-center justify-center border border-dashed border-[#d8d3ca] bg-[#faf8f4] text-sm text-[#77736c]">No cover selected — upload an image from your computer.</div>}
     {message && <p className="mt-3 text-xs text-[#666158]">{message}</p>}
   </section>;
 }
