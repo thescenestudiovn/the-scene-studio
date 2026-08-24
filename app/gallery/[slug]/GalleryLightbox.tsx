@@ -57,7 +57,13 @@ export default function GalleryLightbox({ images }: { images: GalleryImage[] }) 
         {images.map((image, index) => (
           <figure key={image.id} className="mb-1 break-inside-avoid md:mb-2">
             <button type="button" onClick={() => setActiveIndex(index)} className="group block w-full cursor-zoom-in touch-manipulation text-left" aria-label={`View photo ${index + 1} of ${images.length}`}>
-              <img src={image.src} alt={image.alt} className="block h-auto w-full transition-opacity duration-300 group-hover:opacity-90" />
+              <img
+                src={image.src}
+                alt={image.alt}
+                loading="lazy"
+                decoding="async"
+                className="block h-auto w-full transition-opacity duration-300 group-hover:opacity-90"
+              />
             </button>
           </figure>
         ))}
