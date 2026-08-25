@@ -8,19 +8,129 @@ import StoryDetailsDrawer from "../../../../components/story/editor/StoryDetails
 import type { Destination, Story, StoryBlock, StoryCategory, StoryLocation } from "../../../../components/story/editor/types";
 
 export default function StoryEditorPage() {
- const { id } = useParams<{id:string}>();
- const [story,setStory]=useState<Story|null>(null),[blocks,setBlocks]=useState<StoryBlock[]>([]),[categories,setCategories]=useState<StoryCategory[]>([]),[locations,setLocations]=useState<StoryLocation[]>([]),[destinations,setDestinations]=useState<Destination[]>([]),[selectedCategoryIds,setSelectedCategoryIds]=useState<string[]>([]),[selectedLocationIds,setSelectedLocationIds]=useState<string[]>([]),[categoryInput,setCategoryInput]=useState(""),[locationInput,setLocationInput]=useState(""),[creatingCategory,setCreatingCategory]=useState(false),[creatingLocation,setCreatingLocation]=useState(false),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[message,setMessage]=useState(""),[slugAvailable,setSlugAvailable]=useState<boolean|null>(null),[checkingSlug,setCheckingSlug]=useState(false);
- useEffect(()=>{void load()},[id]);
- useEffect(()=>{if(!story?.slug){setSlugAvailable(false);return}const c=new AbortController(),t=window.setTimeout(async()=>{setCheckingSlug(true);try{const r=await fetch(`/api/admin/stories?slug=${encodeURIComponent(story.slug.trim())}&exclude_id=${encodeURIComponent(id)}`,{cache:"no-store",signal:c.signal}),d=await r.json() as {success?:boolean;available?:boolean};setSlugAvailable(r.ok&&d.success===true&&d.available===true)}catch(e){if(!(e instanceof DOMException&&e.name==="AbortError"))setSlugAvailable(null)}finally{if(!c.signal.aborted)setCheckingSlug(false)}},350);return()=>{clearTimeout(t);c.abort()}},[story?.slug,id]);
- async function load(){setLoading(true);try{const [a,b,c,d]=await Promise.all([fetch(`/api/admin/stories/${id}`,{cache:"no-store"}),fetch("/api/admin/story-categories",{cache:"no-store"}),fetch("/api/admin/locations",{cache:"no-store"}),fetch("/api/admin/destinations",{cache:"no-store"})]);const sd=await a.json() as {success:boolean;story?:Story;blocks?:StoryBlock[];error?:string},cd=await b.json() as {categories?:StoryCategory[]},ld=await c.json() as {locations?:StoryLocation[]},dd=await d.json() as {destinations?:Destination[]};if(!sd.success||!sd.story)throw new Error(sd.error||"Failed to load story");const cs=cd.categories??[],ls=ld.locations??[],s=sd.story,rc=(s.categories??s.category??"").split(",").map(x=>x.trim()).filter(Boolean),rl=(s.locations??s.location??"").split(",").map(x=>x.trim()).filter(Boolean);setStory(s);setBlocks(sd.blocks??[]);setCategories(cs);setLocations(ls);setDestinations(dd.destinations??[]);setSelectedCategoryIds(cs.filter(x=>rc.some(n=>n.toLowerCase()===x.name.toLowerCase())).map(x=>x.id));setSelectedLocationIds(ls.filter(x=>rl.some(n=>n.toLowerCase()===x.name.toLowerCase())).map(x=>x.id))}catch(e){setMessage(e instanceof Error?e.message:"Failed to load story")}finally{setLoading(false)}}
- const categoryNames=()=>selectedCategoryIds.map(x=>categories.find(c=>c.id===x)?.name).filter((x):x is string=>!!x),locationNames=()=>selectedLocationIds.map(x=>locations.find(l=>l.id===x)?.name).filter((x):x is string=>!!x);
- async function createCategory(){const name=categoryInput.trim();if(!name||creatingCategory)return;const old=categories.find(x=>x.name.toLowerCase()===name.toLowerCase());if(old){setSelectedCategoryIds(v=>v.includes(old.id)?v:[...v,old.id]);setCategoryInput("");return}setCreatingCategory(true);try{const r=await fetch("/api/admin/story-categories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}),d=await r.json() as {success?:boolean;category?:StoryCategory;error?:string};if(!r.ok||!d.success||!d.category)throw new Error(d.error||"Failed to create category");setCategories(v=>[...v.filter(x=>x.id!==d.category!.id),d.category!].sort((a,b)=>a.name.localeCompare(b.name)));setSelectedCategoryIds(v=>v.includes(d.category!.id)?v:[...v,d.category!.id]);setCategoryInput("")}catch(e){setMessage(e instanceof Error?e.message:"Failed to create category")}finally{setCreatingCategory(false)}}
- async function createLocation(){const name=locationInput.trim();if(!name||creatingLocation)return;const old=locations.find(x=>x.name.toLowerCase()===name.toLowerCase());if(old){setSelectedLocationIds(v=>v.includes(old.id)?v:[...v,old.id]);setLocationInput("");return}setCreatingLocation(true);try{const r=await fetch("/api/admin/locations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}),d=await r.json() as {success?:boolean;location?:StoryLocation;error?:string};if(!r.ok||!d.success||!d.location)throw new Error(d.error||"Failed to create location");setLocations(v=>[...v.filter(x=>x.id!==d.location!.id),d.location!].sort((a,b)=>a.name.localeCompare(b.name)));setSelectedLocationIds(v=>v.includes(d.location!.id)?v:[...v,d.location!.id]);setLocationInput("")}catch(e){setMessage(e instanceof Error?e.message:"Failed to create location")}finally{setCreatingLocation(false)}}
- async function saveStory(published:boolean){if(!story)return;if(!story.slug.trim()||slugAvailable!==true||checkingSlug){setMessage(!story.slug.trim()?"Slug is required.":slugAvailable===false?"This slug is already in use.":"Checking slug availability…");return}setSaving(true);setMessage("");try{const r=await fetch(`/api/admin/stories/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:story.title,slug:story.slug,location:locationNames()[0]??null,location_ids:selectedLocationIds,date:story.date,category:categoryNames()[0]??null,category_ids:selectedCategoryIds,description:story.description,destination_id:story.destination_id??null,seo_title:story.seo_title??null,seo_description:story.seo_description??null,cover_media_id:story.cover_media_id??null,published,tags:story.tags??null,featured:!!story.featured,hide_from_search:!!story.hide_from_search,social_media_id:story.social_media_id??null})}),d=await r.json() as {success:boolean;story?:Story;error?:string;code?:string};if(!r.ok||!d.success||!d.story){if(r.status===409||d.code==="SLUG_EXISTS")setSlugAvailable(false);throw new Error(d.error||"Failed to save story")}setStory(d.story);setMessage(published?"Story published.":"Draft saved.")}catch(e){setMessage(e instanceof Error?e.message:"Failed to save story")}finally{setSaving(false)}}
- async function updateBlock(block:StoryBlock,patch:Partial<StoryBlock>){try{const r=await fetch(`/api/admin/stories/${id}/blocks/${block.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)}),d=await r.json() as {success:boolean;error?:string;block?:StoryBlock};if(!r.ok||!d.success)throw new Error(d.error||"Failed to update block");if(d.block)setBlocks(v=>v.map(x=>x.id===block.id?{...x,...d.block}:x))}catch(e){setMessage(e instanceof Error?e.message:"Failed to update block")}}
- async function deleteBlock(blockId:string){if(!window.confirm("Delete this block?"))return;try{const r=await fetch(`/api/admin/stories/${id}/blocks/${blockId}`,{method:"DELETE"}),d=await r.json() as {success:boolean;error?:string};if(!r.ok||!d.success)throw new Error(d.error||"Failed to delete block");setBlocks(v=>v.filter(x=>x.id!==blockId))}catch(e){setMessage(e instanceof Error?e.message:"Failed to delete block")}}
- if(loading)return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Loading story…</main>;if(!story)return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Story not found.</main>;
- const tags=(story.tags??"").split(",").map(x=>x.trim()).filter(Boolean),categoryList=categoryNames(),saveDisabled=saving||checkingSlug||slugAvailable!==true;
- const detailsProps={story,categories,locations,destinations,selectedCategoryIds,selectedLocationIds,categoryInput,locationInput,creatingCategory,creatingLocation,onStoryChange:setStory,onToggleCategory:(x:string)=>setSelectedCategoryIds(v=>v.includes(x)?v.filter(i=>i!==x):[...v,x]),onToggleLocation:(x:string)=>setSelectedLocationIds(v=>v.includes(x)?v.filter(i=>i!==x):[...v,x]),onCategoryInputChange:setCategoryInput,onLocationInputChange:setLocationInput,onCreateCategory:()=>void createCategory(),onCreateLocation:()=>void createLocation()};
- return <main className="min-h-screen bg-[#f5f2ec] text-[#171717]"><header className="sticky top-0 z-30 border-b border-[#ddd7cd] bg-[#f5f2ec]/95 backdrop-blur"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-6 py-4 lg:px-10"><div className="flex items-center gap-5"><Link href="/admin/stories" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Stories</Link><span className="hidden h-5 w-px bg-[#d5cfc5] sm:block"/><div><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Editor</p><p className="mt-0.5 max-w-[420px] truncate text-sm font-medium">{story.title||"Untitled story"}</p></div></div><div className="flex items-center gap-2"><span className={`hidden rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] sm:inline-flex ${story.published?"bg-[#e3eadf] text-[#43543c]":"bg-[#e9e5de] text-[#6f6a61]"}`}>{story.published?"Published":"Draft"}</span><a href={`/stories/${story.slug}`} target="_blank" rel="noreferrer" className="hidden border border-[#bdb7ad] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] md:inline-block">Preview</a><StoryDetailsDrawer {...detailsProps}/><button onClick={()=>void saveStory(false)} disabled={saveDisabled} className="border border-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] disabled:opacity-40">Save Draft</button><button onClick={()=>void saveStory(true)} disabled={saveDisabled} className="bg-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] text-white disabled:opacity-40">Publish</button></div></div></header><div className="mx-auto max-w-[1280px] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">{message&&<div className="mb-6 border border-[#d8d1c7] bg-white px-5 py-3 text-sm text-[#666158]">{message}</div>}<StoryCover story={story} storyId={id} tags={tags} categoryNames={categoryList} onChange={setStory}/><div className="mt-12"><StoryContent storyId={id} blocks={blocks} onBlocksChange={setBlocks} onDelete={deleteBlock} onUpdate={updateBlock}/></div></div></main>;
+  const { id } = useParams<{ id: string }>();
+  const [story, setStory] = useState<Story | null>(null);
+  const [blocks, setBlocks] = useState<StoryBlock[]>([]);
+  const [categories, setCategories] = useState<StoryCategory[]>([]);
+  const [locations, setLocations] = useState<StoryLocation[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
+  const [categoryInput, setCategoryInput] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [checkingSlug, setCheckingSlug] = useState(false);
+
+  useEffect(() => { void load(); }, [id]);
+
+  useEffect(() => {
+    if (!story?.slug) { setSlugAvailable(false); return; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCheckingSlug(true);
+      try {
+        const response = await fetch(`/api/admin/stories?slug=${encodeURIComponent(story.slug.trim())}&exclude_id=${encodeURIComponent(id)}`, { cache: "no-store", signal: controller.signal });
+        const data = await response.json() as { success?: boolean; available?: boolean };
+        setSlugAvailable(response.ok && data.success === true && data.available === true);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setSlugAvailable(null);
+      } finally { if (!controller.signal.aborted) setCheckingSlug(false); }
+    }, 350);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [story?.slug, id]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [storyRes, categoriesRes, locationsRes, destinationsRes] = await Promise.all([
+        fetch(`/api/admin/stories/${id}`, { cache: "no-store" }), fetch("/api/admin/story-categories", { cache: "no-store" }), fetch("/api/admin/locations", { cache: "no-store" }), fetch("/api/admin/destinations", { cache: "no-store" })
+      ]);
+      const storyData = await storyRes.json() as { success: boolean; story?: Story; blocks?: StoryBlock[]; error?: string };
+      const categoryData = await categoriesRes.json() as { categories?: StoryCategory[] };
+      const locationData = await locationsRes.json() as { locations?: StoryLocation[] };
+      const destinationData = await destinationsRes.json() as { destinations?: Destination[] };
+      if (!storyData.success || !storyData.story) throw new Error(storyData.error || "Failed to load story");
+      const nextCategories = categoryData.categories ?? [], nextLocations = locationData.locations ?? [], nextStory = storyData.story;
+      const rawCategories = (nextStory.categories ?? nextStory.category ?? "").split(",").map(value => value.trim()).filter(Boolean);
+      const rawLocations = (nextStory.locations ?? nextStory.location ?? "").split(",").map(value => value.trim()).filter(Boolean);
+      setStory(nextStory); setBlocks(storyData.blocks ?? []); setCategories(nextCategories); setLocations(nextLocations); setDestinations(destinationData.destinations ?? []);
+      setSelectedCategoryIds(nextCategories.filter(item => rawCategories.some(name => name.toLowerCase() === item.name.toLowerCase())).map(item => item.id));
+      setSelectedLocationIds(nextLocations.filter(item => rawLocations.some(name => name.toLowerCase() === item.name.toLowerCase())).map(item => item.id));
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to load story"); } finally { setLoading(false); }
+  }
+
+  const selectedCategoryNames = () => selectedCategoryIds.map(id => categories.find(item => item.id === id)?.name).filter((value): value is string => Boolean(value));
+  const selectedLocationNames = () => selectedLocationIds.map(id => locations.find(item => item.id === id)?.name).filter((value): value is string => Boolean(value));
+
+  async function createCategory() {
+    const name = categoryInput.trim(); if (!name || creatingCategory) return;
+    const existing = categories.find(item => item.name.toLowerCase() === name.toLowerCase());
+    if (existing) { setSelectedCategoryIds(current => current.includes(existing.id) ? current : [...current, existing.id]); setCategoryInput(""); return; }
+    setCreatingCategory(true);
+    try {
+      const response = await fetch("/api/admin/story-categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+      const data = await response.json() as { success?: boolean; category?: StoryCategory; error?: string };
+      if (!response.ok || !data.success || !data.category) throw new Error(data.error || "Failed to create category");
+      setCategories(current => [...current.filter(item => item.id !== data.category!.id), data.category!].sort((a, b) => a.name.localeCompare(b.name)));
+      setSelectedCategoryIds(current => current.includes(data.category!.id) ? current : [...current, data.category!.id]); setCategoryInput("");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to create category"); } finally { setCreatingCategory(false); }
+  }
+
+  async function createLocation() {
+    const name = locationInput.trim(); if (!name || creatingLocation) return;
+    const existing = locations.find(item => item.name.toLowerCase() === name.toLowerCase());
+    if (existing) { setSelectedLocationIds(current => current.includes(existing.id) ? current : [...current, existing.id]); setLocationInput(""); return; }
+    setCreatingLocation(true);
+    try {
+      const response = await fetch("/api/admin/locations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+      const data = await response.json() as { success?: boolean; location?: StoryLocation; error?: string };
+      if (!response.ok || !data.success || !data.location) throw new Error(data.error || "Failed to create location");
+      setLocations(current => [...current.filter(item => item.id !== data.location!.id), data.location!].sort((a, b) => a.name.localeCompare(b.name)));
+      setSelectedLocationIds(current => current.includes(data.location!.id) ? current : [...current, data.location!.id]); setLocationInput("");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to create location"); } finally { setCreatingLocation(false); }
+  }
+
+  async function saveStory(published: boolean) {
+    if (!story) return;
+    if (!story.slug.trim() || slugAvailable !== true || checkingSlug) { setMessage(!story.slug.trim() ? "Slug is required." : slugAvailable === false ? "This slug is already in use." : "Checking slug availability…"); return; }
+    setSaving(true); setMessage("");
+    try {
+      const response = await fetch(`/api/admin/stories/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: story.title, slug: story.slug, location: selectedLocationNames()[0] ?? null, location_ids: selectedLocationIds, date: story.date, category: selectedCategoryNames()[0] ?? null, category_ids: selectedCategoryIds, description: story.description, destination_id: story.destination_id ?? null, seo_title: story.seo_title ?? null, seo_description: story.seo_description ?? null, cover_media_id: story.cover_media_id ?? null, published, tags: story.tags ?? null, featured: !!story.featured, hide_from_search: !!story.hide_from_search, social_media_id: story.social_media_id ?? null }) });
+      const data = await response.json() as { success: boolean; story?: Story; error?: string; code?: string };
+      if (!response.ok || !data.success || !data.story) { if (response.status === 409 || data.code === "SLUG_EXISTS") setSlugAvailable(false); throw new Error(data.error || "Failed to save story"); }
+      setStory(data.story); setMessage(published ? "Story published." : "Draft saved.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to save story"); } finally { setSaving(false); }
+  }
+
+  async function updateBlock(block: StoryBlock, patch: Partial<StoryBlock>) {
+    try {
+      const response = await fetch(`/api/admin/stories/${id}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+      const data = await response.json() as { success: boolean; error?: string; block?: StoryBlock };
+      if (!response.ok || !data.success) throw new Error(data.error || "Failed to update block");
+      if (data.block) setBlocks(current => current.map(item => item.id === block.id ? { ...item, ...data.block } : item));
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to update block"); }
+  }
+
+  async function deleteBlock(blockId: string) {
+    if (!window.confirm("Delete this block?")) return;
+    try {
+      const response = await fetch(`/api/admin/stories/${id}/blocks/${blockId}`, { method: "DELETE" });
+      const data = await response.json() as { success: boolean; error?: string };
+      if (!response.ok || !data.success) throw new Error(data.error || "Failed to delete block");
+      setBlocks(current => current.filter(block => block.id !== blockId));
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Failed to delete block"); }
+  }
+
+  if (loading) return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Loading story…</main>;
+  if (!story) return <main className="min-h-screen bg-[#f5f2ec] p-10 text-[#171717]">Story not found.</main>;
+  const tags = (story.tags ?? "").split(",").map(tag => tag.trim()).filter(Boolean);
+  const categoryNames = selectedCategoryNames();
+  const saveDisabled = saving || checkingSlug || slugAvailable !== true;
+  const detailsProps = { story, categories, locations, destinations, selectedCategoryIds, selectedLocationIds, categoryInput, locationInput, creatingCategory, creatingLocation, onStoryChange: setStory, onToggleCategory: (id: string) => setSelectedCategoryIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]), onToggleLocation: (id: string) => setSelectedLocationIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]), onCategoryInputChange: setCategoryInput, onLocationInputChange: setLocationInput, onCreateCategory: () => void createCategory(), onCreateLocation: () => void createLocation() };
+  return <main className="min-h-screen bg-[#f5f2ec] text-[#171717]"><header className="sticky top-0 z-30 border-b border-[#ddd7cd] bg-[#f5f2ec]/95 backdrop-blur"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-6 py-4 lg:px-10"><div className="flex items-center gap-5"><Link href="/admin/stories" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Stories</Link><span className="hidden h-5 w-px bg-[#d5cfc5] sm:block"/><div><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Editor</p><p className="mt-0.5 max-w-[420px] truncate text-sm font-medium">{story.title || "Untitled story"}</p></div></div><div className="flex items-center gap-2"><span className={`hidden rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] sm:inline-flex ${story.published ? "bg-[#e3eadf] text-[#43543c]" : "bg-[#e9e5de] text-[#6f6a61]"}`}>{story.published ? "Published" : "Draft"}</span><a href={`/stories/${story.slug}`} target="_blank" rel="noreferrer" className="hidden border border-[#bdb7ad] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] md:inline-block">Preview</a><StoryDetailsDrawer {...detailsProps} /><button onClick={() => void saveStory(false)} disabled={saveDisabled} className="border border-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] disabled:opacity-40">Save Draft</button><button onClick={() => void saveStory(true)} disabled={saveDisabled} className="bg-[#171717] px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] text-white disabled:opacity-40">Publish</button></div></div></header><div className="mx-auto max-w-[1280px] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">{message && <div className="mb-6 border border-[#d8d1c7] bg-white px-5 py-3 text-sm text-[#666158]">{message}</div>}<StoryCover story={story} storyId={id} tags={tags} categoryNames={categoryNames} onChange={setStory}/><div className="mt-12"><StoryContent storyId={id} blocks={blocks} onBlocksChange={setBlocks} onDelete={deleteBlock} onUpdate={updateBlock}/></div></div></main>;
 }
