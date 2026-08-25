@@ -28,12 +28,16 @@ export async function GET(request: Request) {
     const result = await db.prepare(`
       SELECT
         s.id,s.slug,s.title,s.location,s.date,s.category,s.description,s.destination_id,
+        s.cover_media_id,
         s.published,s.created_at,s.updated_at,
         d.name AS destination_name,d.country AS destination_country,
+        m.path AS cover_path,
+        m.filename AS cover_filename,
         COALESCE((SELECT GROUP_CONCAT(c.name, ', ') FROM story_category_relations scr JOIN story_categories c ON c.id=scr.category_id WHERE scr.story_id=s.id), s.category) AS categories,
         COALESCE((SELECT GROUP_CONCAT(l.name, ', ') FROM story_location_relations slr JOIN locations l ON l.id=slr.location_id WHERE slr.story_id=s.id), s.location) AS locations
       FROM stories s
       LEFT JOIN destinations d ON d.id=s.destination_id
+      LEFT JOIN media m ON m.id=s.cover_media_id
       ORDER BY s.created_at DESC
     `).all();
     return Response.json({ success: true, stories: result.results });
