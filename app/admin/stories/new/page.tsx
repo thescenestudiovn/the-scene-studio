@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
- type Destination = { id: string; name: string };
+type Destination = { id: string; name: string };
+type DestinationResponse = { destinations?: Destination[] };
 
 export default function NewStoryPage() {
   const [form, setForm] = useState({
@@ -20,10 +21,18 @@ export default function NewStoryPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/destinations", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: { destinations?: Destination[] }) => setDestinations(data.destinations ?? []))
-      .catch(() => setDestinations([]));
+    async function loadDestinations() {
+      try {
+        const response = await fetch("/api/admin/destinations", { cache: "no-store" });
+        if (!response.ok) throw new Error("Failed to load destinations");
+        const data: DestinationResponse = await response.json();
+        setDestinations(data.destinations ?? []);
+      } catch {
+        setDestinations([]);
+      }
+    }
+
+    loadDestinations();
   }, []);
 
   function updateField(field: keyof typeof form, value: string) {
