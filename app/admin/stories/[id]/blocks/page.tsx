@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
-import ContentBlockPicker, { type ContentBlockSelection } from "../../../../../../components/story/ContentBlockPicker";
+import ContentBlockPicker, { type ContentBlockSelection } from "../../../../components/story/ContentBlockPicker";
 
 export default function StoryBlockPickerPage() {
   const router = useRouter();
