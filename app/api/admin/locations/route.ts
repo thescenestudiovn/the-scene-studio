@@ -31,12 +31,12 @@ export async function POST(request: Request) {
     const existing = await db.prepare(`SELECT id, name, slug, city, country FROM locations WHERE lower(name) = lower(?) LIMIT 1`).bind(name).first<{ id: string; name: string; slug: string; city: string | null; country: string | null }>();
     if (existing) return Response.json({ success: true, location: existing, existing: true });
 
-    const id = crypto.randomUUID();
-    const slug = slugify(name);
-    await db.prepare(`INSERT INTO locations (id, name, slug, city, country) VALUES (?, ?, ?, ?, ?)`).bind(id, name, slug, body.city?.trim() || null, body.country?.trim() || null).run();
-    return Response.json({ success: true, location: { id, name, slug, city: body.city?.trim() || null, country: body.country?.trim() || null }, existing: false });
+    // New locations are virtual until the Story is saved. The Story PATCH
+    // endpoint recognizes this id format and creates the location then.
+    const id = `__new__${encodeURIComponent(name)}`;
+    return Response.json({ success: true, location: { id, name, slug: slugify(name), city: body.city?.trim() || null, country: body.country?.trim() || null }, existing: false, pending: true });
   } catch (error) {
     console.error("POST /api/admin/locations error:", error);
-    return Response.json({ success: false, error: "Failed to create location" }, { status: 500 });
+    return Response.json({ success: false, error: "Failed to prepare location" }, { status: 500 });
   }
 }
