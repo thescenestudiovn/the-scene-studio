@@ -53,6 +53,10 @@ function pendingCategoryName(id: string) {
   catch { return null; }
 }
 
+function categorySlug(name: string) {
+  return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
 export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
@@ -118,6 +122,12 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     if (body.category_ids !== undefined) {
+      // Capture the old relations before replacing them. Any category that is
+      // removed from this story can only be deleted after the new relations
+      // are written, and only when no other story still uses it.
+      const previousRelations = await db.prepare(`SELECT category_id FROM story_category_relations WHERE story_id=?`).bind(id).all<{ category_id: string }>();
+      const previousCategoryIds = Array.from(new Set((previousRelations.results ?? []).map(row => row.category_id).filter(Boolean)));
+
       const requestedIds = Array.from(new Set(body.category_ids)).filter(Boolean);
       const categoryIds: string[] = [];
 
@@ -129,7 +139,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
             categoryIds.push(existingCategory.id);
           } else {
             const categoryId = crypto.randomUUID();
-            const slug = pendingName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            const slug = categorySlug(pendingName);
             await db.prepare(`INSERT INTO story_categories (id,name,slug) VALUES (?,?,?)`).bind(categoryId, pendingName, slug).run();
             categoryIds.push(categoryId);
           }
@@ -139,12 +149,25 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         }
       }
 
+      const finalCategoryIds = Array.from(new Set(categoryIds));
       await db.prepare(`DELETE FROM story_category_relations WHERE story_id=?`).bind(id).run();
-      for (const categoryId of Array.from(new Set(categoryIds))) {
+      for (const categoryId of finalCategoryIds) {
         await db.prepare(`INSERT OR IGNORE INTO story_category_relations (story_id, category_id) VALUES (?,?)`).bind(id, categoryId).run();
       }
-      const first = categoryIds[0]
-        ? await db.prepare(`SELECT name FROM story_categories WHERE id=? LIMIT 1`).bind(categoryIds[0]).first<{ name: string }>()
+
+      // Remove orphaned categories that were previously attached to this
+      // story but are no longer selected anywhere. Never remove a category
+      // still referenced by another story.
+      const removedCategoryIds = previousCategoryIds.filter(categoryId => !finalCategoryIds.includes(categoryId));
+      for (const categoryId of removedCategoryIds) {
+        const usage = await db.prepare(`SELECT COUNT(*) AS count FROM story_category_relations WHERE category_id=?`).bind(categoryId).first<{ count: number }>();
+        if (Number(usage?.count ?? 0) === 0) {
+          await db.prepare(`DELETE FROM story_categories WHERE id=?`).bind(categoryId).run();
+        }
+      }
+
+      const first = finalCategoryIds[0]
+        ? await db.prepare(`SELECT name FROM story_categories WHERE id=? LIMIT 1`).bind(finalCategoryIds[0]).first<{ name: string }>()
         : null;
       await db.prepare(`UPDATE stories SET category=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(first?.name ?? null, id).run();
     }
