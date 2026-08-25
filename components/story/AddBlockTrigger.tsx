@@ -4,16 +4,20 @@ import { useRouter } from "next/navigation";
 
 type Props = {
   storyId: string;
+  afterBlockId?: string;
 };
 
-export default function AddBlockTrigger({ storyId }: Props) {
+export default function AddBlockTrigger({ storyId, afterBlockId }: Props) {
   const router = useRouter();
 
   return (
     <div className="group relative h-8 w-full" aria-label="Insert block">
       <button
         type="button"
-        onClick={() => router.push(`/admin/stories/${storyId}/blocks`)}
+        onClick={() => {
+          const query = afterBlockId ? `?after=${encodeURIComponent(afterBlockId)}` : "";
+          router.push(`/admin/stories/${storyId}/blocks${query}`);
+        }}
         aria-label="Add block"
         className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
       >
