@@ -97,7 +97,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const add = (field: string, value: unknown) => { fields.push(`${field}=?`); values.push(value); };
     if (body.title !== undefined) add("title", body.title);
     if (body.slug !== undefined) add("slug", body.slug.trim());
-    if (body.location !== undefined) add("location", body.location);
+    if (body.location !== undefined && body.location_ids === undefined) add("location", body.location);
     if (body.date !== undefined) add("date", body.date);
     if (body.category !== undefined && body.category_ids === undefined) add("category", body.category);
     if (body.description !== undefined) add("description", body.description);
@@ -122,12 +122,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     if (body.category_ids !== undefined) {
-      // Capture the old relations before replacing them. Any category that is
-      // removed from this story can only be deleted after the new relations
-      // are written, and only when no other story still uses it.
       const previousRelations = await db.prepare(`SELECT category_id FROM story_category_relations WHERE story_id=?`).bind(id).all<{ category_id: string }>();
       const previousCategoryIds = Array.from(new Set((previousRelations.results ?? []).map(row => row.category_id).filter(Boolean)));
-
       const requestedIds = Array.from(new Set(body.category_ids)).filter(Boolean);
       const categoryIds: string[] = [];
 
@@ -135,12 +131,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         const pendingName = pendingCategoryName(requestedId);
         if (pendingName) {
           const existingCategory = await db.prepare(`SELECT id FROM story_categories WHERE lower(name)=lower(?) LIMIT 1`).bind(pendingName).first<{ id: string }>();
-          if (existingCategory) {
-            categoryIds.push(existingCategory.id);
-          } else {
+          if (existingCategory) categoryIds.push(existingCategory.id);
+          else {
             const categoryId = crypto.randomUUID();
-            const slug = categorySlug(pendingName);
-            await db.prepare(`INSERT INTO story_categories (id,name,slug) VALUES (?,?,?)`).bind(categoryId, pendingName, slug).run();
+            await db.prepare(`INSERT INTO story_categories (id,name,slug) VALUES (?,?,?)`).bind(categoryId, pendingName, categorySlug(pendingName)).run();
             categoryIds.push(categoryId);
           }
         } else {
@@ -154,33 +148,46 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       for (const categoryId of finalCategoryIds) {
         await db.prepare(`INSERT OR IGNORE INTO story_category_relations (story_id, category_id) VALUES (?,?)`).bind(id, categoryId).run();
       }
-
-      // Remove orphaned categories that were previously attached to this
-      // story but are no longer selected anywhere. Never remove a category
-      // still referenced by another story.
-      const removedCategoryIds = previousCategoryIds.filter(categoryId => !finalCategoryIds.includes(categoryId));
-      for (const categoryId of removedCategoryIds) {
+      for (const categoryId of previousCategoryIds.filter(categoryId => !finalCategoryIds.includes(categoryId))) {
         const usage = await db.prepare(`SELECT COUNT(*) AS count FROM story_category_relations WHERE category_id=?`).bind(categoryId).first<{ count: number }>();
-        if (Number(usage?.count ?? 0) === 0) {
-          await db.prepare(`DELETE FROM story_categories WHERE id=?`).bind(categoryId).run();
-        }
+        if (Number(usage?.count ?? 0) === 0) await db.prepare(`DELETE FROM story_categories WHERE id=?`).bind(categoryId).run();
       }
-
-      const first = finalCategoryIds[0]
-        ? await db.prepare(`SELECT name FROM story_categories WHERE id=? LIMIT 1`).bind(finalCategoryIds[0]).first<{ name: string }>()
-        : null;
+      const first = finalCategoryIds[0] ? await db.prepare(`SELECT name FROM story_categories WHERE id=? LIMIT 1`).bind(finalCategoryIds[0]).first<{ name: string }>() : null;
       await db.prepare(`UPDATE stories SET category=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(first?.name ?? null, id).run();
     }
 
     if (body.location_ids !== undefined) {
-      const locationIds = Array.from(new Set(body.location_ids)).filter(Boolean);
+      const previousRelations = await db.prepare(`SELECT location_id FROM story_location_relations WHERE story_id=?`).bind(id).all<{ location_id: string }>();
+      const previousLocationIds = Array.from(new Set((previousRelations.results ?? []).map(row => row.location_id).filter(Boolean)));
+      const requestedIds = Array.from(new Set(body.location_ids)).filter(Boolean);
+      const locationIds: string[] = [];
+
+      for (const requestedId of requestedIds) {
+        const pendingName = pendingCategoryName(requestedId);
+        if (pendingName) {
+          const existingLocation = await db.prepare(`SELECT id FROM locations WHERE lower(name)=lower(?) LIMIT 1`).bind(pendingName).first<{ id: string }>();
+          if (existingLocation) locationIds.push(existingLocation.id);
+          else {
+            const locationId = crypto.randomUUID();
+            await db.prepare(`INSERT INTO locations (id,name,slug) VALUES (?,?,?)`).bind(locationId, pendingName, categorySlug(pendingName)).run();
+            locationIds.push(locationId);
+          }
+        } else {
+          const exists = await db.prepare(`SELECT id FROM locations WHERE id=? LIMIT 1`).bind(requestedId).first<{ id: string }>();
+          if (exists) locationIds.push(exists.id);
+        }
+      }
+
+      const finalLocationIds = Array.from(new Set(locationIds));
       await db.prepare(`DELETE FROM story_location_relations WHERE story_id=?`).bind(id).run();
-      for (const locationId of locationIds) {
+      for (const locationId of finalLocationIds) {
         await db.prepare(`INSERT OR IGNORE INTO story_location_relations (story_id, location_id) VALUES (?,?)`).bind(id, locationId).run();
       }
-      const first = locationIds[0]
-        ? await db.prepare(`SELECT name FROM locations WHERE id=? LIMIT 1`).bind(locationIds[0]).first<{ name: string }>()
-        : null;
+      for (const locationId of previousLocationIds.filter(locationId => !finalLocationIds.includes(locationId))) {
+        const usage = await db.prepare(`SELECT COUNT(*) AS count FROM story_location_relations WHERE location_id=?`).bind(locationId).first<{ count: number }>();
+        if (Number(usage?.count ?? 0) === 0) await db.prepare(`DELETE FROM locations WHERE id=?`).bind(locationId).run();
+      }
+      const first = finalLocationIds[0] ? await db.prepare(`SELECT name FROM locations WHERE id=? LIMIT 1`).bind(finalLocationIds[0]).first<{ name: string }>() : null;
       await db.prepare(`UPDATE stories SET location=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(first?.name ?? null, id).run();
     }
 
