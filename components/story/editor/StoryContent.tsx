@@ -20,5 +20,5 @@ function BlockCard({ block, index, blocks, onBlocksChange, onDelete, onUpdate }:
 
 export default function StoryContent({ storyId, blocks, onBlocksChange, onDelete, onUpdate }: Props) {
   const visibleBlocks = blocks.filter(block => block.is_visible !== 0).slice().sort((a, b) => a.sort_order - b.sort_order);
-  return <section className="min-w-0"><div className="mb-10 border border-[#d9d3ca] bg-white p-6 lg:p-8"><p className="text-[10px] uppercase tracking-[0.2em] text-[#8a857d]">Story Content</p><p className="mt-2 text-sm text-[#77736c]">Build the story body from reusable blocks.</p></div><div className="space-y-5">{visibleBlocks.map((block, index) => <BlockCard key={block.id} block={block} index={index} blocks={blocks} onBlocksChange={onBlocksChange} onDelete={onDelete} onUpdate={onUpdate} />)}</div><div className="mt-6"><AddBlockTrigger storyId={storyId} /></div></section>;
+  return <section className="min-w-0"><div className="space-y-5">{visibleBlocks.map((block, index) => <BlockCard key={block.id} block={block} index={index} blocks={blocks} onBlocksChange={onBlocksChange} onDelete={onDelete} onUpdate={onUpdate} />)}</div><div className="mt-6"><AddBlockTrigger storyId={storyId} /></div></section>;
 }
