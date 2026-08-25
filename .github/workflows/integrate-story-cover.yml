@@ -1,0 +1,77 @@
+name: Integrate story cover editor
+
+on:
+  push:
+    branches:
+      - feature/story-reusable-block-ui
+    paths:
+      - .github/workflows/integrate-story-cover.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/story-reusable-block-ui
+          fetch-depth: 0
+
+      - name: Integrate StoryCoverPositionEditor
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          component = Path('app/admin/components/StoryCoverPositionEditor.tsx')
+          text = component.read_text()
+
+          old_sig = 'export default function StoryCoverPositionEditor({ storyId, onChanged }: { storyId: string; onChanged?: (story: Story) => void }) {'
+          new_sig = 'export default function StoryCoverPositionEditor({ storyId, onChanged, compact = false }: { storyId: string; onChanged?: (story: Story) => void; compact?: boolean }) {'
+          if old_sig not in text:
+              raise SystemExit('StoryCoverPositionEditor signature not found')
+          text = text.replace(old_sig, new_sig, 1)
+
+          old_preview = '    {cover && <div className="mt-6 overflow-hidden border border-[#d8d3ca] bg-white">'
+          new_preview = '    {!compact && cover && <div className="mt-6 overflow-hidden border border-[#d8d3ca] bg-white">'
+          if old_preview not in text:
+              raise SystemExit('StoryCoverPositionEditor preview not found')
+          text = text.replace(old_preview, new_preview, 1)
+          component.write_text(text)
+
+          page = Path('app/admin/stories/[id]/page.tsx')
+          text = page.read_text()
+
+          import_line = 'import { mediaUrl } from "../../../../lib/media";\n'
+          import_add = import_line + 'import StoryCoverPositionEditor from "../../../components/StoryCoverPositionEditor";\n'
+          if 'StoryCoverPositionEditor' not in text:
+              if import_line not in text:
+                  raise SystemExit('mediaUrl import not found')
+              text = text.replace(import_line, import_add, 1)
+
+          old_button = '<button onClick={()=>openSinglePicker("cover")} className="absolute right-5 top-5 border border-white/70 bg-black/45 px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-white backdrop-blur">Edit Cover</button>'
+          new_button = '<div className="absolute right-5 top-5"><StoryCoverPositionEditor compact storyId={id} onChanged={(next)=>setStory(current=>current?{...current,cover_media_id:next.cover_media_id??null,cover_path:next.cover_path??null,cover_filename:next.cover_filename??null}:current)} /></div>'
+          if old_button not in text:
+              raise SystemExit('Story cover Edit Cover button not found')
+          text = text.replace(old_button, new_button, 1)
+          page.write_text(text)
+          PY
+
+      - name: Validate changes
+        run: |
+          git diff --check
+          grep -q 'StoryCoverPositionEditor' 'app/admin/stories/[id]/page.tsx'
+          grep -q 'compact?: boolean' 'app/admin/components/StoryCoverPositionEditor.tsx'
+
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/admin/stories/'[id]'/page.tsx app/admin/components/StoryCoverPositionEditor.tsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Integrate story cover editor into story page"
+          git push origin HEAD:feature/story-reusable-block-ui
