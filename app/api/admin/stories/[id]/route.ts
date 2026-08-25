@@ -36,12 +36,26 @@ const storySelect = `
   LEFT JOIN media sm ON sm.id=s.social_media_id
 `;
 
+function normalizeStory(story: Record<string, unknown> | null) {
+  if (!story) return story;
+  const categories = typeof story.categories === "string" ? story.categories : null;
+  const locations = typeof story.locations === "string" ? story.locations : null;
+  return {
+    ...story,
+    // Keep the legacy fields useful to older editors while the relation fields
+    // remain the canonical source of truth for multi-value data.
+    category: categories || (typeof story.category === "string" ? story.category : null),
+    location: locations || (typeof story.location === "string" ? story.location : null),
+  };
+}
+
 export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
     const db = getDB();
-    const story = await db.prepare(`${storySelect} WHERE s.id=? LIMIT 1`).bind(id).first();
-    if (!story) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
+    const rawStory = await db.prepare(`${storySelect} WHERE s.id=? LIMIT 1`).bind(id).first();
+    if (!rawStory) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
+    const story = normalizeStory(rawStory as Record<string, unknown>);
 
     const blocks = await db.prepare(`SELECT * FROM story_blocks WHERE story_id=? ORDER BY sort_order ASC`).bind(id).all();
     const blocksWithMedia = await Promise.all((blocks.results ?? []).map(async block => {
@@ -78,7 +92,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (body.slug !== undefined) add("slug", body.slug.trim());
     if (body.location !== undefined) add("location", body.location);
     if (body.date !== undefined) add("date", body.date);
-    if (body.category !== undefined) add("category", body.category);
+    if (body.category !== undefined && body.category_ids === undefined) add("category", body.category);
     if (body.description !== undefined) add("description", body.description);
     if (body.seo_title !== undefined) add("seo_title", body.seo_title);
     if (body.seo_description !== undefined) add("seo_description", body.seo_description);
@@ -124,7 +138,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       await db.prepare(`UPDATE stories SET location=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(first?.name ?? null, id).run();
     }
 
-    const story = await db.prepare(`${storySelect} WHERE s.id=? LIMIT 1`).bind(id).first();
+    const rawStory = await db.prepare(`${storySelect} WHERE s.id=? LIMIT 1`).bind(id).first();
+    const story = normalizeStory(rawStory as Record<string, unknown> | null);
     return Response.json({ success: true, story });
   } catch (error) {
     console.error("PATCH /api/admin/stories/[id] error:", error);
