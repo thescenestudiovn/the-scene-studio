@@ -67,7 +67,21 @@ function TextToolbar({ editorRef, selectionRef, onChange }: { editorRef:React.Re
   </div>;
 }
 
-function TextBlockEditor({ block,onChange,onBlur }:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}) { const editorRef=useRef<HTMLDivElement|null>(null); const selectionRef=useRef<SavedSelection|null>(null); const [editing,setEditing]=useState(false); const content=block.body??block.title??""; useEffect(()=>{if(editorRef.current&&!editing&&editorRef.current.innerHTML!==content)editorRef.current.innerHTML=content;},[content,editing]); const save=()=>{const e=editorRef.current,s=window.getSelection();if(e&&s&&s.rangeCount&&e.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor:e};}; const changed=()=>{save();onChange({body:editorRef.current?.innerHTML??""});}; const variant=block.variant??block.type; const style=TEXT_STYLES[variant]??"text-base leading-7"; return <div className="overflow-visible border border-transparent focus-within:border-[#d9d3ca]">{editing&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={changed}/>}<div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className={`min-h-12 whitespace-pre-wrap px-2 py-2 outline-none ${style}`} onFocus={()=>{setEditing(true);save();}} onKeyUp={save} onMouseUp={save} onInput={changed} onBlur={()=>{save();setEditing(false);onBlur();}}/></div>; }
+function TextBlockEditor({ block,onChange,onBlur }:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}) {
+  const wrapperRef=useRef<HTMLDivElement|null>(null);
+  const editorRef=useRef<HTMLDivElement|null>(null);
+  const selectionRef=useRef<SavedSelection|null>(null);
+  const [editing,setEditing]=useState(false);
+  const content=block.body??block.title??"";
+  useEffect(()=>{if(editorRef.current&&!editing&&editorRef.current.innerHTML!==content)editorRef.current.innerHTML=content;},[content,editing]);
+  const save=()=>{const e=editorRef.current,s=window.getSelection();if(e&&s&&s.rangeCount&&e.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor:e};};
+  const changed=()=>{save();onChange({body:editorRef.current?.innerHTML??""});};
+  const variant=block.variant??block.type;
+  const style=TEXT_STYLES[variant]??"text-base leading-7";
+  return <div ref={wrapperRef} className="overflow-visible border border-transparent focus-within:border-[#d9d3ca]" onFocusCapture={()=>setEditing(true)} onBlurCapture={e=>{if(!wrapperRef.current?.contains(e.relatedTarget as Node|null)){setEditing(false);onBlur();}}}>
+    {editing&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={changed}/>}<div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className={`min-h-12 whitespace-pre-wrap px-2 py-2 outline-none ${style}`} onFocus={save} onKeyUp={save} onMouseUp={save} onInput={changed}/>
+  </div>;
+}
 
 function BlockCard({block,blocks,onBlocksChange,onDelete,onUpdate}:{block:StoryBlock;blocks:StoryBlock[];onBlocksChange:Props["onBlocksChange"];onDelete:Props["onDelete"];onUpdate:Props["onUpdate"]}) { const textLabel=TEXT_LABELS[block.variant??block.type]; const isText=block.type==="text"||block.type.startsWith("text-"); const updateLocal=(patch:Partial<StoryBlock>)=>onBlocksChange(blocks.map(item=>item.id===block.id?{...item,...patch}:item)); return <article className="group relative">{isText?<TextBlockEditor block={block} onChange={updateLocal} onBlur={()=>onUpdate(block,{body:block.body,title:block.title})}/>:<div className="border border-[#d9d3ca] bg-white p-7 lg:p-9"><p className="text-sm text-[#77736c]">This block has its own dedicated editor component.</p>{block.media.length>0&&<div className="mt-5 grid grid-cols-3 gap-3">{block.media.map(media=><div key={media.id} className="aspect-square overflow-hidden bg-[#e7e2da]"><img src={mediaUrl(media.path)} alt={media.alt??media.filename} className="h-full w-full object-cover"/></div>)}</div>}</div>}<div className="absolute -top-3 right-0 z-10 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"><span className="bg-[#f5f2ec] px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-[#8a857d]">{textLabel??block.variant??block.type}</span><button type="button" onClick={()=>onDelete(block.id)} className="bg-[#f5f2ec] px-2 py-1 text-[9px] uppercase tracking-[0.15em] text-[#9a4c42]">Delete</button></div></article>; }
 
