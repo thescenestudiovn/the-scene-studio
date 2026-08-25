@@ -7,7 +7,7 @@ type Media = { id: string; path: string; filename: string | null; alt: string | 
 type Story = { id: string; title: string; cover_media_id?: string | null; cover_path?: string | null; cover_filename?: string | null };
 type Point = { x: number; y: number };
 
-export default function StoryCoverPositionEditor({ storyId, onChanged }: { storyId: string; onChanged?: (story: Story) => void }) {
+export default function StoryCoverPositionEditor({ storyId, onChanged, compact = false }: { storyId: string; onChanged?: (story: Story) => void; compact?: boolean }) {
   const [story, setStory] = useState<Story | null>(null);
   const [cover, setCover] = useState<Media | null>(null);
   const [position, setPosition] = useState<Point>({ x: 50, y: 50 });
@@ -160,7 +160,7 @@ export default function StoryCoverPositionEditor({ storyId, onChanged }: { story
     <div className="flex justify-end">
       <button type="button" onClick={() => { setOpen(true); setMessage(""); void load(); }} className="border border-[#171717] bg-white px-5 py-3 text-[10px] uppercase tracking-[0.14em] transition hover:bg-[#171717] hover:text-white">{cover ? "Manage Cover" : "Add Cover"}</button>
     </div>
-    {cover && <div className="mt-6 overflow-hidden border border-[#d8d3ca] bg-white">
+    {!compact && cover && <div className="mt-6 overflow-hidden border border-[#d8d3ca] bg-white">
       <div className="aspect-[2/1] w-full overflow-hidden bg-[#ddd8cf]"><img src={mediaUrl(cover.path)} alt={cover.alt ?? cover.filename ?? story?.title ?? "Story cover"} className="h-full w-full object-cover" style={{ objectPosition: `${position.x}% ${position.y}%` }} /></div>
       <div className="flex items-center justify-between px-4 py-3 text-[10px] uppercase tracking-[0.14em] text-[#77736c]"><span>Story cover</span><span>{Math.round(position.x)}% · {Math.round(position.y)}%</span></div>
     </div>}
