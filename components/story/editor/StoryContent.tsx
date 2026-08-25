@@ -8,25 +8,62 @@ import type { StoryBlock } from "./types";
 type Props = { storyId: string; blocks: StoryBlock[]; onBlocksChange: (blocks: StoryBlock[]) => void; onDelete: (blockId: string) => void; onUpdate: (block: StoryBlock, patch: Partial<StoryBlock>) => void };
 const TEXT_LABELS: Record<string, string> = { "heading-1": "Heading 1", "heading-2": "Heading 2", "heading-3": "Heading 3", wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "columns-2": "Text Columns 2", "columns-3": "Text Columns 3", "columns-4": "Text Columns 4", "text-h1": "Heading 1", "text-h2": "Heading 2", "text-h3": "Heading 3", "text-wide": "Wide Text", "text-regular": "Regular Text", "text-narrow": "Narrow Text", "text-columns-2": "Text Columns 2", "text-columns-3": "Text Columns 3", "text-columns-4": "Text Columns 4" };
 const TEXT_STYLES: Record<string, string> = { "heading-1": "text-5xl font-serif leading-[1.08]", "text-h1": "text-5xl font-serif leading-[1.08]", "heading-2": "text-4xl font-serif leading-[1.12]", "text-h2": "text-4xl font-serif leading-[1.12]", "heading-3": "text-3xl font-serif leading-[1.16]", "text-h3": "text-3xl font-serif leading-[1.16]", wide: "text-xl leading-8", "text-wide": "text-xl leading-8", regular: "text-base leading-7", "text-regular": "text-base leading-7", narrow: "mx-auto max-w-2xl text-base leading-7", "text-narrow": "mx-auto max-w-2xl text-base leading-7", "columns-2": "text-base leading-7", "text-columns-2": "text-base leading-7", "columns-3": "text-base leading-7", "text-columns-3": "text-base leading-7", "columns-4": "text-base leading-7", "text-columns-4": "text-base leading-7" };
-const ALIGNMENTS = [{ command: "justifyLeft", icon: "☰", title: "Align left" }, { command: "justifyCenter", icon: "≡", title: "Align center" }, { command: "justifyRight", icon: "☰", title: "Align right" }, { command: "justifyFull", icon: "☷", title: "Justify" }] as const;
-const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
+const SIZE_OPTIONS = [
+  { value: "heading-1", label: "Heading 1", px: 40 },
+  { value: "heading-2", label: "Heading 2", px: 32 },
+  { value: "heading-3", label: "Heading 3", px: 26 },
+  { value: "paragraph-1", label: "Paragraph 1", px: 20 },
+  { value: "paragraph-2", label: "Paragraph 2", px: 16 },
+  { value: "paragraph-3", label: "Paragraph 3", px: 14 },
+] as const;
+
+function AlignIcon({ align }: { align: "left" | "center" | "right" | "justify" }) {
+  const widths = align === "left" ? [18, 14, 18, 11] : align === "center" ? [14, 18, 14, 16] : align === "right" ? [18, 14, 18, 11] : [18, 18, 18, 18];
+  const positions = align === "right" ? [0, 4, 0, 7] : align === "center" ? [2, 0, 2, 1] : [0, 0, 0, 0];
+  return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none" className="shrink-0">{widths.map((width, index) => <rect key={index} x={positions[index]} y={index * 4 + 1} width={width} height="2" rx="1" fill="currentColor" />)}</svg>;
+}
+
+function ListIcon({ ordered }: { ordered: boolean }) {
+  return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none" className="shrink-0">{ordered ? <><text x="0" y="6" fontSize="5" fill="currentColor">1</text><text x="0" y="12" fontSize="5" fill="currentColor">2</text><text x="0" y="18" fontSize="5" fill="currentColor">3</text></> : <><circle cx="2" cy="4" r="1.5" fill="currentColor"/><circle cx="2" cy="9" r="1.5" fill="currentColor"/><circle cx="2" cy="14" r="1.5" fill="currentColor"/></>}<rect x="6" y="3" width="13" height="2" rx="1" fill="currentColor"/><rect x="6" y="8" width="13" height="2" rx="1" fill="currentColor"/><rect x="6" y="13" width="10" height="2" rx="1" fill="currentColor"/></svg>;
+}
 
 function TextToolbar({ editorRef, onChange }: { editorRef: React.RefObject<HTMLDivElement | null>; onChange: () => void }) {
   const run = (command: string, value?: string) => { editorRef.current?.focus(); document.execCommand(command, false, value); onChange(); };
-  const setFontSize = (size: number) => { editorRef.current?.focus(); document.execCommand("fontSize", false, "7"); const fontTags = editorRef.current?.querySelectorAll('font[size="7"]'); fontTags?.forEach(node => { const el = node as HTMLElement; el.removeAttribute("size"); el.style.fontSize = `${size}px`; }); onChange(); };
+  const setSize = (size: (typeof SIZE_OPTIONS)[number]) => {
+    editorRef.current?.focus();
+    document.execCommand("fontSize", false, "7");
+    editorRef.current?.querySelectorAll('font[size="7"]').forEach(node => {
+      const el = node as HTMLElement;
+      el.removeAttribute("size");
+      el.style.fontSize = `${size.px}px`;
+      el.style.lineHeight = size.value.startsWith("heading") ? "1.15" : "1.7";
+      if (size.value === "heading-1") el.style.fontFamily = "Georgia, serif";
+      if (size.value === "heading-2") el.style.fontFamily = "Georgia, serif";
+      if (size.value === "heading-3") el.style.fontFamily = "Georgia, serif";
+    });
+    onChange();
+  };
+  const alignments = [
+    { command: "justifyLeft", value: "left" as const, title: "Align left" },
+    { command: "justifyCenter", value: "center" as const, title: "Align center" },
+    { command: "justifyRight", value: "right" as const, title: "Align right" },
+    { command: "justifyFull", value: "justify" as const, title: "Justify" },
+  ];
   return <div className="flex flex-wrap items-center gap-0.5 border-b border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm">
-    <select aria-label="Font size" title="Font size" defaultValue="16" onChange={e => setFontSize(Number(e.target.value))} className="h-8 w-[72px] border border-[#d9d3ca] bg-white px-2 text-xs outline-none hover:border-[#aaa49a]">{FONT_SIZES.map(size => <option key={size} value={size}>{size}px</option>)}</select>
+    <select aria-label="Text size" title="Text size" defaultValue="paragraph-2" onChange={e => { const option = SIZE_OPTIONS.find(item => item.value === e.target.value); if (option) setSize(option); }} className="h-8 w-[118px] border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none hover:border-[#aaa49a] focus:border-[#8f887e]">
+      {SIZE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
     <span className="mx-1 h-5 w-px bg-[#d9d3ca]" />
-    <button type="button" title="Bold" aria-label="Bold" onMouseDown={e => e.preventDefault()} onClick={() => run("bold")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm font-bold hover:bg-white">B</button>
-    <button type="button" title="Italic" aria-label="Italic" onMouseDown={e => e.preventDefault()} onClick={() => run("italic")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm italic hover:bg-white">I</button>
-    <button type="button" title="Underline" aria-label="Underline" onMouseDown={e => e.preventDefault()} onClick={() => run("underline")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm underline hover:bg-white">U</button>
-    <label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm hover:bg-white"><span className="relative text-sm font-semibold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-black">A</span><input aria-label="Text color" type="color" className="absolute inset-0 cursor-pointer opacity-0" onChange={e => run("foreColor", e.target.value)} /></label>
+    <button type="button" title="Bold" aria-label="Bold" onMouseDown={e => e.preventDefault()} onClick={() => run("bold")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm font-bold text-[#403c36] hover:bg-white">B</button>
+    <button type="button" title="Italic" aria-label="Italic" onMouseDown={e => e.preventDefault()} onClick={() => run("italic")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm italic text-[#403c36] hover:bg-white">I</button>
+    <button type="button" title="Underline" aria-label="Underline" onMouseDown={e => e.preventDefault()} onClick={() => run("underline")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm underline text-[#403c36] hover:bg-white">U</button>
+    <label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><span className="relative text-sm font-semibold leading-6 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-[#7d4f45]">A</span><input aria-label="Text color" type="color" defaultValue="#222222" className="absolute inset-0 cursor-pointer opacity-0" onChange={e => run("foreColor", e.target.value)} /></label>
     <span className="mx-1 h-5 w-px bg-[#d9d3ca]" />
-    {ALIGNMENTS.map(({ command, icon, title }, index) => <button key={command} type="button" title={title} aria-label={title} onMouseDown={e => e.preventDefault()} onClick={() => run(command)} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm hover:bg-white"><span className={index === 0 ? "text-left" : index === 1 ? "text-center" : index === 2 ? "text-right" : "text-justify"}>{icon}</span></button>)}
+    {alignments.map(item => <button key={item.command} type="button" title={item.title} aria-label={item.title} onMouseDown={e => e.preventDefault()} onClick={() => run(item.command)} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><AlignIcon align={item.value} /></button>)}
     <span className="mx-1 h-5 w-px bg-[#d9d3ca]" />
-    <button type="button" title="Bulleted list" aria-label="Bulleted list" onMouseDown={e => e.preventDefault()} onClick={() => run("insertUnorderedList")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm hover:bg-white">•☰</button>
-    <button type="button" title="Numbered list" aria-label="Numbered list" onMouseDown={e => e.preventDefault()} onClick={() => run("insertOrderedList")} className="flex h-8 w-8 items-center justify-center rounded-sm text-xs hover:bg-white">1☰</button>
-    <button type="button" title="Clear formatting" aria-label="Clear formatting" onMouseDown={e => e.preventDefault()} onClick={() => run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm font-medium hover:bg-white">T<span className="text-[#77736c]">x</span></button>
+    <button type="button" title="Bulleted list" aria-label="Bulleted list" onMouseDown={e => e.preventDefault()} onClick={() => run("insertUnorderedList")} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><ListIcon ordered={false} /></button>
+    <button type="button" title="Numbered list" aria-label="Numbered list" onMouseDown={e => e.preventDefault()} onClick={() => run("insertOrderedList")} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><ListIcon ordered /></button>
+    <button type="button" title="Remove formatting" aria-label="Remove formatting" onMouseDown={e => e.preventDefault()} onClick={() => run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm font-medium text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button>
   </div>;
 }
 
