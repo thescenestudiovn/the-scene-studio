@@ -26,32 +26,31 @@ function AlignIcon({ align }: { align:"left"|"center"|"right"|"justify" }) {
   return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor" />)}</svg>;
 }
 
-function ListIcon({ ordered }: { ordered:boolean }) {
-  return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">
-    {ordered ? (
-      <>
-        <text x="0" y="6" fontSize="5" fill="currentColor">1</text>
-        <text x="0" y="12" fontSize="5" fill="currentColor">2</text>
-        <text x="0" y="18" fontSize="5" fill="currentColor">3</text>
-      </>
-    ) : (
-      <>
-        <circle cx="2" cy="4" r="1.5" fill="currentColor" />
-        <circle cx="2" cy="9" r="1.5" fill="currentColor" />
-        <circle cx="2" cy="14" r="1.5" fill="currentColor" />
-      </>
-    )}
-    <rect x="6" y="3" width="13" height="2" rx="1" fill="currentColor" />
-    <rect x="6" y="8" width="13" height="2" rx="1" fill="currentColor" />
-    <rect x="6" y="13" width="10" height="2" rx="1" fill="currentColor" />
-  </svg>;
-}
-
 function TextToolbar({ editorRef, selectionRef, onChange }: { editorRef:React.RefObject<HTMLDivElement|null>; selectionRef:React.MutableRefObject<SavedSelection|null>; onChange:()=>void }) {
   const restore=()=>{ const saved=selectionRef.current, editor=editorRef.current; if(!saved||!editor||saved.editor!==editor)return false; editor.focus(); const s=window.getSelection(); if(!s)return false; s.removeAllRanges(); s.addRange(saved.range); return true; };
   const save=()=>{ const editor=editorRef.current,s=window.getSelection(); if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode)) selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor}; };
   const run=(command:string,value?:string)=>{ if(!restore())return; document.execCommand(command,false,value); save(); onChange(); };
-  const setSize=(option:(typeof SIZE_OPTIONS)[number])=>{ if(!restore())return; document.execCommand("formatBlock",false,option.tag); const s=window.getSelection(); const node=s?.anchorNode; const el=(node?.nodeType===Node.ELEMENT_NODE?node as Element:node?.parentElement); const block=el?.closest("h1,h2,h3,p") as HTMLElement|null; if(block)block.className=option.className; save(); onChange(); };
+  const setSize=(option:(typeof SIZE_OPTIONS)[number])=>{
+    if(!restore())return;
+    const editor=editorRef.current;
+    const selection=window.getSelection();
+    if(!editor||!selection||!selection.rangeCount)return;
+    let node:Node|null=selection.anchorNode;
+    if(node?.nodeType===Node.TEXT_NODE)node=node.parentElement;
+    const current=(node as Element|null)?.closest("h1,h2,h3,p,div") as HTMLElement|null;
+    if(!current||!editor.contains(current))return;
+    const replacement=document.createElement(option.tag);
+    replacement.className=option.className;
+    while(current.firstChild)replacement.appendChild(current.firstChild);
+    current.replaceWith(replacement);
+    const range=document.createRange();
+    range.selectNodeContents(replacement);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    save();
+    onChange();
+  };
   const align=[['justifyLeft','left','Align left'],['justifyCenter','center','Align center'],['justifyRight','right','Align right'],['justifyFull','justify','Justify']] as const;
   return <div className="relative z-20 flex flex-wrap items-center gap-0.5 border-b border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" onMouseDown={e=>e.stopPropagation()}>
     <select aria-label="Text size" title="Text size" defaultValue="paragraph-2" onChange={e=>{const o=SIZE_OPTIONS.find(x=>x.value===e.target.value);if(o)setSize(o);}} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none hover:border-[#aaa49a] focus:border-[#8f887e]">{SIZE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>
@@ -61,8 +60,6 @@ function TextToolbar({ editorRef, selectionRef, onChange }: { editorRef:React.Re
     <span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>
     {align.map(([cmd,val,title])=><button key={cmd} type="button" title={title} onMouseDown={e=>{e.preventDefault();save();}} onClick={()=>run(cmd)} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><AlignIcon align={val}/></button>)}
     <span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>
-    <button type="button" title="Bulleted list" onMouseDown={e=>{e.preventDefault();save();}} onClick={()=>run("insertUnorderedList")} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><ListIcon ordered={false}/></button>
-    <button type="button" title="Numbered list" onMouseDown={e=>{e.preventDefault();save();}} onClick={()=>run("insertOrderedList")} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><ListIcon ordered={true}/></button>
     <button type="button" title="Remove formatting" onMouseDown={e=>{e.preventDefault();save();}} onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button>
   </div>;
 }
