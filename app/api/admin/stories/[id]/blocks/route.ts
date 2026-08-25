@@ -5,6 +5,30 @@ type CreateBlockBody = { type?: string; variant?: string | null; sort_order?: nu
 
 const DETAIL_TABLES: Record<string, string> = { text: "text_block_data", image: "image_block_data", content: "content_block_data", links: "links_block_data", blog: "blog_block_data", video: "video_block_data", contact: "contact_block_data", social: "social_block_data", others: "others_block_data", flex: "flex_block_data" };
 
+const TEXT_DEFAULTS: Record<string, string> = {
+  "heading-1": "Heading 1",
+  "heading-2": "Heading 2",
+  "heading-3": "Heading 3",
+  wide: "This is a sample wide text. Tell your story with thoughtful words, meaningful details, and the moments that make this story yours.",
+  regular: "This is a sample regular text. Replace this copy with the story, memories, and details you want your readers to discover.",
+  narrow: "This is a sample narrow text. A more intimate reading width works beautifully for personal stories, reflections, and meaningful details.",
+};
+
+const COLUMN_DEFAULTS: Record<string, string[]> = {
+  "columns-2": ["This is the first column. Add your story, a meaningful detail, or a short reflection here.", "This is the second column. Continue the story with another detail, memory, or thought here."],
+  "columns-3": ["First column sample text. Add a short story or detail here.", "Second column sample text. Add another meaningful moment here.", "Third column sample text. Finish this section with another thought here."],
+  "columns-4": ["First column sample text.", "Second column sample text.", "Third column sample text.", "Fourth column sample text."],
+};
+
+function getTextDefaults(variant: string | null | undefined, body: string | null | undefined, data: Record<string, unknown> | undefined) {
+  if (body) return { body, data };
+  if (variant && COLUMN_DEFAULTS[variant]) {
+    const columns = COLUMN_DEFAULTS[variant];
+    return { body: columns.map(text => `<p>${text}</p>`).join(""), data: { ...(data ?? {}), columns: columns.map(text => ({ content: text })) } };
+  }
+  return { body: TEXT_DEFAULTS[variant ?? ""] ?? "This is sample text. Replace this content with your story." , data };
+}
+
 async function createDetailRow(db: ReturnType<typeof getDB>, type: string, blockId: string, body: CreateBlockBody) {
   const table = DETAIL_TABLES[type];
   if (type === "text") return db.prepare(`INSERT INTO ${table} (block_id,content,columns_data) VALUES (?,?,?)`).bind(blockId, body.body ?? "", JSON.stringify(body.data?.columns ?? [])).run();
@@ -20,11 +44,14 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
 export async function POST(request: Request, { params }: RouteContext) {
   try {
-    const { id } = await params; const body = (await request.json()) as CreateBlockBody;
-    if (!body.type || !DETAIL_TABLES[body.type]) return Response.json({ success: false, error: "A supported block type is required" }, { status: 400 });
+    const { id } = await params; const incoming = (await request.json()) as CreateBlockBody;
+    if (!incoming.type || !DETAIL_TABLES[incoming.type]) return Response.json({ success: false, error: "A supported block type is required" }, { status: 400 });
     const db = getDB(); const story = await db.prepare("SELECT id FROM stories WHERE id=? LIMIT 1").bind(id).first();
     if (!story) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
+
     const blockId = crypto.randomUUID();
+    const textDefaults = incoming.type === "text" ? getTextDefaults(incoming.variant, incoming.body, incoming.data) : { body: incoming.body ?? null, data: incoming.data };
+    const body: CreateBlockBody = { ...incoming, body: textDefaults.body, data: textDefaults.data };
     const orderRow = await db.prepare("SELECT COALESCE(MAX(sort_order),0)+1000 AS next_order FROM story_blocks WHERE story_id=? AND parent_block_id IS NULL").bind(id).first<{ next_order: number }>();
     const sortOrder = body.sort_order ?? Number(orderRow?.next_order ?? 1000);
     await db.prepare(`INSERT INTO story_blocks (id,story_id,type,variant,parent_block_id,is_visible,sort_order,eyebrow,title,body,media_id,gallery_title,data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(blockId,id,body.type,body.variant??null,body.parent_block_id??null,body.is_visible===false?0:1,sortOrder,body.eyebrow??null,body.title??null,body.body??null,body.media_id??null,body.gallery_title??null,JSON.stringify(body.data??{})).run();
