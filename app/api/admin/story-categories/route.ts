@@ -31,12 +31,13 @@ export async function POST(request: Request) {
     const existing = await db.prepare(`SELECT id, name, slug FROM story_categories WHERE lower(name) = lower(?) LIMIT 1`).bind(name).first<{ id: string; name: string; slug: string }>();
     if (existing) return Response.json({ success: true, category: existing, existing: true });
 
-    const id = crypto.randomUUID();
-    const slug = slugify(name);
-    await db.prepare(`INSERT INTO story_categories (id, name, slug) VALUES (?, ?, ?)`).bind(id, name, slug).run();
-    return Response.json({ success: true, category: { id, name, slug }, existing: false });
+    // New categories are intentionally NOT persisted here. The editor keeps this
+    // virtual category in local state and sends it with the Story update. The
+    // Story PATCH endpoint creates the category only when the Story is saved.
+    const id = `__new__${encodeURIComponent(name)}`;
+    return Response.json({ success: true, category: { id, name, slug: slugify(name) }, existing: false, pending: true });
   } catch (error) {
     console.error("POST /api/admin/story-categories error:", error);
-    return Response.json({ success: false, error: "Failed to create category" }, { status: 500 });
+    return Response.json({ success: false, error: "Failed to prepare category" }, { status: 500 });
   }
 }
