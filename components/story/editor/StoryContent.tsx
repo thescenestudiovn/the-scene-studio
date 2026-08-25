@@ -19,6 +19,7 @@ const SIZE_OPTIONS = [
 ] as const;
 
 type SavedSelection = { range: Range; editor: HTMLDivElement };
+type DropPosition = { targetId: string; side: "before" | "after" };
 
 function AlignIcon({ align }: { align:"left"|"center"|"right"|"justify" }) {
   const widths = align === "left" ? [18,14,18,11] : align === "center" ? [14,18,14,16] : align === "right" ? [18,14,18,11] : [18,18,18,18];
@@ -66,13 +67,14 @@ function DragHandle({ onDragStart, onDragEnd }: { onDragStart: () => void; onDra
   </button>;
 }
 
-function BlockCard({block,blocks,onBlocksChange,onDelete,onUpdate,draggingId,onDragStart,onDragEnd,onDrop}:{block:StoryBlock;blocks:StoryBlock[];onBlocksChange:Props["onBlocksChange"];onDelete:Props["onDelete"];onUpdate:Props["onUpdate"];draggingId:string|null;onDragStart:(id:string)=>void;onDragEnd:()=>void;onDrop:(targetId:string)=>void}) {
+function BlockCard({block,blocks,onBlocksChange,onDelete,onUpdate,draggingId,onDragStart,onDragEnd,onDragOver,onDrop}:{block:StoryBlock;blocks:StoryBlock[];onBlocksChange:Props["onBlocksChange"];onDelete:Props["onDelete"];onUpdate:Props["onUpdate"];draggingId:string|null;onDragStart:(id:string)=>void;onDragEnd:()=>void;onDragOver:(targetId:string,side:"before"|"after")=>void;onDrop:(targetId:string,side:"before"|"after")=>void}) {
   const textLabel=TEXT_LABELS[block.variant??block.type];
   const isText=block.type==="text"||block.type.startsWith("text-");
   const updateLocal=(patch:Partial<StoryBlock>)=>onBlocksChange(blocks.map(item=>item.id===block.id?{...item,...patch}:item));
-  return <article className={`group relative transition-opacity ${draggingId===block.id?"opacity-40":""}`} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();onDrop(block.id);}}>
+  return <article className="group relative" onDragOver={e=>{e.preventDefault();const rect=e.currentTarget.getBoundingClientRect();const side=e.clientY<rect.top+rect.height/2?"before":"after";onDragOver(block.id,side);e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();const rect=e.currentTarget.getBoundingClientRect();const side=e.clientY<rect.top+rect.height/2?"before":"after";onDrop(block.id,side);}}>
+    {draggingId===block.id&&<div className="pointer-events-none absolute inset-0 z-10 rounded-sm border-2 border-dashed border-[#8f887e] bg-[#8f887e]/5"/>}
     {isText?<TextBlockEditor block={block} onChange={updateLocal} onBlur={()=>onUpdate(block,{body:block.body,title:block.title})}/>:<div className="border border-[#d9d3ca] bg-white p-7 lg:p-9"><p className="text-sm text-[#77736c]">This block has its own dedicated editor component.</p>{block.media.length>0&&<div className="mt-5 grid grid-cols-3 gap-3">{block.media.map(media=><div key={media.id} className="aspect-square overflow-hidden bg-[#e7e2da]"><img src={mediaUrl(media.path)} alt={media.alt??media.filename} className="h-full w-full object-cover"/></div>)}</div>}</div>}
-    <div className="absolute -top-3 right-0 z-10 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+    <div className="absolute -top-3 right-0 z-20 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
       <DragHandle onDragStart={()=>onDragStart(block.id)} onDragEnd={onDragEnd}/>
       <span className="bg-[#f5f2ec] px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-[#8a857d]">{textLabel??block.variant??block.type}</span>
       <button type="button" onClick={()=>onDelete(block.id)} className="bg-[#f5f2ec] px-2 py-1 text-[9px] uppercase tracking-[0.15em] text-[#9a4c42]">Delete</button>
@@ -80,33 +82,40 @@ function BlockCard({block,blocks,onBlocksChange,onDelete,onUpdate,draggingId,onD
   </article>;
 }
 
+function DropIndicator({ side, visible }: { side:"before"|"after"; visible:boolean }) {
+  if(!visible)return null;
+  return <div className={`pointer-events-none relative z-30 flex h-8 items-center ${side==="before"?"-mb-2":"-mt-2"}`}><div className="flex w-full items-center gap-3"><span className="h-2 w-2 shrink-0 rounded-full bg-[#7d4f45]"/><div className="h-0.5 flex-1 bg-[#7d4f45]"/><span className="bg-[#7d4f45] px-2 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-white">Insert block here</span><div className="h-0.5 flex-1 bg-[#7d4f45]"/><span className="h-2 w-2 shrink-0 rounded-full bg-[#7d4f45]"/></div></div>;
+}
+
 export default function StoryContent({storyId,blocks,onBlocksChange,onDelete,onUpdate}:Props){
   const visibleBlocks=blocks.filter(block=>block.is_visible!==0).slice().sort((a,b)=>a.sort_order-b.sort_order);
   const [draggingId,setDraggingId]=useState<string|null>(null);
-  const [draggedOrder,setDraggedOrder]=useState<string[]|null>(null);
-  const reorderBlocks=async(targetId:string)=>{
+  const [dropPosition,setDropPosition]=useState<DropPosition|null>(null);
+  const reorderBlocks=async(targetId:string,side:"before"|"after")=>{
     if(!draggingId||draggingId===targetId)return;
     const currentIds=visibleBlocks.map(block=>block.id);
-    const nextIds=[...currentIds];
-    const from=nextIds.indexOf(draggingId);
-    const to=nextIds.indexOf(targetId);
-    if(from<0||to<0)return;
-    nextIds.splice(from,1); nextIds.splice(to,0,draggingId);
+    const from=currentIds.indexOf(draggingId); const targetIndex=currentIds.indexOf(targetId);
+    if(from<0||targetIndex<0)return;
+    const nextIds=[...currentIds]; nextIds.splice(from,1);
+    let insertIndex=nextIds.indexOf(targetId)+(side==="after"?1:0);
+    if(insertIndex<0)return;
+    nextIds.splice(insertIndex,0,draggingId);
+    if(nextIds.join(",")==currentIds.join(",")){setDraggingId(null);setDropPosition(null);return;}
     const previous=blocks;
     const optimistic=nextIds.map((blockId,index)=>{const block=blocks.find(item=>item.id===blockId);return block?{...block,sort_order:(index+1)*1000}:null;}).filter((block):block is StoryBlock=>Boolean(block));
-    onBlocksChange(optimistic);
-    setDraggedOrder(nextIds);
-    setDraggingId(null);
+    onBlocksChange(optimistic); setDraggingId(null); setDropPosition(null);
     try{
       const response=await fetch(`/api/admin/stories/${storyId}/blocks`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({block_ids:nextIds})});
       const data=await response.json() as {success?:boolean;blocks?:StoryBlock[];error?:string};
       if(!response.ok||!data.success||!data.blocks)throw new Error(data.error||"Failed to reorder story blocks");
       onBlocksChange(data.blocks);
-    }catch(error){
-      onBlocksChange(previous);
-      console.error(error);
-    }finally{setDraggedOrder(null);}
+    }catch(error){onBlocksChange(previous);console.error(error);}
   };
-  void draggedOrder;
-  return <section className="min-w-0"><div className="space-y-1">{visibleBlocks.map(block=><div key={block.id}><BlockCard block={block} blocks={blocks} onBlocksChange={onBlocksChange} onDelete={onDelete} onUpdate={onUpdate} draggingId={draggingId} onDragStart={setDraggingId} onDragEnd={()=>setDraggingId(null)} onDrop={reorderBlocks}/><AddBlockTrigger storyId={storyId} afterBlockId={block.id}/></div>)}{visibleBlocks.length===0&&<AddBlockTrigger storyId={storyId}/>}</div></section>;
+  return <section className="min-w-0"><div className="space-y-1">{visibleBlocks.map((block,index)=><div key={block.id}>
+    <DropIndicator side="before" visible={dropPosition?.targetId===block.id&&dropPosition.side==="before"&&draggingId!==block.id}/>
+    <BlockCard block={block} blocks={blocks} onBlocksChange={onBlocksChange} onDelete={onDelete} onUpdate={onUpdate} draggingId={draggingId} onDragStart={id=>{setDraggingId(id);setDropPosition(null);}} onDragEnd={()=>{setDraggingId(null);setDropPosition(null);}} onDragOver={(targetId,side)=>{if(targetId!==draggingId)setDropPosition({targetId,side});}} onDrop={reorderBlocks}/>
+    <DropIndicator side="after" visible={dropPosition?.targetId===block.id&&dropPosition.side==="after"&&draggingId!==block.id}/>
+    <AddBlockTrigger storyId={storyId} afterBlockId={block.id}/>
+    {index===visibleBlocks.length-1&&draggingId&&dropPosition===null&&<div className="pointer-events-none mt-2 flex h-8 items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#7d4f45]"/><div className="h-0.5 flex-1 bg-[#7d4f45]"/><span className="text-[9px] uppercase tracking-[0.14em] text-[#8a857d]">Drop at end</span><div className="h-0.5 flex-1 bg-[#7d4f45]"/></div>}
+  </div>)}{visibleBlocks.length===0&&<AddBlockTrigger storyId={storyId}/>}</div></section>;
 }
