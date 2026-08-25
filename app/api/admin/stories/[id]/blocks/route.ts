@@ -1,7 +1,7 @@
 import { getDB } from "@/lib/db";
 
 type RouteContext = { params: Promise<{ id: string }> };
-type CreateBlockBody = { type?: string; variant?: string | null; sort_order?: number; parent_block_id?: string | null; is_visible?: boolean; eyebrow?: string | null; title?: string | null; body?: string | null; media_id?: string | null; gallery_title?: string | null; data?: Record<string, unknown> };
+type CreateBlockBody = { type?: string; variant?: string | null; sort_order?: number; parent_block_id?: string | null; is_visible?: boolean; eyebrow?: string | null; title?: string | null; body?: string | null; media_id?: string | null; gallery_title?: string | null; data?: Record<string, unknown>; after_block_id?: string | null };
 
 const DETAIL_TABLES: Record<string, string> = { text: "text_block_data", image: "image_block_data", content: "content_block_data", links: "links_block_data", blog: "blog_block_data", video: "video_block_data", contact: "contact_block_data", social: "social_block_data", others: "others_block_data", flex: "flex_block_data" };
 
@@ -22,16 +22,58 @@ async function createDetailRow(db: ReturnType<typeof getDB>, type: string, block
   return db.prepare(`INSERT INTO ${table} (block_id,content) VALUES (?,?)`).bind(blockId, JSON.stringify(body.data ?? {})).run();
 }
 
-export async function GET(_request: Request, { params }: RouteContext) { try { const { id } = await params; const db = getDB(); const result = await db.prepare(`SELECT * FROM story_blocks WHERE story_id=? ORDER BY sort_order ASC`).bind(id).all(); return Response.json({ success: true, blocks: result.results }); } catch (error) { console.error(error); return Response.json({ success: false, error: "Failed to fetch story blocks" }, { status: 500 }); } }
+export async function GET(_request: Request, { params }: RouteContext) {
+  try {
+    const { id } = await params;
+    const db = getDB();
+    const result = await db.prepare(`SELECT * FROM story_blocks WHERE story_id=? ORDER BY sort_order ASC`).bind(id).all();
+    return Response.json({ success: true, blocks: result.results });
+  } catch (error) {
+    console.error(error);
+    return Response.json({ success: false, error: "Failed to fetch story blocks" }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request, { params }: RouteContext) {
   try {
-    const { id } = await params; const incoming = (await request.json()) as CreateBlockBody; const type = incoming.type;
+    const { id } = await params;
+    const incoming = (await request.json()) as CreateBlockBody;
+    const type = incoming.type;
     if (!type || !DETAIL_TABLES[type]) return Response.json({ success: false, error: "A supported block type is required" }, { status: 400 });
-    const db = getDB(); const story = await db.prepare("SELECT id FROM stories WHERE id=? LIMIT 1").bind(id).first(); if (!story) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
-    const blockId = crypto.randomUUID(); const textDefaults = type === "text" ? getTextDefaults(incoming.variant, incoming.body, incoming.data) : { body: incoming.body ?? null, data: incoming.data }; const body: CreateBlockBody = { ...incoming, type, body: textDefaults.body, data: textDefaults.data };
-    const orderRow = await db.prepare("SELECT COALESCE(MAX(sort_order),0)+1000 AS next_order FROM story_blocks WHERE story_id=? AND parent_block_id IS NULL").bind(id).first<{ next_order: number }>(); const sortOrder = body.sort_order ?? Number(orderRow?.next_order ?? 1000);
+
+    const db = getDB();
+    const story = await db.prepare("SELECT id FROM stories WHERE id=? LIMIT 1").bind(id).first();
+    if (!story) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
+
+    const blockId = crypto.randomUUID();
+    const textDefaults = type === "text" ? getTextDefaults(incoming.variant, incoming.body, incoming.data) : { body: incoming.body ?? null, data: incoming.data };
+    const body: CreateBlockBody = { ...incoming, type, body: textDefaults.body, data: textDefaults.data };
+
+    let sortOrder: number;
+    if (body.sort_order !== undefined) {
+      sortOrder = Number(body.sort_order);
+    } else if (body.after_block_id) {
+      const current = await db.prepare("SELECT sort_order FROM story_blocks WHERE id=? AND story_id=? LIMIT 1").bind(body.after_block_id, id).first<{ sort_order: number }>();
+      if (!current) return Response.json({ success: false, error: "Insertion block not found" }, { status: 404 });
+
+      const next = await db.prepare("SELECT sort_order FROM story_blocks WHERE story_id=? AND parent_block_id IS NULL AND sort_order>? ORDER BY sort_order ASC LIMIT 1").bind(id, current.sort_order).first<{ sort_order: number }>();
+      if (next && Number(next.sort_order) - Number(current.sort_order) > 1) {
+        sortOrder = Number(current.sort_order) + (Number(next.sort_order) - Number(current.sort_order)) / 2;
+      } else {
+        sortOrder = Number(current.sort_order) + 1;
+        await db.prepare("UPDATE story_blocks SET sort_order=sort_order+1 WHERE story_id=? AND parent_block_id IS NULL AND sort_order>=?").bind(id, sortOrder).run();
+      }
+    } else {
+      const orderRow = await db.prepare("SELECT COALESCE(MAX(sort_order),0)+1000 AS next_order FROM story_blocks WHERE story_id=? AND parent_block_id IS NULL").bind(id).first<{ next_order: number }>();
+      sortOrder = Number(orderRow?.next_order ?? 1000);
+    }
+
     await db.prepare(`INSERT INTO story_blocks (id,story_id,type,variant,parent_block_id,is_visible,sort_order,eyebrow,title,body,media_id,gallery_title,data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(blockId,id,type,body.variant??null,body.parent_block_id??null,body.is_visible===false?0:1,sortOrder,body.eyebrow??null,body.title??null,body.body??null,body.media_id??null,body.gallery_title??null,JSON.stringify(body.data??{})).run();
-    await createDetailRow(db, type, blockId, body); const block = await db.prepare("SELECT * FROM story_blocks WHERE id=? LIMIT 1").bind(blockId).first(); return Response.json({ success: true, block });
-  } catch (error) { console.error(error); return Response.json({ success: false, error: "Failed to create story block" }, { status: 500 }); }
+    await createDetailRow(db, type, blockId, body);
+    const block = await db.prepare("SELECT * FROM story_blocks WHERE id=? LIMIT 1").bind(blockId).first();
+    return Response.json({ success: true, block });
+  } catch (error) {
+    console.error(error);
+    return Response.json({ success: false, error: "Failed to create story block" }, { status: 500 });
+  }
 }
