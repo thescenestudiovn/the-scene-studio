@@ -1,7 +1,7 @@
 "use client";
 
 import { mediaUrl } from "@/lib/media";
-import StoryCoverPositionEditor from "../../StoryCoverPositionEditor";
+import StoryCoverPositionEditor from "@/app/admin/components/StoryCoverPositionEditor";
 import type { Story } from "./types";
 
 type Props = {
