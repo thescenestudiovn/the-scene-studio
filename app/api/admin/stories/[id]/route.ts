@@ -42,11 +42,15 @@ function normalizeStory(story: Record<string, unknown> | null) {
   const locations = typeof story.locations === "string" ? story.locations : null;
   return {
     ...story,
-    // Keep the legacy fields useful to older editors while the relation fields
-    // remain the canonical source of truth for multi-value data.
     category: categories || (typeof story.category === "string" ? story.category : null),
     location: locations || (typeof story.location === "string" ? story.location : null),
   };
+}
+
+function pendingCategoryName(id: string) {
+  if (!id.startsWith("__new__")) return null;
+  try { return decodeURIComponent(id.slice("__new__".length)).trim() || null; }
+  catch { return null; }
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
@@ -56,7 +60,6 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const rawStory = await db.prepare(`${storySelect} WHERE s.id=? LIMIT 1`).bind(id).first();
     if (!rawStory) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
     const story = normalizeStory(rawStory as Record<string, unknown>);
-
     const blocks = await db.prepare(`SELECT * FROM story_blocks WHERE story_id=? ORDER BY sort_order ASC`).bind(id).all();
     const blocksWithMedia = await Promise.all((blocks.results ?? []).map(async block => {
       const media = await db.prepare(`SELECT m.id,m.collection_id,m.type,m.path,m.filename,m.alt,m.width,m.height,sbm.sort_order FROM story_block_media sbm INNER JOIN media m ON m.id=sbm.media_id WHERE sbm.block_id=? ORDER BY sbm.sort_order ASC`).bind(block.id).all();
@@ -115,9 +118,29 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     if (body.category_ids !== undefined) {
-      const categoryIds = Array.from(new Set(body.category_ids)).filter(Boolean);
+      const requestedIds = Array.from(new Set(body.category_ids)).filter(Boolean);
+      const categoryIds: string[] = [];
+
+      for (const requestedId of requestedIds) {
+        const pendingName = pendingCategoryName(requestedId);
+        if (pendingName) {
+          const existingCategory = await db.prepare(`SELECT id FROM story_categories WHERE lower(name)=lower(?) LIMIT 1`).bind(pendingName).first<{ id: string }>();
+          if (existingCategory) {
+            categoryIds.push(existingCategory.id);
+          } else {
+            const categoryId = crypto.randomUUID();
+            const slug = pendingName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            await db.prepare(`INSERT INTO story_categories (id,name,slug) VALUES (?,?,?)`).bind(categoryId, pendingName, slug).run();
+            categoryIds.push(categoryId);
+          }
+        } else {
+          const exists = await db.prepare(`SELECT id FROM story_categories WHERE id=? LIMIT 1`).bind(requestedId).first<{ id: string }>();
+          if (exists) categoryIds.push(exists.id);
+        }
+      }
+
       await db.prepare(`DELETE FROM story_category_relations WHERE story_id=?`).bind(id).run();
-      for (const categoryId of categoryIds) {
+      for (const categoryId of Array.from(new Set(categoryIds))) {
         await db.prepare(`INSERT OR IGNORE INTO story_category_relations (story_id, category_id) VALUES (?,?)`).bind(id, categoryId).run();
       }
       const first = categoryIds[0]
