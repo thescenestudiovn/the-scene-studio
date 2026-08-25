@@ -2,6 +2,7 @@ import { getDB } from "@/lib/db";
 
 type RouteContext = { params: Promise<{ id: string }> };
 type CreateBlockBody = { type?: string; variant?: string | null; sort_order?: number; parent_block_id?: string | null; is_visible?: boolean; eyebrow?: string | null; title?: string | null; body?: string | null; media_id?: string | null; gallery_title?: string | null; data?: Record<string, unknown>; after_block_id?: string | null };
+type ReorderBody = { block_ids?: string[] };
 
 const DETAIL_TABLES: Record<string, string> = { text: "text_block_data", image: "image_block_data", content: "content_block_data", links: "links_block_data", blog: "blog_block_data", video: "video_block_data", contact: "contact_block_data", social: "social_block_data", others: "others_block_data", flex: "flex_block_data" };
 
@@ -75,5 +76,31 @@ export async function POST(request: Request, { params }: RouteContext) {
   } catch (error) {
     console.error(error);
     return Response.json({ success: false, error: "Failed to create story block" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: RouteContext) {
+  try {
+    const { id } = await params;
+    const body = (await request.json()) as ReorderBody;
+    const blockIds = Array.isArray(body.block_ids) ? body.block_ids.filter(Boolean) : [];
+    if (!blockIds.length) return Response.json({ success: false, error: "block_ids is required" }, { status: 400 });
+
+    const db = getDB();
+    const existing = await db.prepare("SELECT id FROM story_blocks WHERE story_id=? AND parent_block_id IS NULL ORDER BY sort_order ASC").bind(id).all<{ id: string }>();
+    const existingIds = existing.results.map(block => block.id);
+    if (existingIds.length !== blockIds.length || existingIds.some(blockId => !blockIds.includes(blockId))) {
+      return Response.json({ success: false, error: "The supplied block order does not match this story" }, { status: 400 });
+    }
+
+    for (let index = 0; index < blockIds.length; index += 1) {
+      await db.prepare("UPDATE story_blocks SET sort_order=? WHERE id=? AND story_id=? AND parent_block_id IS NULL").bind((index + 1) * 1000, blockIds[index], id).run();
+    }
+
+    const result = await db.prepare("SELECT * FROM story_blocks WHERE story_id=? ORDER BY sort_order ASC").bind(id).all();
+    return Response.json({ success: true, blocks: result.results });
+  } catch (error) {
+    console.error(error);
+    return Response.json({ success: false, error: "Failed to reorder story blocks" }, { status: 500 });
   }
 }
