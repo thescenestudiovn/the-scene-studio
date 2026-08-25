@@ -10,12 +10,18 @@ export default function AddBlockTrigger({ storyId }: Props) {
   const router = useRouter();
 
   return (
-    <button
-      type="button"
-      onClick={() => router.push(`/admin/stories/${storyId}/blocks`)}
-      className="flex w-full items-center justify-center border border-dashed border-[#aaa39a] bg-white px-5 py-6 text-[10px] uppercase tracking-[0.2em] hover:border-[#171717]"
-    >
-      + Add Block
-    </button>
+    <div className="group relative h-8 w-full" aria-label="Insert block">
+      <button
+        type="button"
+        onClick={() => router.push(`/admin/stories/${storyId}/blocks`)}
+        aria-label="Add block"
+        className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
+      >
+        <span className="absolute left-0 right-0 h-px bg-[#bdb7ad]" aria-hidden="true" />
+        <span className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[#bdb7ad] bg-[#f5f2ec] text-base font-light leading-none text-[#5f5a52] transition-transform duration-150 group-hover:scale-105">
+          +
+        </span>
+      </button>
+    </div>
   );
 }
