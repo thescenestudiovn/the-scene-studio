@@ -33,6 +33,8 @@ export async function GET(request: Request) {
         d.name AS destination_name,d.country AS destination_country,
         m.path AS cover_path,
         m.filename AS cover_filename,
+        (SELECT COUNT(*) FROM story_blocks sb WHERE sb.story_id=s.id) AS block_count,
+        (SELECT COUNT(*) FROM story_block_media sbm JOIN story_blocks sb ON sb.id=sbm.block_id WHERE sb.story_id=s.id) AS image_count,
         COALESCE((SELECT GROUP_CONCAT(c.name, ', ') FROM story_category_relations scr JOIN story_categories c ON c.id=scr.category_id WHERE scr.story_id=s.id), s.category) AS categories,
         COALESCE((SELECT GROUP_CONCAT(l.name, ', ') FROM story_location_relations slr JOIN locations l ON l.id=slr.location_id WHERE slr.story_id=s.id), s.location) AS locations
       FROM stories s
@@ -59,9 +61,7 @@ export async function POST(request: Request) {
 
     const db = getDB();
     const duplicate = await db.prepare(`SELECT id FROM stories WHERE lower(slug)=lower(?) LIMIT 1`).bind(slug).first<{ id: string }>();
-    if (duplicate) {
-      return Response.json({ success: false, error: "This slug is already in use.", field: "slug", code: "SLUG_EXISTS" }, { status: 409 });
-    }
+    if (duplicate) return Response.json({ success: false, error: "This slug is already in use.", field: "slug", code: "SLUG_EXISTS" }, { status: 409 });
 
     const id = crypto.randomUUID();
     const firstCategory = categoryIds[0] ? await db.prepare(`SELECT name FROM story_categories WHERE id=? LIMIT 1`).bind(categoryIds[0]).first<{ name: string }>() : null;
