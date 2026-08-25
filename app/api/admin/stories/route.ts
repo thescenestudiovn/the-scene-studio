@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDB } from "../../../../lib/db";
 
 type CreateStoryBody = {
@@ -84,10 +85,81 @@ export async function DELETE(request: Request) {
   try {
     const body = (await request.json()) as { id?: string };
     if (!body.id) return Response.json({ success: false, error: "id is required" }, { status: 400 });
+
     const db = getDB();
-    const result = await db.prepare(`DELETE FROM stories WHERE id=?`).bind(body.id).run();
-    if (!result.meta.changes) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
-    return Response.json({ success: true, deleted: body.id });
+    const story = await db.prepare(`SELECT id, cover_media_id FROM stories WHERE id=? LIMIT 1`).bind(body.id).first<{ id: string; cover_media_id: string | null }>();
+    if (!story) return Response.json({ success: false, error: "Story not found" }, { status: 404 });
+
+    // Collect media referenced by this story before the story and its blocks are deleted.
+    const mediaRows = await db.prepare(`
+      SELECT DISTINCT m.id, m.path, m.collection_id
+      FROM media m
+      WHERE m.id = ?
+         OR m.id IN (SELECT media_id FROM story_blocks WHERE story_id=? AND media_id IS NOT NULL)
+         OR m.id IN (
+           SELECT sbm.media_id
+           FROM story_block_media sbm
+           JOIN story_blocks sb ON sb.id=sbm.block_id
+           WHERE sb.story_id=?
+         )
+    `).bind(body.id, body.id, body.id).all<{ id: string; path: string; collection_id: string | null }>();
+
+    // Categories and locations are reusable globally. Only delete taxonomy records
+    // that become unused after this story is removed.
+    const categoryRows = await db.prepare(`SELECT category_id FROM story_category_relations WHERE story_id=?`).bind(body.id).all<{ category_id: string }>();
+    const locationRows = await db.prepare(`SELECT location_id FROM story_location_relations WHERE story_id=?`).bind(body.id).all<{ location_id: string }>();
+
+    await db.prepare(`DELETE FROM stories WHERE id=?`).bind(body.id).run();
+
+    // Remove media records belonging only to this story. Collection media is shared
+    // and must remain available to the collection/gallery.
+    const orphanMedia: { id: string; path: string }[] = [];
+    for (const media of mediaRows.results) {
+      if (media.collection_id) continue;
+
+      const usage = await db.prepare(`
+        SELECT
+          (SELECT COUNT(*) FROM stories WHERE cover_media_id=?) +
+          (SELECT COUNT(*) FROM story_blocks WHERE media_id=?) +
+          (SELECT COUNT(*) FROM story_block_media WHERE media_id=?) AS count
+      `).bind(media.id, media.id, media.id).first<{ count: number }>();
+
+      if ((usage?.count ?? 0) === 0) {
+        await db.prepare(`DELETE FROM media WHERE id=?`).bind(media.id).run();
+        orphanMedia.push({ id: media.id, path: media.path });
+      }
+    }
+
+    // Remove unused categories and locations. The relation rows for the deleted
+    // story are already gone through ON DELETE CASCADE.
+    for (const row of categoryRows.results) {
+      const usage = await db.prepare(`SELECT COUNT(*) AS count FROM story_category_relations WHERE category_id=?`).bind(row.category_id).first<{ count: number }>();
+      if ((usage?.count ?? 0) === 0) {
+        await db.prepare(`DELETE FROM story_categories WHERE id=?`).bind(row.category_id).run();
+      }
+    }
+
+    for (const row of locationRows.results) {
+      const usage = await db.prepare(`SELECT COUNT(*) AS count FROM story_location_relations WHERE location_id=?`).bind(row.location_id).first<{ count: number }>();
+      if ((usage?.count ?? 0) === 0) {
+        await db.prepare(`DELETE FROM locations WHERE id=?`).bind(row.location_id).run();
+      }
+    }
+
+    // Delete orphaned R2 objects after the DB cleanup. If an object has already
+    // disappeared from R2, the delete operation is harmless; DB deletion remains valid.
+    if (orphanMedia.length) {
+      const { env } = getCloudflareContext();
+      await Promise.all(orphanMedia.filter((media) => media.path).map((media) => env.MEDIA_BUCKET.delete(media.path)));
+    }
+
+    return Response.json({
+      success: true,
+      deleted: body.id,
+      deletedMedia: orphanMedia.length,
+      cleanedCategories: categoryRows.results.length,
+      cleanedLocations: locationRows.results.length,
+    });
   } catch (error) {
     console.error("DELETE /api/admin/stories error:", error);
     return Response.json({ success: false, error: "Failed to delete story" }, { status: 500 });
