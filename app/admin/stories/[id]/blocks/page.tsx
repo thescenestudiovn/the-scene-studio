@@ -16,7 +16,7 @@ export default function StoryBlockPickerPage() {
       body: JSON.stringify({
         type: selection.category,
         variant: selection.variant,
-        data: {},
+        data: selection.category === "image" ? selection.data : {},
         after_block_id: after || null,
       }),
     });
