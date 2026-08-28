@@ -12,15 +12,9 @@ const DEMO: Record<string,string> = {
   stacked: "https://assets-pw.pixieset.com/classic-themes/theme-images/thumbnail-photos/blocks/theme_4/photo-grid-stacked.jpg",
 };
 const VARIANTS = ["vertical","horizontal","square","stacked"] as const;
-const LABELS: Record<Variant,string> = {
-  vertical: "Vertical Grid",
-  horizontal: "Horizontal Grid",
-  square: "Square Grid",
-  stacked: "Stacked Grid",
-};
+const LABELS: Record<Variant,string> = { vertical: "Vertical Grid", horizontal: "Horizontal Grid", square: "Square Grid", stacked: "Stacked Grid" };
 type Variant = typeof VARIANTS[number];
 type Props = { storyId:string; block:StoryBlock; onChange:(patch:Partial<StoryBlock>)=>void };
-
 type ManageProps={open:boolean;selected:Media[];draftIds:string[];variant:Variant;onDraftChange:(ids:string[])=>void;onCancel:()=>void;onDone:()=>void;onAdd:()=>void};
 
 function GalleryManageModal({open,selected,draftIds,variant,onDraftChange,onCancel,onDone,onAdd}:ManageProps) {
@@ -61,10 +55,7 @@ export default function GridGalleryEditor({storyId,block,onChange}:Props){
   const selected=useMemo(()=>draftIds.map(id=>draftMedia.find(item=>item.id===id)).filter((item):item is Media=>Boolean(item)),[draftIds,draftMedia]);
   const openManager=()=>{setDraftIds(ids);setDraftMedia(media);setManageOpen(true);};
   const save=()=>{onChange({data:{...data,collection_id:null,media_ids:draftIds},variant:`grid-${variant}`});setManageOpen(false);};
-  const cycleVariant=()=>{
-    const next=VARIANTS[(VARIANTS.indexOf(variant)+1)%VARIANTS.length];
-    onChange({variant:`grid-${next}`});
-  };
+  const cycleVariant=()=>{ const next=VARIANTS[(VARIANTS.indexOf(variant)+1)%VARIANTS.length]; onChange({variant:`grid-${next}`}); };
   const renderSelected=()=>{
     if(!selected.length)return <img src={DEMO[variant]} alt="" className="block h-auto w-full"/>;
     if(variant==="vertical")return <div className="grid grid-cols-3 gap-2">{selected.map(item=><img key={item.id} src={mediaUrl(item.path)} alt={item.alt??item.filename} className="block h-auto w-full object-contain"/>)}</div>;
@@ -76,6 +67,6 @@ export default function GridGalleryEditor({storyId,block,onChange}:Props){
     <div className="mb-3 flex items-center justify-end gap-2"><button type="button" onClick={cycleVariant} title={`Switch layout · ${LABELS[variant]}`} aria-label={`Switch layout · ${LABELS[variant]}`} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#ddd6cd] bg-white px-3 text-[11px] text-[#5f5a53] shadow-sm transition hover:border-[#aaa197] hover:bg-[#faf8f4]"><span className="text-sm leading-none">↻</span><span>{LABELS[variant]}</span></button></div>
     <button type="button" onClick={openManager} className="block w-full text-left">{renderSelected()}</button>
     <GalleryManageModal open={manageOpen} selected={draftMedia} draftIds={draftIds} variant={variant} onDraftChange={setDraftIds} onCancel={()=>setManageOpen(false)} onDone={save} onAdd={()=>setPickerOpen(true)}/>
-    <GridGalleryPickerModal open={pickerOpen} selectedIds={draftIds} onClose={()=>setPickerOpen(false)} onDone={(nextIds,nextMedia)=>{setDraftIds(nextIds);setDraftMedia(current=>{const map=new Map(current.map(item=>[item.id,item]));for(const item of nextMedia)map.set(item.id,item);return Array.from(map.values());});setPickerOpen(false);}} />
+    <GridGalleryPickerModal open={pickerOpen} selectedIds={draftIds} onClose={()=>setPickerOpen(false)} onDone={(nextIds: string[], nextMedia: Media[])=>{setDraftIds(nextIds);setDraftMedia(current=>{const map=new Map(current.map(item=>[item.id,item]));for(const item of nextMedia)map.set(item.id,item);return Array.from(map.values());});setPickerOpen(false);}} />
   </div>;
 }
