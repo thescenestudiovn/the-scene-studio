@@ -11,7 +11,7 @@ type Props = {
   selectedIds: string[];
   collectionId: string;
   onClose: () => void;
-  onDone: (collectionId: string, mediaIds: string[]) => void;
+  onDone: (collectionId: string, mediaIds: string[], selectedMedia: Media[]) => void;
 };
 
 export default function MediaPickerModal({ open, required, selectedIds, collectionId, onClose, onDone }: Props) {
@@ -49,7 +49,11 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
     setSelected(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
   };
 
-  const done = () => onDone(activeCollection, selected.slice(0, required));
+  const done = () => {
+    const ids = selected.slice(0, required);
+    const selectedMedia = ids.map(id => media.find(item => item.id === id)).filter((item): item is Media => Boolean(item));
+    onDone(activeCollection, ids, selectedMedia);
+  };
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]">
