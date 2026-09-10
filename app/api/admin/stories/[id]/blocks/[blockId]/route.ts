@@ -24,7 +24,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     if (body.type === "text" && (body.body !== undefined || body.data !== undefined)) await db.prepare("UPDATE text_block_data SET content=?, columns_data=? WHERE block_id=?").bind(body.body ?? "", JSON.stringify(body.data?.columns ?? []), blockId).run();
-    const block = await db.prepare("SELECT * FROM story_blocks WHERE id=? AND story_id=? LIMIT 1").bind(blockId, storyId).first(); return Response.json({ success: true, block });
+    const block = await db.prepare("SELECT * FROM story_blocks WHERE id=? AND story_id=? LIMIT 1").bind(blockId, storyId).first<Record<string, unknown>>();
+    const media = await db.prepare("SELECT m.id,m.collection_id,m.type,m.path,m.filename,m.alt,m.width,m.height,sbm.sort_order FROM story_block_media sbm INNER JOIN media m ON m.id=sbm.media_id WHERE sbm.block_id=? ORDER BY sbm.sort_order ASC").bind(blockId).all();
+    return Response.json({ success: true, block: { ...block, media: media.results ?? [] } });
   } catch (error) { console.error(error); return Response.json({ success: false, error: "Failed to update story block" }, { status: 500 }); }
 }
 
