@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { mediaUrl } from "@/lib/media";
 import type { StoryBlock } from "../../editor/types";
 import MediaPickerModal from "./MediaPickerModal";
+import SliderGalleryEditor from "../gallery/SliderGalleryEditor";
 
 const BASE = "https://assets-pw.pixieset.com/classic-themes/theme-images/thumbnail-photos/blocks/theme_4/";
 const PREVIEWS: Record<string, string> = { large: "image-large.jpg", medium: "image-medium.jpg", "full-width": "image-full.jpg", "columns-1": "image-columns-2.jpg", "columns-2": "image-columns-2.jpg", "columns-3": "image-columns-3.jpg", "columns-4": "image-columns-4.jpg" };
@@ -16,6 +17,9 @@ function isColumnVariant(variant: string): variant is (typeof COLUMN_VARIANTS)[n
 
 export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
   const variant = block.variant ?? "large";
+  if (variant === "slideshow" || variant === "carousel") {
+    return <SliderGalleryEditor storyId={storyId} block={block} onChange={onChange} />;
+  }
   const required = slotCount(variant);
   const rawData = block.data;
   const data: Record<string, unknown> = typeof rawData === "string" ? (() => { try { const parsed = JSON.parse(rawData); return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {}; } catch { return {}; } })() : (rawData && typeof rawData === "object" ? rawData as Record<string, unknown> : {});
