@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { mediaUrl } from "../../lib/media";
 
 type Media = {
@@ -26,11 +26,7 @@ type Block = {
 function parseData(value: Block["data"]) {
   if (!value) return {} as Record<string, unknown>;
   if (typeof value !== "string") return value;
-  try {
-    return JSON.parse(value) as Record<string, unknown>;
-  } catch {
-    return {} as Record<string, unknown>;
-  }
+  try { return JSON.parse(value) as Record<string, unknown>; } catch { return {}; }
 }
 
 function Slider({ media }: { media: Media[] }) {
@@ -41,29 +37,11 @@ function Slider({ media }: { media: Media[] }) {
   return (
     <div className="relative mx-auto max-w-7xl px-6 md:px-10">
       <div className="relative overflow-hidden bg-[#ebe8e1]">
-        <img
-          src={mediaUrl(current.path)}
-          alt={current.alt || current.filename || "The Scene Studio"}
-          className="block h-[70vh] w-full object-cover md:h-[78vh]"
-        />
+        <img src={mediaUrl(current.path)} alt={current.alt || current.filename || "The Scene Studio"} className="block h-[70vh] w-full object-cover md:h-[78vh]" />
         {media.length > 1 && (
           <>
-            <button
-              type="button"
-              aria-label="Previous image"
-              onClick={() => setIndex((index - 1 + media.length) % media.length)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/85 px-4 py-3 text-lg backdrop-blur transition hover:bg-white"
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              aria-label="Next image"
-              onClick={() => setIndex((index + 1) % media.length)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/85 px-4 py-3 text-lg backdrop-blur transition hover:bg-white"
-            >
-              →
-            </button>
+            <button type="button" aria-label="Previous image" onClick={() => setIndex((value) => (value - 1 + media.length) % media.length)} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/85 px-4 py-3 text-lg backdrop-blur transition hover:bg-white">←</button>
+            <button type="button" aria-label="Next image" onClick={() => setIndex((value) => (value + 1) % media.length)} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/85 px-4 py-3 text-lg backdrop-blur transition hover:bg-white">→</button>
           </>
         )}
       </div>
@@ -72,13 +50,7 @@ function Slider({ media }: { media: Media[] }) {
           <span>{String(index + 1).padStart(2, "0")} / {String(media.length).padStart(2, "0")}</span>
           <div className="flex gap-1.5">
             {media.map((item, itemIndex) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={`Go to image ${itemIndex + 1}`}
-                onClick={() => setIndex(itemIndex)}
-                className={`h-1 w-8 transition ${itemIndex === index ? "bg-[#171717]" : "bg-[#c9c5bc]"}`}
-              />
+              <button key={item.id} type="button" aria-label={`Go to image ${itemIndex + 1}`} onClick={() => setIndex(itemIndex)} className={`h-1 w-8 transition ${itemIndex === index ? "bg-[#171717]" : "bg-[#c9c5bc]"}`} />
             ))}
           </div>
         </div>
@@ -88,44 +60,26 @@ function Slider({ media }: { media: Media[] }) {
 }
 
 function Carousel({ media }: { media: Media[] }) {
-  const [index, setIndex] = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
   if (!media.length) return null;
-  const visible = Math.min(3, media.length);
-  const maxIndex = Math.max(0, media.length - visible);
+
+  const scroll = (direction: number) => {
+    viewportRef.current?.scrollBy({ left: direction * viewportRef.current.clientWidth * 0.72, behavior: "smooth" });
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-6 md:px-10">
-      <div className="flex gap-4 overflow-hidden">
-        {media.map((item, itemIndex) => (
-          <div
-            key={item.id}
-            className="min-w-0 flex-[0_0_calc(100%-0px)] md:flex-[0_0_calc((100%-2rem)/3)]"
-            style={{ transform: `translateX(calc(-${index} * (100% + 1rem)))` }}
-          >
-            <img
-              src={mediaUrl(item.path)}
-              alt={item.alt || item.filename || "The Scene Studio"}
-              className="h-[58vh] w-full object-cover"
-            />
+      <div ref={viewportRef} className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {media.map((item) => (
+          <div key={item.id} className="w-[82%] shrink-0 snap-start md:w-[32%]">
+            <img src={mediaUrl(item.path)} alt={item.alt || item.filename || "The Scene Studio"} className="h-[58vh] w-full object-cover" />
           </div>
         ))}
       </div>
-      {media.length > visible && (
+      {media.length > 1 && (
         <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            aria-label="Previous images"
-            disabled={index === 0}
-            onClick={() => setIndex(Math.max(0, index - 1))}
-            className="border border-[#d8d3ca] px-4 py-2 text-sm disabled:opacity-30"
-          >←</button>
-          <button
-            type="button"
-            aria-label="Next images"
-            disabled={index === maxIndex}
-            onClick={() => setIndex(Math.min(maxIndex, index + 1))}
-            className="border border-[#d8d3ca] px-4 py-2 text-sm disabled:opacity-30"
-          >→</button>
+          <button type="button" aria-label="Previous images" onClick={() => scroll(-1)} className="border border-[#d8d3ca] px-4 py-2 text-sm transition hover:bg-white">←</button>
+          <button type="button" aria-label="Next images" onClick={() => scroll(1)} className="border border-[#d8d3ca] px-4 py-2 text-sm transition hover:bg-white">→</button>
         </div>
       )}
     </div>
@@ -136,7 +90,7 @@ export default function PublicStoryBlocks({ blocks }: { blocks: Block[] }) {
   return (
     <div>
       {blocks.map((block) => {
-        const data = parseData(block.data);
+        parseData(block.data);
         const media = block.media ?? [];
         const variant = block.variant ?? "";
 
