@@ -7,7 +7,7 @@ import Script from "next/script";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import StoryRenderer from "../../components/story/StoryRenderer";
-import PublicStoryBlocks from "../../components/story/PublicStoryBlocks";
+import PublicStoryBlocks from "../../../components/story/PublicStoryBlocks";
 
 import { destinations } from "../../../data/destinations";
 import { stories } from "../../../data/stories";
