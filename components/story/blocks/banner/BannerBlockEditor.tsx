@@ -6,9 +6,9 @@ import type { Media, StoryBlock } from "../../editor/types";
 import MediaPickerModal from "../image/MediaPickerModal";
 
 const LABELS: Record<string, string> = { "banner-1": "Banner 1", "banner-2": "Banner 2", "banner-3": "Banner 3", "banner-headline": "Banner with Headline", "banner-media": "Banner Media Only", "banner-slider": "Banner Slider" };
-type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void; onSave: (patch: Partial<StoryBlock>) => void };
+type Props = { block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 
-export default function BannerBlockEditor({ storyId, block, onChange, onSave }: Props) {
+export default function BannerBlockEditor({ block, onChange }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const data = block.data ?? {};
   const availableMedia = Array.isArray(block.media) ? block.media : [];
@@ -20,11 +20,22 @@ export default function BannerBlockEditor({ storyId, block, onChange, onSave }: 
   const preview = selectedMedia ? mediaUrl(selectedMedia.path) : demoPreview;
   const label = LABELS[block.variant ?? ""] ?? "Banner";
 
-  const applySelection = (collectionId: string, mediaIds: string[], pickedMedia: Media[]) => {
-    if (!mediaIds[0]) return;
-    const patch: Partial<StoryBlock> = { data: { ...data, collection_id: collectionId || null, media_ids: [mediaIds[0]] }, media: pickedMedia.slice(0, 1) };
+  const applySelection = async (collectionId: string, mediaIds: string[], pickedMedia: Media[]) => {
+    const id = mediaIds[0];
+    if (!id) return;
+    const media = pickedMedia[0];
+    const patch: Partial<StoryBlock> = { data: { ...data, collection_id: collectionId || null, media_ids: [id] }, media: media ? [media] : [] };
     onChange(patch);
-    onSave(patch);
+    if (block.story_id) {
+      try {
+        const response = await fetch(`/api/admin/stories/${block.story_id}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+        if (!response.ok) throw new Error("Failed to save banner media");
+        const result = await response.json() as { block?: StoryBlock };
+        if (result.block) onChange(result.block);
+      } catch (error) {
+        console.error(error);
+      }
+    }
     setPickerOpen(false);
   };
 
