@@ -17,7 +17,8 @@ function isColumnVariant(variant: string): variant is (typeof COLUMN_VARIANTS)[n
 export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
   const variant = block.variant ?? "large";
   const required = slotCount(variant);
-  const data = block.data ?? {};
+  const rawData = block.data;
+  const data: Record<string, unknown> = typeof rawData === "string" ? (() => { try { const parsed = JSON.parse(rawData); return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {}; } catch { return {}; } })() : (rawData && typeof rawData === "object" ? rawData as Record<string, unknown> : {});
   const availableMedia = Array.isArray(block.media) ? block.media : [];
   const configuredIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
   const availableIds = useMemo(() => new Set(availableMedia.map(item => item.id)), [availableMedia]);
@@ -31,11 +32,8 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
     const nextIds = [...configuredIds];
     nextIds[activeSlot] = chosen;
     const existingMedia = [...availableMedia];
-    const selectedById = new Map(selectedMedia.map(item => [item.id, item]));
     const nextMedia = [...existingMedia];
-    for (const item of selectedMedia) {
-      if (!nextMedia.some(media => media.id === item.id)) nextMedia.push(item);
-    }
+    for (const item of selectedMedia) if (!nextMedia.some(media => media.id === item.id)) nextMedia.push(item);
     const patch: Partial<StoryBlock> = { data: { ...data, collection_id: collectionId || null, media_ids: nextIds }, media: nextMedia };
     onChange(patch);
     void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: patch.data }) })
@@ -43,6 +41,13 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
       .catch(error => console.error(error));
     setPickerOpen(false);
   };
-  const renderSlot = (index: number) => { const mediaId = selectedIds[index]; const media = mediaId ? availableMedia.find(item => item.id === mediaId) : undefined; const demo = `${BASE}${PREVIEWS[variant] ?? PREVIEWS.large}`; let image = media ? <img src={mediaUrl(media.path)} alt={media.alt ?? ""} className="block h-auto w-full" /> : <img src={demo} alt="" className="block h-auto w-full" />; if (isColumnVariant(variant) && !media) image = <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e9e5de]"><img src={demo} alt="" className="absolute top-0 h-full max-w-none" style={{ width: `${required * 100}%`, left: `-${index * 100}%` }} /></div>; return <div key={`${block.id}-${index}`} className="min-w-0"><button type="button" onClick={() => openPicker(index)} className="group block w-full overflow-hidden bg-[#e9e5de] text-left">{image}</button><button type="button" onClick={() => openPicker(index)} className="mt-2 text-[9px] uppercase tracking-[.14em] text-[#77736c] underline underline-offset-4">{media ? "Change image" : "Choose image"}</button></div>; };
+  const renderSlot = (index: number) => {
+    const mediaId = selectedIds[index];
+    const media = mediaId ? availableMedia.find(item => item.id === mediaId) : undefined;
+    const demo = `${BASE}${PREVIEWS[variant] ?? PREVIEWS.large}`;
+    let image = media ? <img src={mediaUrl(media.path)} alt={media.alt ?? ""} className="block h-auto w-full" /> : <img src={demo} alt="" className="block h-auto w-full" />;
+    if (isColumnVariant(variant) && !media) image = <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e9e5de]"><img src={demo} alt="" className="absolute top-0 h-full max-w-none" style={{ width: `${required * 100}%`, left: `-${index * 100}%` }} /></div>;
+    return <div key={`${block.id}-${index}`} className="min-w-0"><button type="button" onClick={() => openPicker(index)} className="group block w-full overflow-hidden bg-[#e9e5de] text-left">{image}</button><button type="button" onClick={() => openPicker(index)} className="mt-2 text-[9px] uppercase tracking-[.14em] text-[#77736c] underline underline-offset-4">{media ? "Change image" : "Choose image"}</button></div>;
+  };
   return <div className="relative overflow-visible rounded-sm border border-transparent focus-within:border-[#d9d3ca]"><div className="mb-2"><span className="text-[9px] uppercase tracking-[.16em] text-[#8a857d]">{LABELS[variant] ?? "Image"}</span></div>{variant === "medium" ? <div className="flex justify-center"><div style={{ width: "50%" }}>{renderSlot(0)}</div></div> : variant === "large" ? <div className="flex justify-center"><div style={{ width: "70%" }}>{renderSlot(0)}</div></div> : variant === "full-width" || variant === "columns-1" ? <div className={variant === "columns-1" ? "grid grid-cols-1 gap-3" : ""}>{renderSlot(0)}</div> : <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${required}, minmax(0, 1fr))` }}>{Array.from({ length: required }, (_, i) => renderSlot(i))}</div>}<MediaPickerModal open={pickerOpen} required={1} selectedIds={activeSlot < selectedIds.length && selectedIds[activeSlot] ? [selectedIds[activeSlot]] : []} collectionId={typeof data.collection_id === "string" ? data.collection_id : ""} onClose={() => setPickerOpen(false)} onDone={applySelection} /></div>;
 }
