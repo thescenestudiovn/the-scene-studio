@@ -4,6 +4,8 @@ import { destinations } from "../data/destinations";
 
 const baseUrl = "https://thescenestudio.asia";
 
+export const dynamic = "force-dynamic";
+
 type SlugRow = { slug: string };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
