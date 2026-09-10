@@ -6,7 +6,7 @@ type Props = { onSelect: (selection: ContentBlockSelection) => void };
 
 export default function VideoBlockPicker({ onSelect }: Props) {
   return <div className="mx-auto max-w-3xl">
-    <button type="button" onClick={() => onSelect({ category: "video", variant: "youtube", data: { youtube_url: "" } })} className="group w-full text-left">
+    <button type="button" onClick={() => onSelect({ category: "content", variant: "banner-video", data: { youtube_url: "" } })} className="group w-full text-left">
       <div className="overflow-hidden border border-[#d9d3ca] bg-white transition hover:border-[#aaa49b]">
         <div className="flex aspect-video items-center justify-center bg-[#ece9e3]">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-xl shadow-sm transition group-hover:scale-105">▶</div>
