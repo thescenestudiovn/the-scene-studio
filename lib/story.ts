@@ -29,12 +29,14 @@ export async function getStoryBySlug(slug: string) {
       SELECT
         id,
         type,
+        variant,
         sort_order,
         eyebrow,
         title,
         body,
         media_id,
-        gallery_title
+        gallery_title,
+        data
       FROM story_blocks
       WHERE story_id = ?
       ORDER BY sort_order ASC
