@@ -41,10 +41,10 @@ function GalleryManageModal({open,selected,draftIds,variant,onDraftChange,onCanc
 }
 
 export default function GridGalleryEditor({storyId,block,onChange}:Props){
-  void storyId;
-  const data=block.data??{};
+  const rawData=block.data;
+  const data:Record<string, unknown>=typeof rawData==="string"?(()=>{try{const parsed=JSON.parse(rawData);return parsed&&typeof parsed==="object"?parsed as Record<string,unknown>:{};}catch{return {};}})():rawData&&typeof rawData==="object"?rawData as Record<string,unknown>:{};
   const media=Array.isArray(block.media)?block.media:[];
-  const ids=Array.isArray(data.media_ids)?data.media_ids.filter((id):id is string=>typeof id==="string"):[];
+  const ids=Array.isArray(data.media_ids)?data.media_ids.filter((id):id is string=>typeof id==="string") : [];
   const rawVariant=typeof block.variant==="string"?block.variant.replace(/^grid-/ ,""):"vertical";
   const variant:Variant=VARIANTS.includes(rawVariant as Variant)?rawVariant as Variant:"vertical";
   const [manageOpen,setManageOpen]=useState(false);
@@ -54,7 +54,15 @@ export default function GridGalleryEditor({storyId,block,onChange}:Props){
   useEffect(()=>{setDraftIds(ids);setDraftMedia(media);},[block.id,block.data,block.media]);
   const selected=useMemo(()=>draftIds.map(id=>draftMedia.find(item=>item.id===id)).filter((item):item is Media=>Boolean(item)),[draftIds,draftMedia]);
   const openManager=()=>{setDraftIds(ids);setDraftMedia(media);setManageOpen(true);};
-  const save=()=>{onChange({data:{...data,collection_id:null,media_ids:draftIds},variant:`grid-${variant}`});setManageOpen(false);};
+  const save=async()=>{
+    const patch={data:{...data,collection_id:null,media_ids:draftIds},variant:`grid-${variant}`};
+    onChange(patch);
+    setManageOpen(false);
+    try{
+      const response=await fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});
+      if(!response.ok)throw new Error("Failed to save grid gallery");
+    }catch(error){console.error(error);}
+  };
   const renderSelected=()=>{
     if(!selected.length)return <img src={DEMO[variant]} alt="" className="block h-auto w-full"/>;
     if(variant==="vertical")return <div className="grid grid-cols-3 gap-2">{selected.map(item=><img key={item.id} src={mediaUrl(item.path)} alt={item.alt??item.filename} className="block h-auto w-full object-contain"/>)}</div>;
