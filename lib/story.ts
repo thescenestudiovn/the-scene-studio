@@ -1,7 +1,7 @@
-import { getDB } from "./db";
+import { getDBAsync } from "./db";
 
 export async function getStoryBySlug(slug: string) {
-  const db = await getDB();
+  const db = await getDBAsync();
 
   const story = await db
     .prepare(`
