@@ -2,15 +2,14 @@ export type TextBlockVariant = "heading-1" | "heading-2" | "heading-3" | "wide" 
 
 export type ImageBlockVariant = "large" | "medium" | "full-width" | "columns-2" | "columns-3" | "columns-4" | "grid-vertical" | "grid-horizontal" | "grid-square" | "grid-stacked" | "slideshow" | "carousel" | "text-overlay-large" | "text-overlay-medium" | "text-overlay-full" | "text-columns-2" | "text-columns-3" | "text-columns-4" | "text-below-large" | "text-below-medium" | "text-left-regular" | "text-right-regular" | "text-left-large" | "text-right-large";
 
-export type BannerBlockVariant = "banner-1" | "banner-2" | "banner-3" | "banner-headline" | "banner-media" | "banner-slider";
+export type VideoBlockVariant = "youtube";
 
 export type ContentBlockSelection =
   | { category: "text"; variant: TextBlockVariant }
   | { category: "image"; variant: ImageBlockVariant; data: { collection_id: string; media_ids: string[] } }
-  | { category: "content"; variant: BannerBlockVariant; data: { demo_preview: string } };
+  | { category: "video"; variant: VideoBlockVariant; data: { youtube_url: string } };
 
 export const BLOCK_CATEGORIES = [
-  ["text", "Text"], ["image", "Image"], ["content", "Content"], ["links", "Links"],
-  ["blog", "Blog"], ["video", "Video"], ["contact", "Contact"], ["social", "Social"],
-  ["others", "Others"], ["flex", "Flex Block"],
+  ["text", "Text"], ["image", "Image"], ["video", "Video"], ["links", "Links"],
+  ["blog", "Blog"], ["contact", "Contact"], ["social", "Social"], ["others", "Others"], ["flex", "Flex Block"],
 ] as const;
