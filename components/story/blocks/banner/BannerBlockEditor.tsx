@@ -1,59 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { mediaUrl } from "@/lib/media";
-import type { Media, StoryBlock } from "../../editor/types";
-import MediaPickerModal from "../image/MediaPickerModal";
+import { useState } from "react";
+import type { StoryBlock } from "../../editor/types";
 
-const LABELS: Record<string, string> = { "banner-1": "Banner 1", "banner-2": "Banner 2", "banner-3": "Banner 3", "banner-headline": "Banner with Headline", "banner-media": "Banner Media Only", "banner-slider": "Banner Slider" };
 type Props = { block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 
-export default function BannerBlockEditor({ block, onChange }: Props) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const data = block.data ?? {};
-  const availableMedia = Array.isArray(block.media) ? block.media : [];
-  const configuredIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
-  const availableIds = useMemo(() => new Set(availableMedia.map(item => item.id)), [availableMedia]);
-  const selectedIds = useMemo(() => configuredIds.filter(id => availableIds.has(id)), [configuredIds, availableIds]);
-  const selectedMedia = selectedIds[0] ? availableMedia.find(item => item.id === selectedIds[0]) : undefined;
-  const demoPreview = typeof data.demo_preview === "string" ? data.demo_preview : null;
-  const preview = selectedMedia ? mediaUrl(selectedMedia.path) : demoPreview;
-  const label = LABELS[block.variant ?? ""] ?? "Banner";
-
-  const applySelection = async (collectionId: string, mediaIds: string[], pickedMedia: Media[]) => {
-    const id = mediaIds[0];
-    if (!id) return;
-    const media = pickedMedia[0];
-    const patch: Partial<StoryBlock> = { data: { ...data, collection_id: collectionId || null, media_ids: [id] }, media: media ? [media] : [] };
-    onChange(patch);
-    if (block.story_id) {
-      try {
-        const response = await fetch(`/api/admin/stories/${block.story_id}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
-        if (!response.ok) throw new Error("Failed to save banner media");
-        const result = await response.json() as { block?: StoryBlock };
-        if (result.block) onChange(result.block);
-      } catch (error) {
-        console.error(error);
-      }
+function youtubeId(value: string) {
+  try {
+    const url = new URL(value.trim());
+    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("/")[0] || null;
+    if (url.hostname.includes("youtube.com")) {
+      if (url.pathname === "/watch") return url.searchParams.get("v");
+      if (url.pathname.startsWith("/embed/")) return url.pathname.split("/")[2] || null;
+      if (url.pathname.startsWith("/shorts/")) return url.pathname.split("/")[2] || null;
     }
-    setPickerOpen(false);
+  } catch {}
+  return null;
+}
+
+export default function BannerBlockEditor({ block, onChange }: Props) {
+  const [value, setValue] = useState(typeof block.data?.youtube_url === "string" ? block.data.youtube_url : "");
+  const id = youtubeId(value);
+  const update = (next: string) => {
+    setValue(next);
+    onChange({ data: { ...(block.data ?? {}), youtube_url: next } });
   };
 
   return <div className="overflow-hidden border border-[#d9d3ca] bg-white">
-    <div className="relative aspect-[16/6] overflow-hidden bg-[#e8e4dc]">
-      {preview ? <img src={preview} alt="" className="h-full w-full object-cover" /> : <button type="button" onClick={() => setPickerOpen(true)} className="flex h-full w-full items-center justify-center text-sm text-[#8a867e] hover:bg-[#e2ded6]">Choose media for this banner</button>}
-      <div className="absolute inset-0 bg-black/20" />
-      <div className="absolute inset-0 flex items-center justify-center p-8 text-center text-white"><div>
-        {block.variant === "banner-headline" && <p className="mb-2 text-[10px] uppercase tracking-[0.2em] opacity-80">The Scene Studio</p>}
-        {block.variant !== "banner-media" && <h3 className="font-serif text-3xl">{block.title || label}</h3>}
-        {block.variant !== "banner-media" && <p className="mt-2 text-sm opacity-90">{block.body || "Add a short message to this banner."}</p>}
-      </div></div>
+    <div className="aspect-video bg-[#ece9e3]">
+      {id ? <iframe className="h-full w-full" src={`https://www.youtube.com/embed/${id}`} title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <div className="flex h-full items-center justify-center text-sm text-[#8a867e]">Paste a YouTube link below</div>}
     </div>
-    <div className="grid gap-4 border-t border-[#ebe7e0] p-5 sm:grid-cols-2">
-      <label className="text-xs text-[#77736c]">Title<input value={block.title ?? ""} onChange={e => onChange({ title: e.target.value })} placeholder={label} className="mt-2 h-10 w-full border border-[#d9d3ca] bg-[#faf9f6] px-3 text-sm text-[#27251f] outline-none focus:border-[#99938a]" /></label>
-      <label className="text-xs text-[#77736c]">Message<textarea value={block.body ?? ""} onChange={e => onChange({ body: e.target.value })} placeholder="Add a short message…" rows={2} className="mt-2 w-full resize-none border border-[#d9d3ca] bg-[#faf9f6] px-3 py-2 text-sm text-[#27251f] outline-none focus:border-[#99938a]" /></label>
-      <div className="sm:col-span-2 flex items-center justify-between border-t border-[#ebe7e0] pt-4"><div className="text-[10px] uppercase tracking-[.14em] text-[#8a857d]">{selectedMedia ? selectedMedia.filename : "No media selected"}</div><button type="button" onClick={() => setPickerOpen(true)} className="rounded-full bg-[#171717] px-5 py-2.5 text-xs text-white hover:bg-[#333]">{selectedMedia ? "Change media" : "Choose media"}</button></div>
+    <div className="border-t border-[#ebe7e0] p-5">
+      <label className="block text-xs text-[#77736c]">YouTube URL<input value={value} onChange={e => update(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." className="mt-2 h-11 w-full border border-[#d9d3ca] bg-[#faf9f6] px-3 text-sm text-[#27251f] outline-none focus:border-[#99938a]" /></label>
+      {value && !id && <p className="mt-2 text-xs text-[#9a4c42]">This doesn’t look like a valid YouTube link.</p>}
     </div>
-    <MediaPickerModal open={pickerOpen} required={1} selectedIds={selectedIds.slice(0, 1)} collectionId={typeof data.collection_id === "string" ? data.collection_id : ""} onClose={() => setPickerOpen(false)} onDone={applySelection} />
   </div>;
 }
