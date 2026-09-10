@@ -6,14 +6,14 @@ import CoverPositionEditor from "./components/CoverPositionEditor";
 
 const serif = Cormorant_Garamond({
   variable: "--font-serif",
-  subsets: ["latin", "vietnamese"],
+  subsets: ["latin-ext"],
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
 });
 
 const sans = DM_Sans({
   variable: "--font-sans",
-  subsets: ["latin", "vietnamese"],
+  subsets: ["latin-ext"],
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
 });
