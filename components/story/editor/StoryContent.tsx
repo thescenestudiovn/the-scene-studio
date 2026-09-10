@@ -13,11 +13,17 @@ type DropPosition={targetId:string;side:"before"|"after"};
 type SavedSelection={range:Range;editor:HTMLDivElement};
 
 const TEXT_STYLES:Record<string,string>={"heading-1":"text-5xl font-serif leading-[1.08]","text-h1":"text-5xl font-serif leading-[1.08]","heading-2":"text-4xl font-serif leading-[1.12]","text-h2":"text-4xl font-serif leading-[1.12]","heading-3":"text-3xl font-serif leading-[1.16]","text-h3":"text-3xl font-serif leading-[1.16]",wide:"text-xl leading-8","text-wide":"text-xl leading-8",regular:"text-base leading-7","text-regular":"text-base leading-7",narrow:"mx-auto max-w-2xl text-base leading-7","text-narrow":"mx-auto max-w-2xl text-base leading-7"};
-const LABELS:Record<string,string>={"heading-1":"Heading 1","heading-2":"Heading 2","heading-3":"Heading 3",wide:"Wide Text",regular:"Regular Text",narrow:"Narrow Text","text-h1":"Heading 1","text-h2":"Heading 2","text-h3":"Heading 3","text-wide":"Wide Text","text-regular":"Regular Text","text-narrow":"Narrow Text","columns-1":"Columns 1","columns-2":"Columns 2","columns-3":"Columns 3","columns-4":"Columns 4","text-columns-2":"Columns 2","text-columns-3":"Columns 3","text-columns-4":"Columns 4",large:"Large Image",medium:"Medium Image","full-width":"Full Width Image","grid-vertical":"Vertical Grid","grid-horizontal":"Horizontal Grid","grid-square":"Square Grid","grid-stacked":"Stacked Grid","banner-1":"Banner 1","banner-2":"Banner 2","banner-3":"Banner 3","banner-headline":"Banner with Headline","banner-media":"Banner Media Only","banner-slider":"Banner Slider"};
+const LABELS:Record<string,string>={"heading-1":"Heading 1","heading-2":"Heading 2","heading-3":"Heading 3",wide:"Wide Text",regular:"Regular Text",narrow:"Narrow Text","text-h1":"Heading 1","text-h2":"Heading 2","text-h3":"Heading 3","text-wide":"Wide Text","text-regular":"Regular Text","text-narrow":"Narrow Text","columns-1":"Columns 1","columns-2":"Columns 2","columns-3":"Columns 3","columns-4":"Columns 4","text-columns-2":"Columns 2","text-columns-3":"Columns 3","text-columns-4":"Columns 4",large:"Large Image",medium:"Medium Image","full-width":"Full Width Image","grid-vertical":"Vertical Grid","grid-horizontal":"Horizontal Grid","grid-square":"Square Grid","grid-stacked":"Stacked Grid",slideshow:"Slideshow",carousel:"Carousel","text-overlay-large":"Image with Text · Large","text-overlay-medium":"Image with Text · Medium","text-overlay-full":"Image with Text · Full","text-columns-2":"Image with Text · Columns 2","text-columns-3":"Image with Text · Columns 3","text-columns-4":"Image with Text · Columns 4","text-below-large":"Image with Text · Below Large","text-below-medium":"Image with Text · Below Medium","text-left-regular":"Image with Text · Left","text-right-regular":"Image with Text · Right","text-left-large":"Image with Text · Left Large","text-right-large":"Image with Text · Right Large","banner-1":"Banner 1","banner-2":"Banner 2","banner-3":"Banner 3","banner-headline":"Banner with Headline","banner-media":"Banner Media Only","banner-slider":"Banner Slider"};
 
 const IMAGE_SINGLE_VARIANTS=["medium","large","full-width"] as const;
 const IMAGE_COLUMN_VARIANTS=["columns-1","columns-2","columns-3"] as const;
 const GRID_VARIANTS=["grid-vertical","grid-horizontal","grid-square","grid-stacked"] as const;
+const SLIDER_VARIANTS=["slideshow","carousel"] as const;
+const IMAGE_TEXT_OVERLAY_VARIANTS=["text-overlay-large","text-overlay-medium","text-overlay-full"] as const;
+const IMAGE_TEXT_COLUMN_VARIANTS=["text-columns-2","text-columns-3","text-columns-4"] as const;
+const IMAGE_TEXT_BELOW_VARIANTS=["text-below-large","text-below-medium"] as const;
+const IMAGE_TEXT_SIDE_REGULAR_VARIANTS=["text-left-regular","text-right-regular"] as const;
+const IMAGE_TEXT_SIDE_LARGE_VARIANTS=["text-left-large","text-right-large"] as const;
 const HEADING_VARIANTS=["heading-1","heading-2","heading-3","text-h1","text-h2","text-h3"] as const;
 const TEXT_WIDTH_VARIANTS=["wide","regular","narrow","text-wide","text-regular","text-narrow"] as const;
 const TEXT_COLUMN_VARIANTS=["columns-1","columns-2","columns-3","text-columns-2","text-columns-3","text-columns-4"] as const;
@@ -30,6 +36,9 @@ function nextVariant(variant:string,blockType:string){
     if(columnIndex>=0){const list=IMAGE_COLUMN_VARIANTS;return list[(columnIndex+1)%list.length];}
     if(variant==="columns-4")return "columns-1";
     if(GRID_VARIANTS.includes(variant as (typeof GRID_VARIANTS)[number])){const list=GRID_VARIANTS;return list[(list.indexOf(variant as (typeof GRID_VARIANTS)[number])+1)%list.length];}
+    if(SLIDER_VARIANTS.includes(variant as (typeof SLIDER_VARIANTS)[number])){const list=SLIDER_VARIANTS;return list[(list.indexOf(variant as (typeof SLIDER_VARIANTS)[number])+1)%list.length];}
+    const imageTextGroups=[IMAGE_TEXT_OVERLAY_VARIANTS,IMAGE_TEXT_COLUMN_VARIANTS,IMAGE_TEXT_BELOW_VARIANTS,IMAGE_TEXT_SIDE_REGULAR_VARIANTS,IMAGE_TEXT_SIDE_LARGE_VARIANTS] as const;
+    for(const list of imageTextGroups){const index=(list as readonly string[]).indexOf(variant);if(index>=0)return list[(index+1)%list.length];}
   }
   if(blockType==="text"||blockType.startsWith("text-")){
     const headingIndex=HEADING_VARIANTS.indexOf(variant as (typeof HEADING_VARIANTS)[number]);
@@ -49,6 +58,11 @@ function switchLabel(variant:string,blockType:string){
     if(variant==="full-width")return "Full · 100%";
     if(variant.startsWith("columns-"))return `Columns ${variant.replace("columns-","")}`;
     if(variant.startsWith("grid-"))return LABELS[variant]??"Grid";
+    if(variant==="slideshow"||variant==="carousel")return LABELS[variant]??"Slider";
+    if(variant.startsWith("text-overlay-"))return LABELS[variant]??"Image with Text";
+    if(variant.startsWith("text-columns-"))return LABELS[variant]??`Image with Text · Columns ${variant.replace("text-columns-","")}`;
+    if(variant.startsWith("text-below-"))return LABELS[variant]??"Image with Text";
+    if(variant.startsWith("text-left-")||variant.startsWith("text-right-"))return LABELS[variant]??"Image with Text";
   }
   if(blockType==="text"||blockType.startsWith("text-")){
     if(variant.startsWith("heading-")||variant.startsWith("text-h"))return LABELS[variant]??"Heading";
