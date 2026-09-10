@@ -5,7 +5,8 @@ import { mediaUrl } from "@/lib/media";
 import type { Media, StoryBlock } from "../../editor/types";
 import GridGalleryPickerModal from "./GridGalleryPickerModal";
 
-const DEMO = "https://assets-pw.pixieset.com/classic-themes/theme-images/thumbnail-photos/blocks/theme_4/photo-slideshow.jpg";
+const BASE = "https://assets-pw.pixieset.com/classic-themes/theme-images/thumbnail-photos/blocks/theme_4/";
+const DEMO: Record<string, string> = { slideshow: `${BASE}image-large.jpg`, carousel: `${BASE}image-full.jpg` };
 
 type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 
@@ -82,9 +83,10 @@ export default function SliderGalleryEditor({ storyId, block, onChange }: Props)
       if (!response.ok) throw new Error("Failed to save slider gallery");
     } catch (error) { console.error(error); }
   };
+  const demo = DEMO[block.variant ?? "slideshow"] ?? DEMO.slideshow;
   return <div className="w-full overflow-hidden rounded-sm">
     <button type="button" onClick={openManager} className="block w-full text-left">
-      {selected.length ? <div className="relative overflow-hidden bg-[#e9e5de]">{selected.slice(0, 5).map((item, index) => <img key={item.id} src={mediaUrl(item.path)} alt={item.alt ?? item.filename} className={`block h-auto w-full ${index ? "hidden" : ""}`} />)}<div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-3 py-1.5 text-[10px] uppercase tracking-[.12em] text-white">{selected.length} images · Edit gallery</div></div> : <div className="relative"><img src={DEMO} alt="" className="block h-auto w-full" /><div className="absolute inset-x-0 bottom-0 bg-black/45 px-4 py-3 text-[10px] uppercase tracking-[.16em] text-white">Choose images for slider</div></div>}
+      {selected.length ? <div className="relative overflow-hidden bg-[#e9e5de]">{selected.slice(0, 5).map((item, index) => <img key={item.id} src={mediaUrl(item.path)} alt={item.alt ?? item.filename} className={`block h-auto w-full ${index ? "hidden" : ""}`} />)}<div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-3 py-1.5 text-[10px] uppercase tracking-[.12em] text-white">{selected.length} images · Edit gallery</div></div> : <div className="relative overflow-hidden bg-[#e9e5de]"><img src={demo} alt="" className="block h-auto w-full" /><div className="absolute inset-x-0 bottom-0 bg-black/45 px-4 py-3 text-[10px] uppercase tracking-[.16em] text-white">Choose images for {block.variant === "carousel" ? "carousel" : "slideshow"}</div></div>}
     </button>
     <ManageImages open={manageOpen} media={draftMedia} ids={draftIds} onChange={setDraftIds} onCancel={() => setManageOpen(false)} onDone={save} onAdd={() => setPickerOpen(true)} />
     <GridGalleryPickerModal open={pickerOpen} selectedIds={draftIds} onClose={() => setPickerOpen(false)} onDone={(nextIds: string[], nextMedia: Media[]) => { setDraftIds(nextIds); setDraftMedia(current => { const map = new Map(current.map(item => [item.id, item])); for (const item of nextMedia) map.set(item.id, item); return Array.from(map.values()); }); setPickerOpen(false); }} />
