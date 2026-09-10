@@ -3,7 +3,11 @@
 import { useState } from "react";
 import type { StoryBlock } from "../../editor/types";
 
-type Props = { block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
+type Props = {
+  block: StoryBlock;
+  onChange: (patch: Partial<StoryBlock>) => void;
+  onSave: (patch: Partial<StoryBlock>) => void;
+};
 
 function youtubeId(value: string) {
   try {
@@ -18,18 +22,22 @@ function youtubeId(value: string) {
   return null;
 }
 
-export default function VideoBlockEditor({ block, onChange }: Props) {
+export default function VideoBlockEditor({ block, onChange, onSave }: Props) {
   const data = typeof block.data === "string" ? (() => { try { return JSON.parse(block.data) as Record<string, unknown>; } catch { return {}; } })() : (block.data ?? {});
   const [url, setUrl] = useState(typeof data.youtube_url === "string" ? data.youtube_url : "");
   const id = youtubeId(url);
+  const patch = { data: { youtube_url: url.trim() } };
 
-  const save = () => onChange({ data: { youtube_url: url.trim() } });
+  const save = () => {
+    onChange(patch);
+    onSave(patch);
+  };
 
   return <div className="border border-[#ddd9d0] bg-white p-5 md:p-7">
     <div className="mb-4 text-[10px] uppercase tracking-[0.18em] text-[#8a857d]">YouTube Video</div>
     <div className="flex gap-3 max-md:flex-col">
-      <input value={url} onChange={e => setUrl(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); save(); } }} placeholder="Paste YouTube link" className="min-w-0 flex-1 border border-[#d9d3ca] bg-[#faf9f6] px-4 py-3 text-sm outline-none focus:border-[#99938a]" />
-      <button type="button" onClick={save} className="border border-[#171717] bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.14em] text-white">Save</button>
+      <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); save(); } }} placeholder="Paste YouTube link" className="min-w-0 flex-1 border border-[#d9d3ca] bg-[#faf9f6] px-4 py-3 text-sm outline-none focus:border-[#99938a]" />
+      <button type="button" onClick={save} disabled={!youtubeId(url)} className="border border-[#171717] bg-[#171717] px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:cursor-not-allowed disabled:opacity-40">Save</button>
     </div>
     {id ? <div className="mt-6 aspect-video overflow-hidden bg-black"><iframe className="h-full w-full" src={`https://www.youtube.com/embed/${id}`} title="YouTube video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /></div> : <p className="mt-3 text-xs text-[#8a857d]">Paste a YouTube URL to preview the video.</p>}
   </div>;
