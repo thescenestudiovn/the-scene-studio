@@ -48,7 +48,7 @@ export default function ImageWithTextEditor({ storyId, block, onChange }: Props)
   return <div className="w-full overflow-hidden rounded-sm border border-transparent focus-within:border-[#d9d3ca]">
     <div className="mb-3 flex items-center justify-between gap-3">
       <span className="text-[9px] uppercase tracking-[.16em] text-[#8a857d]">{labelFor(variant)}</span>
-      <button type="button" onClick={()=>setPickerOpen(true)} className="border border-[#171717] bg-[#171717] px-3 py-2 text-[9px] uppercase tracking-[.13em] text-white">{selected.length ? "Change images" : "Choose images"}</button>
+      <button type="button" onClick={()=>setPickerOpen(true)} className="border border-[#171717] bg-[#171717] px-3 py-2 text-[9px] uppercase tracking-[.13em] text-white">{selected.length ? "Change image" : "Choose image"}</button>
     </div>
     <div className={isOverlay(variant)?"relative min-h-[380px] overflow-hidden bg-[#ddd8cf]":isColumns(variant)?`grid gap-3 ${count===2?"md:grid-cols-2":count===3?"md:grid-cols-3":"md:grid-cols-4"}`:isSide(variant)?"grid items-center gap-7 md:grid-cols-2":"max-w-4xl"}>
       {items.map((item,index)=>{ const fields=<div className="space-y-2 p-1"><textarea value={item.text} onChange={event=>updateItem(index,"text",event.target.value)} placeholder="Text" rows={4} className="w-full resize-y border border-[#e5e0d8] bg-[#faf8f4] p-3 text-sm leading-6 text-[#5f5a53] outline-none placeholder:text-[#bdb7ad]" /></div>;
@@ -58,6 +58,6 @@ export default function ImageWithTextEditor({ storyId, block, onChange }: Props)
         const imageFirst=variant==="text-left-regular"||variant==="text-left-large"; return <div key={index} className="contents"><div className={imageFirst?"order-1":"order-2"}><div className="aspect-[4/3] overflow-hidden bg-[#e9e5de]">{imageNode(index)}</div></div><div className={imageFirst?"order-2":"order-1"}>{fields}</div></div>; })}
     </div>
     <div className="mt-4 grid grid-cols-4 gap-2">{Array.from({length:count},(_,index)=>{const image=selected[index];return <div key={index} className="relative aspect-[4/3] overflow-hidden bg-[#e9e5de]">{image?<img src={mediaUrl(image.path)} alt={image.alt??image.filename} className="h-full w-full object-cover"/>:<button type="button" onClick={()=>setPickerOpen(true)} className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-[.12em] text-[#9a948a]">+ Add photo</button>}</div>;})}</div>
-    <GridGalleryPickerModal open={pickerOpen} selectedIds={ids} onClose={()=>setPickerOpen(false)} onDone={applyMedia} />
+    <GridGalleryPickerModal open={pickerOpen} selectedIds={ids} maxSelection={count} onClose={()=>setPickerOpen(false)} onDone={applyMedia} />
   </div>;
 }
