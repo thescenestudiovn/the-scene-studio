@@ -3,10 +3,10 @@
 import { useState } from "react";
 import TextBlockPicker from "./picker/TextBlockPicker";
 import ImageBlockPicker from "./picker/ImageBlockPicker";
-import BannerBlockPicker from "./picker/BannerBlockPicker";
+import VideoBlockPicker from "./picker/VideoBlockPicker";
 import { BLOCK_CATEGORIES, type ContentBlockSelection } from "./picker/blockTypes";
 
-export type { ContentBlockSelection, ImageBlockVariant, TextBlockVariant, BannerBlockVariant } from "./picker/blockTypes";
+export type { ContentBlockSelection, ImageBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
 
 type Props = { open: boolean; onClose: () => void; onSelect: (selection: ContentBlockSelection) => void };
 type Category = (typeof BLOCK_CATEGORIES)[number][0];
@@ -26,8 +26,8 @@ export default function ContentBlockPicker({ open, onClose, onSelect }: Props) {
       <div className="mx-auto max-w-6xl px-10 py-10 max-md:px-4 max-md:py-6">
         {category === "text" && <TextBlockPicker onSelect={onSelect} />}
         {category === "image" && <ImageBlockPicker onSelect={onSelect} />}
-        {category === "content" && <BannerBlockPicker onSelect={onSelect} />}
-        {!(["text", "image", "content"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
+        {category === "video" && <VideoBlockPicker onSelect={onSelect} />}
+        {!(["text", "image", "video"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
       </div>
     </main>
   </div>;
