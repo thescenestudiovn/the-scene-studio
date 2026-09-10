@@ -113,7 +113,7 @@ function CarouselPreview({ media }: { media: Media[] }) {
   const visible = media.length > 1 ? [media[index % media.length], media[(index + 1) % media.length]] : [media[0]];
   return <div className="relative overflow-hidden bg-[#e9e5de]">
     <div className="grid grid-cols-2 gap-2 p-2">{visible.map(item => <img key={item.id} src={mediaUrl(item.path)} alt={item.alt ?? item.filename ?? ""} className="h-[330px] w-full object-cover sm:h-[400px]" />)}</div>
-    {media.length > 2 && <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center gap-2"><button type="button" aria-label="Previous images" onClick={() => setIndex(value => (value - 1 + media.length) % media.length)} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/85">←</button><button type="button" aria-label="Next images" onClick={() => setIndex(value => (value + 1) % media.length)} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/85">→</button></div>}
+    {media.length > 2 && <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center gap-2"><button type="button" aria-label="Previous images" onClick={event => { event.stopPropagation(); setIndex(value => (value - 1 + media.length) % media.length); }} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/85">←</button><button type="button" aria-label="Next images" onClick={event => { event.stopPropagation(); setIndex(value => (value + 1) % media.length); }} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/85">→</button></div>}
   </div>;
 }
 
@@ -161,9 +161,9 @@ export default function SliderGalleryEditor({ storyId, block, onChange }: Props)
   const isCarousel = block.variant === "carousel";
 
   return <div className="w-full overflow-hidden rounded-sm">
-    <div className="relative">
+    <div className="relative cursor-pointer" onClick={openManager} role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openManager(); } }} aria-label={selected.length ? "Manage slider images" : "Choose images for slider"}>
       {selected.length ? (isCarousel ? <CarouselPreview media={selected} /> : <SlideshowPreview media={selected} />) : <div className="relative overflow-hidden bg-[#e9e5de]"><img src={demo} alt="" className="block h-auto w-full" /></div>}
-      <button type="button" onClick={openManager} className="absolute right-4 top-4 z-20 rounded-full bg-white/90 px-4 py-2 text-[10px] font-medium uppercase tracking-[.14em] text-[#171717] shadow-sm backdrop-blur hover:bg-white">{selected.length ? "Manage images" : "Choose images"}</button>
+      <button type="button" onClick={event => { event.stopPropagation(); openManager(); }} className="absolute right-4 top-4 z-20 rounded-full bg-white/90 px-4 py-2 text-[10px] font-medium uppercase tracking-[.14em] text-[#171717] shadow-sm backdrop-blur hover:bg-white">{selected.length ? "Manage images" : "Choose images"}</button>
     </div>
   </div>;
 }
