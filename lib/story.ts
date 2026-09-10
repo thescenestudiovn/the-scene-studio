@@ -1,7 +1,7 @@
 import { getDB } from "./db";
 
 export async function getStoryBySlug(slug: string) {
-  const db = getDB();
+  const db = await getDB();
 
   const story = await db
     .prepare(`
@@ -20,9 +20,7 @@ export async function getStoryBySlug(slug: string) {
     .bind(slug)
     .first();
 
-  if (!story) {
-    return null;
-  }
+  if (!story) return null;
 
   const blocks = await db
     .prepare(`
@@ -61,28 +59,20 @@ export async function getStoryBySlug(slug: string) {
             m.height,
             sbm.sort_order
           FROM story_block_media sbm
-          INNER JOIN media m
-            ON m.id = sbm.media_id
+          INNER JOIN media m ON m.id = sbm.media_id
           WHERE sbm.block_id = ?
           ORDER BY sbm.sort_order ASC
         `)
         .bind(block.id)
         .all();
 
-      return {
-        ...block,
-        media: media.results ?? [],
-      };
+      return { ...block, media: media.results ?? [] };
     })
   );
 
   const galleryCta = await db
     .prepare(`
-      SELECT
-        enabled,
-        label,
-        collection_id,
-        custom_url
+      SELECT enabled, label, collection_id, custom_url
       FROM story_gallery_cta
       WHERE story_id = ?
       LIMIT 1
