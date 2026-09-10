@@ -55,11 +55,11 @@ export default function GridGalleryEditor({storyId,block,onChange}:Props){
   const selected=useMemo(()=>draftIds.map(id=>draftMedia.find(item=>item.id===id)).filter((item):item is Media=>Boolean(item)),[draftIds,draftMedia]);
   const openManager=()=>{setDraftIds(ids);setDraftMedia(media);setManageOpen(true);};
   const save=async()=>{
-    const patch={data:{...data,collection_id:null,media_ids:draftIds},variant:`grid-${variant}`};
+    const patch={data:{...data,collection_id:null,media_ids:draftIds},variant:`grid-${variant}`,media:draftMedia};
     onChange(patch);
     setManageOpen(false);
     try{
-      const response=await fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});
+      const response=await fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({data:patch.data,variant:patch.variant})});
       if(!response.ok)throw new Error("Failed to save grid gallery");
     }catch(error){console.error(error);}
   };
