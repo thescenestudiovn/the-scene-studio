@@ -16,6 +16,9 @@ export async function PATCH(request: Request) {
     const body = await request.json() as { id?: string; title?: string; seo_title?: string | null; seo_description?: string | null; blocks?: Array<{ id?: string; type: string; data?: Record<string, unknown>; sort_order?: number }> };
     if (!body.id) return Response.json({ success: false, error: "id is required" }, { status: 400 });
     const db = getDB();
+    const page = await db.prepare(`SELECT page_type FROM pages WHERE id = ? LIMIT 1`).bind(body.id).first<{ page_type: string }>();
+    if (!page) return Response.json({ success: false, error: "Page not found" }, { status: 404 });
+    if (page.page_type === "home" && body.blocks && body.blocks[0]?.type !== "cover") return Response.json({ success: false, error: "Home must start with a cover block" }, { status: 400 });
     await db.prepare(`UPDATE pages SET title = COALESCE(?, title), seo_title = ?, seo_description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(body.title ?? null, body.seo_title ?? null, body.seo_description ?? null, body.id).run();
     if (body.blocks) {
       await db.prepare(`DELETE FROM page_blocks WHERE page_id = ?`).bind(body.id).run();
