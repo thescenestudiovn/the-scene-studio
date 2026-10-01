@@ -34,7 +34,8 @@ export default function ImageWithTextEditor({ storyId, block, onChange }: Props)
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
-    if (!storyId) return;\n    const timer = window.setTimeout(() => { void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ data:{...data, media_ids:ids, items} }) }).catch(error => console.error(error)); }, 400);
+    if (!storyId) return;
+    const timer = window.setTimeout(() => { void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ data:{...data, media_ids:ids, items} }) }).catch(error => console.error(error)); }, 400);
     return () => window.clearTimeout(timer);
   }, [storyId, block.id, JSON.stringify(items), JSON.stringify(ids)]);
 
