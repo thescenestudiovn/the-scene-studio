@@ -31,12 +31,14 @@ export default function AdminSettingsPage() {
       .finally(()=>setLoading(false));
   },[]);
 
-  async function save(){
+  async function save(nextSettings = settings, successMessage = "Settings saved."){
     setSaving(true); setMessage("");
     try{
-      const r=await fetch("/api/admin/site-settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)});
-      const d=await r.json() as { success?: boolean; error?: string; settings?: Partial<Settings> }; if(!r.ok||!d.success) throw new Error(d.error||"Failed to save settings");
-      setSettings({...empty,...(d.settings ?? {})}); setMessage("Settings saved.");
+      const r=await fetch("/api/admin/site-settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(nextSettings)});
+      const d=await r.json() as { success?: boolean; error?: string; settings?: Partial<Settings> };
+      if(!r.ok||!d.success) throw new Error(d.error||"Failed to save settings");
+      setSettings({...empty,...(d.settings ?? {})});
+      setMessage(successMessage);
     }catch(e){setMessage(e instanceof Error?e.message:"Failed to save settings")}
     finally{setSaving(false)}
   }
@@ -78,10 +80,17 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           ))}
-          {brandingPicker && <MediaPickerModal open required={1} selectedIds={[]} collectionId="" onClose={() => setBrandingPicker(null)} onDone={(_collectionId, _mediaIds, selectedMedia) => {
+          {brandingPicker && <MediaPickerModal open required={1} selectedIds={settings[brandingPicker] ? [] : []} collectionId="" onClose={() => setBrandingPicker(null)} onDone={(_collectionId, _mediaIds, selectedMedia) => {
             const selected = selectedMedia[0];
-            if (selected) setSettings(current => ({ ...current, [brandingPicker]: selected.path }));
+            if (!selected) {
+              setBrandingPicker(null);
+              return;
+            }
+            const key = brandingPicker;
+            const nextSettings = { ...settings, [key]: selected.path };
+            setSettings(nextSettings);
             setBrandingPicker(null);
+            void save(nextSettings, key === "logo" ? "Logo saved." : key === "logo_white" ? "White logo saved." : "Favicon saved.");
           }} />}
         </>
       )}
