@@ -1,5 +1,5 @@
-import { getSiteSettings } from "../../../../../lib/site-settings";
-import { mediaUrl } from "../../../../../lib/media";
+import { getSiteSettings } from "../../../../lib/site-settings";
+import { mediaUrl } from "../../../../lib/media";
 
 export async function GET(request: Request) {
   try {
