@@ -2,85 +2,108 @@
 
 import { useEffect, useState } from "react";
 
-type Settings = { phone: string; email: string; instagram: string; facebook: string };
-const empty: Settings = { phone: "", email: "", instagram: "", facebook: "" };
+type Settings = {
+  phone:string; email:string; whatsapp:string; instagram:string; facebook:string;
+  tiktok:string; pinterest:string; address:string; logo:string; logo_white:string;
+  favicon:string; site_description:string; seo_title:string; seo_description:string;
+  og_image:string; footer_text:string;
+};
+
+const empty: Settings = {
+  phone:"", email:"", whatsapp:"", instagram:"", facebook:"", tiktok:"", pinterest:"",
+  address:"", logo:"", logo_white:"", favicon:"", site_description:"", seo_title:"",
+  seo_description:"", og_image:"", footer_text:""
+};
 
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useState<Settings>(empty);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [settings,setSettings]=useState<Settings>(empty);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [message,setMessage]=useState("");
 
-  useEffect(() => {
-    fetch("/api/admin/site-settings", { cache: "no-store" })
-      .then(async response => {
-        const data = await response.json() as { success?: boolean; settings?: Settings; error?: string };
-        if (!response.ok || !data.success) throw new Error(data.error || "Failed to load site settings");
-        setSettings(data.settings ?? empty);
-      })
-      .catch(error => setMessage(error instanceof Error ? error.message : "Failed to load site settings"))
-      .finally(() => setLoading(false));
-  }, []);
+  useEffect(()=>{
+    fetch("/api/admin/site-settings",{cache:"no-store"})
+      .then(async r=>{const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.error||"Failed to load settings"); setSettings({...empty,...d.settings});})
+      .catch(e=>setMessage(e instanceof Error?e.message:"Failed to load settings"))
+      .finally(()=>setLoading(false));
+  },[]);
 
-  async function save() {
-    setSaving(true);
-    setMessage("");
-    try {
-      const response = await fetch("/api/admin/site-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-      const data = await response.json() as { success?: boolean; settings?: Settings; error?: string };
-      if (!response.ok || !data.success) throw new Error(data.error || "Failed to save site settings");
-      if (data.settings) setSettings(data.settings);
-      setMessage("Site settings saved.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save site settings");
-    } finally {
-      setSaving(false);
-    }
+  async function save(){
+    setSaving(true); setMessage("");
+    try{
+      const r=await fetch("/api/admin/site-settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)});
+      const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.error||"Failed to save settings");
+      setSettings({...empty,...d.settings}); setMessage("Settings saved.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Failed to save settings")}
+    finally{setSaving(false)}
   }
 
-  function field(key: keyof Settings, label: string, placeholder: string) {
-    return (
-      <label className="block">
-        <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">{label}</span>
-        <input
-          value={settings[key]}
-          onChange={event => setSettings(current => ({ ...current, [key]: event.target.value }))}
-          disabled={loading}
-          className="w-full border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm outline-none focus:border-[#171717] disabled:opacity-50"
-          placeholder={placeholder}
-        />
-      </label>
-    );
+  function field(key:keyof Settings,label:string,placeholder=""){
+    return <label className="block">
+      <span className="mb-2 block text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">{label}</span>
+      <input value={settings[key]} onChange={e=>setSettings(s=>({...s,[key]:e.target.value}))} disabled={loading}
+        className="w-full border border-[#d8d3ca] bg-[#faf8f4] px-4 py-3 text-sm outline-none focus:border-[#171717] disabled:opacity-50"
+        placeholder={placeholder}/>
+    </label>
   }
 
-  return (
-    <main className="min-h-screen bg-[#f7f5f0] px-6 py-12 text-[#171717]">
-      <div className="mx-auto max-w-4xl">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">The Scene Studio</p>
-        <div className="mt-3 flex items-end justify-between gap-6">
-          <div>
-            <h1 className="font-serif text-5xl tracking-[-0.04em]">Site Settings</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#77736c]">Global contact and social information. Components across the website can reuse these values without entering them again.</p>
-          </div>
-          <button type="button" onClick={save} disabled={loading || saving} className="shrink-0 bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{saving ? "Saving…" : "Save Settings"}</button>
-        </div>
+  function section(title:string,description:string,children:React.ReactNode){
+    return <section className="mt-8 border border-[#d8d3ca] bg-white p-6 md:p-8">
+      <div className="mb-7 border-b border-[#e3dfd8] pb-5"><h2 className="font-serif text-3xl">{title}</h2><p className="mt-2 text-sm text-[#77736c]">{description}</p></div>
+      <div className="grid gap-6 md:grid-cols-2">{children}</div>
+    </section>
+  }
 
-        <section className="mt-10 border border-[#d8d3ca] bg-white p-6 md:p-8">
-          <div className="grid gap-6 md:grid-cols-2">
-            {field("phone", "Phone", "+84 ...")}
-            {field("email", "Email", "hello@thescenestudio.asia")}
-            {field("instagram", "Instagram", "https://instagram.com/...")}
-            {field("facebook", "Facebook", "https://facebook.com/...")}
-          </div>
-          {message && <p className="mt-6 text-xs text-[#666158]">{message}</p>}
-        </section>
-
-        <p className="mt-6 text-xs leading-5 text-[#8a857d]">These are global values. When a Story, footer, contact section or other component is built to use Site Settings, changing them here updates that component automatically.</p>
+  return <main className="min-h-screen bg-[#f7f5f0] px-6 py-12 text-[#171717]">
+    <div className="mx-auto max-w-5xl">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">The Scene Studio / CMS</p>
+      <div className="mt-3 flex items-end justify-between gap-6">
+        <div><h1 className="font-serif text-5xl tracking-[-0.04em]">Site Settings</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#77736c]">One place for global branding, contact details, social links, SEO and footer information.</p></div>
+        <button onClick={save} disabled={loading||saving} className="shrink-0 bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{saving?"Saving…":"Save Settings"}</button>
       </div>
-    </main>
-  );
+
+      {section("Branding","Logo and brand assets used across the public website.",
+        <>
+          {field("logo","Logo URL / media path","/images/logo.svg or https://...")}
+          {field("logo_white","Logo on dark background","/images/logo-white.svg or https://...")}
+          {field("favicon","Favicon URL / media path","/favicon.svg")}
+          {settings.logo && <div className="md:col-span-2 border-t border-[#e3dfd8] pt-6"><p className="mb-3 text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Logo Preview</p><div className="flex min-h-24 items-center justify-center bg-[#f7f5f0] p-6"><img src={settings.logo} alt="Logo preview" className="max-h-16 max-w-[260px] object-contain"/></div></div>}
+        </>
+      )}
+
+      {section("Contact","These values can be reused by Header, Footer, Contact and inquiry components.",
+        <>
+          {field("email","Email","hello@thescenestudio.asia")}
+          {field("phone","Phone","+84 ...")}
+          {field("whatsapp","WhatsApp","+84 ...")}
+          {field("address","Address","Da Nang · Vietnam")}
+        </>
+      )}
+
+      {section("Social","Paste the full profile URL for each platform.",
+        <>
+          {field("instagram","Instagram","https://instagram.com/...")}
+          {field("facebook","Facebook","https://facebook.com/...")}
+          {field("tiktok","TikTok","https://tiktok.com/@...")}
+          {field("pinterest","Pinterest","https://pinterest.com/...")}
+        </>
+      )}
+
+      {section("SEO & Website","Default metadata for search engines and social sharing.",
+        <>
+          {field("seo_title","SEO Title","The Scene Studio — Destination Wedding Photography & Films")}
+          {field("seo_description","SEO Description","Destination wedding photography and films in Vietnam and beyond.")}
+          {field("site_description","Site Description","Short description of the studio")}
+          {field("og_image","Open Graph Image URL / media path","/images/og.jpg")}
+        </>
+      )}
+
+      {section("Footer","Global footer copy.",
+        <div className="md:col-span-2">{field("footer_text","Footer Text","Stories worth remembering.")}</div>
+      )}
+
+      {message && <p className="mt-6 text-xs text-[#666158]">{message}</p>}
+      <p className="mt-5 text-xs leading-5 text-[#8a857d]">Changing a value here updates the shared site configuration. Components need to read Site Settings to use the new value.</p>
+    </div>
+  </main>;
 }
