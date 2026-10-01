@@ -34,7 +34,8 @@ export default function Footer() {
     useEffect(() => {
         fetch("/api/admin/site-settings", { cache: "no-store" })
             .then((response) => (response.ok ? response.json() : null))
-            .then((data) => {\n                const typedData = data as { settings?: Partial<FooterSettings> } | null;
+            .then((data) => {
+                const typedData = data as { settings?: Partial<FooterSettings> } | null;
                 if (typedData?.settings) {
                     setSettings((current) => ({ ...current, ...typedData.settings }));
                 }
