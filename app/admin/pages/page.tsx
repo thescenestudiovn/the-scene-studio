@@ -172,6 +172,8 @@ function AdminPagesContent() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
+    const [blockPickerOpen, setBlockPickerOpen] = useState(false);
+    const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | undefined>(undefined);
 
     const openPage = useCallback(async (item: Page) => {
         setMessage("");
@@ -202,7 +204,9 @@ function AdminPagesContent() {
         return () => window.clearTimeout(timer);
     }, [loadPages]);
 
-    function addBlock(selection: ContentBlockSelection, afterBlockId?: string) {
+    function openBlockPicker(afterBlockId?: string) { setInsertAfterBlockId(afterBlockId); setBlockPickerOpen(true); }
+
+    function addBlock(selection: ContentBlockSelection) { const afterBlockId = insertAfterBlockId; setBlockPickerOpen(false);
         const variant = selection.variant;
         const textDefaults: Record<string, string> = {
             "heading-1": "Heading 1",
@@ -326,12 +330,14 @@ function AdminPagesContent() {
                                 onBlocksChange={handleStoryBlocksChange}
                                 onDelete={deleteBlock}
                                 onUpdate={updateStoryBlock}
+                                onAddBlock={openBlockPicker}
                             />
                         </div>
                     </div>
                 </div> : <div className="grid min-h-[60vh] place-items-center px-6 text-center"><div><p className="font-serif text-3xl">Your pages will appear here</p><p className="mt-3 text-sm text-[#77736c]">Select a page from the left panel to edit its content.</p></div></div>}
             </section>
         </div>
+        <ContentBlockPicker open={blockPickerOpen} onClose={() => setBlockPickerOpen(false)} onSelect={addBlock} />
     </main>;
 }
 
