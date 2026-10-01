@@ -11,7 +11,7 @@ const DEMO: Record<string, string> = {
   carousel: `${BASE}photo-slider-carousel.jpg`,
 };
 
-type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
+type Props = { storyId?: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 
 function parseData(value: StoryBlock["data"]): Record<string, unknown> {
   if (typeof value === "string") {
