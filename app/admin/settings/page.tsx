@@ -23,7 +23,7 @@ export default function AdminSettingsPage() {
 
   useEffect(()=>{
     fetch("/api/admin/site-settings",{cache:"no-store"})
-      .then(async r=>{const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.error||"Failed to load settings"); setSettings({...empty,...d.settings});})
+      .then(async r=>{const d=await r.json() as { success?: boolean; error?: string; settings?: Partial<Settings> }; if(!r.ok||!d.success) throw new Error(d.error||"Failed to load settings"); setSettings({...empty,...(d.settings ?? {})});})
       .catch(e=>setMessage(e instanceof Error?e.message:"Failed to load settings"))
       .finally(()=>setLoading(false));
   },[]);
@@ -32,8 +32,8 @@ export default function AdminSettingsPage() {
     setSaving(true); setMessage("");
     try{
       const r=await fetch("/api/admin/site-settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)});
-      const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.error||"Failed to save settings");
-      setSettings({...empty,...d.settings}); setMessage("Settings saved.");
+      const d=await r.json() as { success?: boolean; error?: string; settings?: Partial<Settings> }; if(!r.ok||!d.success) throw new Error(d.error||"Failed to save settings");
+      setSettings({...empty,...(d.settings ?? {})}); setMessage("Settings saved.");
     }catch(e){setMessage(e instanceof Error?e.message:"Failed to save settings")}
     finally{setSaving(false)}
   }
