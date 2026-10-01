@@ -29,21 +29,32 @@ const EMPTY: SiteSettings = {
 export async function ensureSiteSettingsTable(): Promise<void> {
   const db = await getDBAsync();
 
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS site_settings (
-      id TEXT PRIMARY KEY,
-      phone TEXT, email TEXT, instagram TEXT, facebook TEXT,
-      whatsapp TEXT, tiktok TEXT, pinterest TEXT, address TEXT,
-      logo TEXT, logo_white TEXT, favicon TEXT, site_description TEXT,
-      seo_title TEXT, seo_description TEXT, og_image TEXT, footer_text TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
+  const table = await db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='site_settings' LIMIT 1")
+    .first<{ name: string }>();
 
-  // The production D1 may still have the original 0007 schema.
-  // CREATE TABLE IF NOT EXISTS does not add columns to an existing table,
-  // so add any expanded settings columns that are missing.
+  if (!table) {
+    await db.prepare(`
+      CREATE TABLE site_settings (
+        id TEXT PRIMARY KEY,
+        phone TEXT, email TEXT, instagram TEXT, facebook TEXT,
+        whatsapp TEXT, tiktok TEXT, pinterest TEXT, address TEXT,
+        logo TEXT, logo_white TEXT, favicon TEXT, site_description TEXT,
+        seo_title TEXT, seo_description TEXT, og_image TEXT, footer_text TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    await db.prepare(`
+      INSERT INTO site_settings (id, phone, email, instagram, facebook)
+      VALUES ('global', '', '', '', '')
+    `).run();
+    return;
+  }
+
+  // Existing production databases may still have the original 0007 schema.
+  // CREATE TABLE IF NOT EXISTS does not add columns to an existing table.
   const columns = await db.prepare("PRAGMA table_info(site_settings)").all<{ name: string }>();
   const existing = new Set(columns.results.map(column => column.name));
   const missingColumns = [
@@ -67,10 +78,16 @@ export async function ensureSiteSettingsTable(): Promise<void> {
     }
   }
 
-  await db.prepare(`
-    INSERT OR IGNORE INTO site_settings (id, phone, email, instagram, facebook)
-    VALUES ('global', '', '', '', '')
-  `).run();
+  const globalRow = await db
+    .prepare("SELECT id FROM site_settings WHERE id='global' LIMIT 1")
+    .first<{ id: string }>();
+
+  if (!globalRow) {
+    await db.prepare(`
+      INSERT INTO site_settings (id, phone, email, instagram, facebook)
+      VALUES ('global', '', '', '', '')
+    `).run();
+  }
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
