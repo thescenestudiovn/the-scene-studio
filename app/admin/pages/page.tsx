@@ -64,7 +64,7 @@ function pageLayoutLabel(variant: string) {
         "text-left-regular": "Image with Text · Left", "text-right-regular": "Image with Text · Right",
         "text-left-large": "Image with Text · Left Large", "text-right-large": "Image with Text · Right Large",
         "heading-1": "Heading 1", "heading-2": "Heading 2", "heading-3": "Heading 3",
-        wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "text-columns-4": "Columns 4", "banner-video": "YouTube Video",
+        wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "banner-video": "YouTube Video",
     };
     return labels[variant] ?? variant;
 }
