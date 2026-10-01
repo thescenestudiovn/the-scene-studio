@@ -10,7 +10,7 @@ const DEMO = `${BASE}image-large.jpg`;
 const VARIANTS = ["text-overlay-large", "text-overlay-medium", "text-overlay-full", "text-columns-2", "text-columns-3", "text-columns-4", "text-below-large", "text-below-medium", "text-left-regular", "text-right-regular", "text-left-large", "text-right-large"] as const;
 type Variant = (typeof VARIANTS)[number];
 type Item = { title: string; text: string };
-type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
+type Props = { storyId?: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 
 function parseData(value: StoryBlock["data"]): Record<string, unknown> {
   if (typeof value === "string") { try { const parsed = JSON.parse(value); return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {}; } catch { return {}; } }
@@ -34,6 +34,7 @@ export default function ImageWithTextEditor({ storyId, block, onChange }: Props)
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
+    if (!storyId) return;
     const timer = window.setTimeout(() => { void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ data:{...data, media_ids:ids, items} }) }).catch(error => console.error(error)); }, 400);
     return () => window.clearTimeout(timer);
   }, [storyId, block.id, JSON.stringify(items), JSON.stringify(ids)]);

@@ -13,7 +13,7 @@ const SINGLE_VARIANTS = ["medium", "large", "full-width"] as const;
 const COLUMN_VARIANTS = ["columns-2", "columns-3", "columns-4"] as const;
 const SINGLE_WIDTHS: Record<(typeof SINGLE_VARIANTS)[number], number> = { medium: 50, large: 70, "full-width": 100 };
 
-type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
+type Props = { storyId?: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 function slotCount(variant: string) { return variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1; }
 function isColumnVariant(variant: string): variant is (typeof COLUMN_VARIANTS)[number] { return COLUMN_VARIANTS.includes(variant as (typeof COLUMN_VARIANTS)[number]); }
 
@@ -40,7 +40,7 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
     for (const item of selectedMedia ?? []) if (!nextMedia.some(media => media.id === item.id)) nextMedia.push(item);
     const patch: Partial<StoryBlock> = { data: { ...data, collection_id: collectionId || null, media_ids: nextIds }, media: nextMedia };
     onChange(patch);
-    void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: patch.data }) });
+    if (storyId) void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: patch.data }) });
     setPickerOpen(false);
   };
   const renderSlot = (index: number) => {

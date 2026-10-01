@@ -3,6 +3,7 @@ import { getDB } from "@/lib/db";
 type RouteContext = { params: Promise<{ id: string }> };
 type UpdateStoryBody = {
   title?: string; slug?: string; location?: string | null; date?: string | null;
+  destination?: string | null;
   category?: string | null; category_ids?: string[]; location_ids?: string[];
   description?: string | null; seo_title?: string | null; seo_description?: string | null;
   destination_id?: string | null; cover_media_id?: string | null; published?: boolean;
@@ -12,7 +13,7 @@ type UpdateStoryBody = {
 
 const storySelect = `
   SELECT s.*,
-    d.name AS destination_name,
+    COALESCE(d.name, s.location) AS destination_name,
     d.country AS destination_country,
     cm.path AS cover_path,
     cm.filename AS cover_filename,
@@ -39,11 +40,10 @@ const storySelect = `
 function normalizeStory(story: Record<string, unknown> | null) {
   if (!story) return story;
   const categories = typeof story.categories === "string" ? story.categories : null;
-  const locations = typeof story.locations === "string" ? story.locations : null;
   return {
     ...story,
     category: categories || (typeof story.category === "string" ? story.category : null),
-    location: locations || (typeof story.location === "string" ? story.location : null),
+    location: typeof story.location === "string" ? story.location : null,
   };
 }
 
@@ -97,13 +97,18 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const add = (field: string, value: unknown) => { fields.push(`${field}=?`); values.push(value); };
     if (body.title !== undefined) add("title", body.title);
     if (body.slug !== undefined) add("slug", body.slug.trim());
-    if (body.location !== undefined && body.location_ids === undefined) add("location", body.location);
+    if (body.destination !== undefined) { add("location", body.destination?.trim() || null); add("destination_id", null); }
+    else if (body.destination_id !== undefined) {
+      add("destination_id", body.destination_id);
+      const destination = body.destination_id ? await db.prepare(`SELECT name FROM destinations WHERE id=? LIMIT 1`).bind(body.destination_id).first<{ name: string }>() : null;
+      add("location", destination?.name ?? null);
+    }
+    else if (body.location !== undefined && body.location_ids === undefined) add("location", body.location);
     if (body.date !== undefined) add("date", body.date);
     if (body.category !== undefined && body.category_ids === undefined) add("category", body.category);
     if (body.description !== undefined) add("description", body.description);
     if (body.seo_title !== undefined) add("seo_title", body.seo_title);
     if (body.seo_description !== undefined) add("seo_description", body.seo_description);
-    if (body.destination_id !== undefined) add("destination_id", body.destination_id);
     if (body.cover_media_id !== undefined) add("cover_media_id", body.cover_media_id);
     if (body.tags !== undefined) add("tags", body.tags);
     if (body.featured !== undefined) add("featured", body.featured ? 1 : 0);
@@ -187,8 +192,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         const usage = await db.prepare(`SELECT COUNT(*) AS count FROM story_location_relations WHERE location_id=?`).bind(locationId).first<{ count: number }>();
         if (Number(usage?.count ?? 0) === 0) await db.prepare(`DELETE FROM locations WHERE id=?`).bind(locationId).run();
       }
-      const first = finalLocationIds[0] ? await db.prepare(`SELECT name FROM locations WHERE id=? LIMIT 1`).bind(finalLocationIds[0]).first<{ name: string }>() : null;
-      await db.prepare(`UPDATE stories SET location=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(first?.name ?? null, id).run();
     }
 
     const rawStory = await db.prepare(`${storySelect} WHERE s.id=? LIMIT 1`).bind(id).first();

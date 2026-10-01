@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 type Props = {
   storyId: string;
   afterBlockId?: string;
+  onClick?: () => void;
 };
 
-export default function AddBlockTrigger({ storyId, afterBlockId }: Props) {
+export default function AddBlockTrigger({ storyId, afterBlockId, onClick }: Props) {
   const router = useRouter();
 
   return (
@@ -15,6 +16,10 @@ export default function AddBlockTrigger({ storyId, afterBlockId }: Props) {
       <button
         type="button"
         onClick={() => {
+          if (onClick) {
+            onClick();
+            return;
+          }
           const query = afterBlockId ? `?after=${encodeURIComponent(afterBlockId)}` : "";
           router.push(`/admin/stories/${storyId}/blocks${query}`);
         }}

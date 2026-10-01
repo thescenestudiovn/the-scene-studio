@@ -63,8 +63,8 @@ export default function AdminSettingsPage() {
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">The Scene Studio</p>
         <div className="mt-3 flex items-end justify-between gap-6">
           <div>
-            <h1 className="font-serif text-5xl tracking-[-0.04em]">Site Settings</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#77736c]">Global contact and social information. Components across the website can reuse these values without entering them again.</p>
+            <h1 className="font-serif text-5xl tracking-[-0.04em]">Contact</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#77736c]">Manage the phone, email and social links used across the website.</p>
           </div>
           <button type="button" onClick={save} disabled={loading || saving} className="shrink-0 bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{saving ? "Saving…" : "Save Settings"}</button>
         </div>
