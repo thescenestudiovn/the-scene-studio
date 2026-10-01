@@ -47,7 +47,6 @@ export async function ensureSiteSettingsTable(): Promise<void> {
 
 export async function getSiteSettings(): Promise<SiteSettings> {
   const db = await getDBAsync();
-  await ensureSiteSettingsTable();
   const settings = await db.prepare(`
     SELECT phone,email,whatsapp,instagram,facebook,tiktok,pinterest,address,
            logo,logo_white,favicon,site_description,seo_title,seo_description,
