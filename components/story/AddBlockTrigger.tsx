@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 type Props = {
   storyId: string;
   afterBlockId?: string;
+  onClick?: () => void;
 };
 
-export default function AddBlockTrigger({ storyId, afterBlockId }: Props) {
+export default function AddBlockTrigger({ storyId, afterBlockId, onClick }: Props) {
   const router = useRouter();
 
   return (
