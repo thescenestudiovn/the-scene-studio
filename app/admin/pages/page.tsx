@@ -241,6 +241,13 @@ function AdminPagesContent() {
                         : { body: textDefaults[variant] ?? "This is sample text. Replace this content with your story." }),
                 };
         const newBlock: Block = { id: crypto.randomUUID(), type: selection.category, data, media: [] };
+        setBlocks(current => {
+            const afterIndex = afterBlockId ? current.findIndex(block => block.id === afterBlockId) : -1;
+            const index = afterIndex >= 0 ? afterIndex + 1 : current.length;
+            return [...current.slice(0, index), newBlock, ...current.slice(index)];
+        });
+    }
+
     function updateBlock(id: string, patch: Partial<Block>) {
         setBlocks(current => current.map(block => block.id === id ? { ...block, ...patch } : block));
     }
