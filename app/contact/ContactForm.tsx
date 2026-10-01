@@ -9,7 +9,7 @@ const steps = [
     "Your Story",
 ];
 
-export default function ContactForm {
+export default function ContactForm() {
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
