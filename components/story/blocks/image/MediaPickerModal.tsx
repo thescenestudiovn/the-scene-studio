@@ -29,7 +29,9 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
   async function loadMedia() {
     const response = await fetch("/api/admin/media", { cache: "no-store" });
     const result = await response.json() as { media?: Media[] };
-    setMedia(Array.isArray(result.media) ? result.media : []);
+    const nextMedia = Array.isArray(result.media) ? result.media : [];
+    setMedia(nextMedia);
+    return nextMedia;
   }
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
         uploaded.push(data.media);
       }
 
-      await loadMedia();
+      const nextMedia = await loadMedia();
       const available = uploaded.map(item => item.id);
       setSelected(current => {
         const next = [...current];
@@ -121,6 +123,13 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
           if (!next.includes(id)) next.push(id);
         }
         return next;
+      });
+      // Keep the uploaded records available to Done even before React commits the state update.
+      setMedia(current => {
+        const ids = new Set(current.map(item => item.id));
+        return [...current, ...uploaded.filter(item => !ids.has(item.id))].length >= nextMedia.length
+          ? [...current, ...uploaded.filter(item => !ids.has(item.id))]
+          : nextMedia;
       });
       setMessage(`${uploaded.length} image${uploaded.length > 1 ? "s" : ""} uploaded and added to Media Library.`);
     } catch (error) {
