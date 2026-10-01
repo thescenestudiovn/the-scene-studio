@@ -27,7 +27,7 @@ const EMPTY: SiteSettings = {
 };
 
 export async function ensureSiteSettingsTable(): Promise<void> {
-  const db = getDB();
+  const db = await getDBAsync();
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS site_settings (
       id TEXT PRIMARY KEY,
