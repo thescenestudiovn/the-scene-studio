@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
 import { mediaUrl } from "../../../lib/media";
@@ -166,7 +165,7 @@ function PageBlockDragHandle({ disabled, onDragStart, onDragEnd }: { disabled?: 
     </button>;
 }
 
-function AdminPagesContent() {
+function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [page, setPage] = useState<Page | null>(null);
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [loading, setLoading] = useState(true);
@@ -194,7 +193,7 @@ function AdminPagesContent() {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
         const data = await response.json() as { pages?: Page[] };
         const loadedPages = data.pages ?? [];
-        const initialPage = loadedPages.find(item => item.page_type === "home") ?? loadedPages[0];
+        const initialPage = loadedPages.find(item => item.slug === initialSlug) ?? loadedPages.find(item => item.page_type === "home") ?? loadedPages[0];
         if (initialPage) await openPage(initialPage);
         setLoading(false);
     }, [openPage]);
@@ -341,6 +340,6 @@ function AdminPagesContent() {
     </main>;
 }
 
-export default function AdminPagesPage() {
-    return <AdminPagesContent />;
+export default function AdminPagesPage({ initialSlug = "home" }: { initialSlug?: string }) {
+    return <AdminPagesContent initialSlug={initialSlug} />;
 }
