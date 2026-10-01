@@ -14,7 +14,7 @@ const DEMO: Record<string,string> = {
 const VARIANTS = ["vertical","horizontal","square","stacked"] as const;
 const LABELS: Record<Variant,string> = { vertical: "Vertical Grid", horizontal: "Horizontal Grid", square: "Square Grid", stacked: "Stacked Grid" };
 type Variant = typeof VARIANTS[number];
-type Props = { storyId:string; block:StoryBlock; onChange:(patch:Partial<StoryBlock>)=>void };
+type Props = { storyId?:string; block:StoryBlock; onChange:(patch:Partial<StoryBlock>)=>void };
 type ManageProps={open:boolean;selected:Media[];draftIds:string[];variant:Variant;onDraftChange:(ids:string[])=>void;onCancel:()=>void;onDone:()=>void;onAdd:()=>void};
 
 function GalleryManageModal({open,selected,draftIds,variant,onDraftChange,onCancel,onDone,onAdd}:ManageProps) {
