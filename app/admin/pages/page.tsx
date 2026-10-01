@@ -32,7 +32,7 @@ function imageCount(variant: string) { return variant === "columns-2" || variant
 
 const PAGE_LAYOUTS: Record<string, string[]> = {
     image: ["medium", "large", "full-width", "columns-2", "columns-3", "columns-4", "grid-vertical", "grid-horizontal", "grid-square", "grid-stacked", "slideshow", "carousel", "text-overlay-large", "text-overlay-medium", "text-overlay-full", "text-columns-2", "text-columns-3", "text-columns-4", "text-below-large", "text-below-medium", "text-left-regular", "text-right-regular", "text-left-large", "text-right-large"],
-    text: ["heading-1", "heading-2", "heading-3", "wide", "regular", "narrow", "columns-2", "columns-3", "columns-4"],
+    text: ["heading-1", "heading-2", "heading-3", "wide", "regular", "narrow", "columns-2", "columns-3", "text-columns-4"],
     content: ["regular", "banner-video"],
 };
 
@@ -47,7 +47,7 @@ function toStoryBlock(block: Block): StoryBlock {
         eyebrow: text(data.eyebrow) || null,
         title: text(data.title) || null,
         body: text(data.body) || null,
-        media: block.media as StoryBlock["media"],
+        media: block.media as unknown as StoryBlock["media"],
         data,
     };
 }
@@ -64,7 +64,7 @@ function pageLayoutLabel(variant: string) {
         "text-left-regular": "Image with Text · Left", "text-right-regular": "Image with Text · Right",
         "text-left-large": "Image with Text · Left Large", "text-right-large": "Image with Text · Right Large",
         "heading-1": "Heading 1", "heading-2": "Heading 2", "heading-3": "Heading 3",
-        wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "banner-video": "YouTube Video",
+        wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "text-columns-4": "Columns 4", "banner-video": "YouTube Video",
     };
     return labels[variant] ?? variant;
 }
@@ -101,7 +101,7 @@ function PageBlockEditor({ block, onChange }: { block: Block; onChange: (patch: 
         const nextVariant = typeof patch.variant === "string" ? patch.variant : text(nextData.variant) || variant;
         onChange({
             data: { ...nextData, variant: nextVariant },
-            media: patch.media ? patch.media as Block["media"] : undefined,
+            media: patch.media ? patch.media as unknown as Block["media"] : undefined,
         });
     };
     if (block.type === "cover") return <CoverEditor block={block} onChange={onChange} />;
