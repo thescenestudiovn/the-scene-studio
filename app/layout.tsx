@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import StructuredData from "./components/StructuredData";
 import CoverPositionEditor from "./components/CoverPositionEditor";
-import SiteFavicon from "./components/SiteFavicon";
 
 const siteUrl = "https://thescenestudio.asia";
 
@@ -48,6 +47,11 @@ export const metadata: Metadata = {
       "Intimate, cinematic photographs and films for destination weddings in Vietnam and beyond.",
   },
   robots: { index: true, follow: true },
+  icons: {
+    icon: "/api/site/favicon",
+    shortcut: "/api/site/favicon",
+    apple: "/api/site/favicon",
+  },
 };
 
 export default function RootLayout({
@@ -57,7 +61,6 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <StructuredData />
-        <SiteFavicon />
         <CoverPositionEditor />
         {children}
       </body>
