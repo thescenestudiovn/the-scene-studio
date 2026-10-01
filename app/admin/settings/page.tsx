@@ -64,7 +64,7 @@ export default function AdminSettingsPage() {
       <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">The Scene Studio / CMS</p>
       <div className="mt-3 flex items-end justify-between gap-6">
         <div><h1 className="font-serif text-5xl tracking-[-0.04em]">Site Settings</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#77736c]">One place for global branding, contact details, social links, SEO and footer information.</p></div>
-        <button onClick={save} disabled={loading||saving} className="shrink-0 bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{saving?"Saving…":"Save Settings"}</button>
+        <button onClick={() => void save()} disabled={loading||saving} className="shrink-0 bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{saving?"Saving…":"Save Settings"}</button>
       </div>
 
       {section("Branding","Upload and choose the brand assets used across the public website.",
