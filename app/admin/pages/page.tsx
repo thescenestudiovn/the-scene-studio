@@ -85,7 +85,19 @@ function CoverEditor({ block, onChange }: { block: Block; onChange: (patch: Part
     const update = (key: string, value: string) => onChange({ data: { ...data, [key]: value } });
     return <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">Homepage cover</span><select value={text(data.variant) || "cover-full"} onChange={event => onChange({ data: { ...data, variant: event.target.value } })} className="border border-[#d8d3ca] bg-white px-3 py-2 text-[10px] uppercase tracking-[0.12em]"><option value="cover-full">Full width</option><option value="cover-contained">Contained in content</option></select></div>
-        <div className={`relative overflow-hidden bg-[#ebe7df] ${text(data.variant) === "cover-contained" ? "mx-auto max-w-5xl" : "w-full"}`}><div className="aspect-[16/7]">{image ? <img src={mediaUrl(image.path)} alt={image.alt || image.filename || ""} className="h-full w-full object-cover" /> : <button type="button" onClick={() => setPickerOpen(true)} className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.14em] text-[#8a857d]">Choose cover image</button>}</div><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 text-white"><p className="text-[10px] uppercase tracking-[0.16em]">{text(data.eyebrow) || "Homepage"}</p><p className="mt-2 font-serif text-3xl">{text(data.title) || "Cover title"}</p></div></div>
+        <div className={`relative overflow-hidden bg-[#ebe7df] ${text(data.variant) === "cover-contained" ? "mx-auto max-w-5xl" : "w-full"}`}>
+            <div className="aspect-[16/7]">
+                {image ? (
+                    <div className="relative h-full w-full">
+                        <img src={mediaUrl(image.path)} alt={image.alt || image.filename || ""} className="h-full w-full object-cover" />
+                        <button type="button" onClick={() => setPickerOpen(true)} className="absolute right-4 top-4 bg-white/95 px-4 py-2 text-[9px] uppercase tracking-[0.14em] text-[#171717] shadow-sm hover:bg-white">Change cover image</button>
+                    </div>
+                ) : (
+                    <button type="button" onClick={() => setPickerOpen(true)} className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.14em] text-[#8a857d]">Choose cover image</button>
+                )}
+            </div>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 text-white"><p className="text-[10px] uppercase tracking-[0.16em]">{text(data.eyebrow) || "Homepage"}</p><p className="mt-2 font-serif text-3xl">{text(data.title) || "Cover title"}</p></div>
+        </div>
         <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Eyebrow / label" value={text(data.eyebrow)} onChange={event => update("eyebrow", event.target.value)} />
         <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Cover title" value={text(data.title)} onChange={event => update("title", event.target.value)} />
         <textarea className="min-h-20 w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Cover description" value={text(data.body)} onChange={event => update("body", event.target.value)} />
@@ -184,7 +196,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             const cover = loaded.find(block => block.type === "cover") ?? { id: crypto.randomUUID(), type: "cover", data: { variant: "cover-full" }, media: [] };
             setBlocks([cover, ...loaded.filter(block => block.id !== cover.id)]);
         } else {
-            setBlocks(loaded);
+            setBlocks(loaded.filter(block => block.type !== "cover"));
         }
     }, []);
 
