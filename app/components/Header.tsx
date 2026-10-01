@@ -15,7 +15,7 @@ export default function Header({ light = false }: { light?: boolean }) {
         handleScroll();
         fetch("/api/admin/site-settings", { cache:"no-store" })
             .then(r => r.ok ? r.json() : null)
-            .then(d => d?.settings && setSettings({ logo:d.settings.logo || "", logo_white:d.settings.logo_white || "" }))
+            .then(d => { const data = d as { settings?: Partial<Settings> }; if (data.settings) setSettings({ logo:data.settings.logo || "", logo_white:data.settings.logo_white || "" }); })
             .catch(() => {});
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
