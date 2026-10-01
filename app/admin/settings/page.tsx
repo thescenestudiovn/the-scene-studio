@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
+import { mediaUrl } from "../../../lib/media";
 
 type Settings = {
   phone:string; email:string; whatsapp:string; instagram:string; facebook:string;
@@ -20,6 +22,7 @@ export default function AdminSettingsPage() {
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
+  const [brandingPicker,setBrandingPicker]=useState<"logo"|"logo_white"|"favicon"|null>(null);
 
   useEffect(()=>{
     fetch("/api/admin/site-settings",{cache:"no-store"})
@@ -62,12 +65,24 @@ export default function AdminSettingsPage() {
         <button onClick={save} disabled={loading||saving} className="shrink-0 bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white disabled:opacity-40">{saving?"Saving…":"Save Settings"}</button>
       </div>
 
-      {section("Branding","Logo and brand assets used across the public website.",
+      {section("Branding","Upload and choose the brand assets used across the public website.",
         <>
-          {field("logo","Logo URL / media path","/images/logo.svg or https://...")}
-          {field("logo_white","Logo on dark background","/images/logo-white.svg or https://...")}
-          {field("favicon","Favicon URL / media path","/favicon.svg")}
-          {settings.logo && <div className="md:col-span-2 border-t border-[#e3dfd8] pt-6"><p className="mb-3 text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Logo Preview</p><div className="flex min-h-24 items-center justify-center bg-[#f7f5f0] p-6"><img src={settings.logo} alt="Logo preview" className="max-h-16 max-w-[260px] object-contain"/></div></div>}
+          {(["logo","logo_white","favicon"] as const).map(key => (
+            <div key={key} className="border border-[#d8d3ca] bg-[#faf8f4] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">{key === "logo" ? "Logo" : key === "logo_white" ? "Logo on dark background" : "Favicon"}</span>
+                <button type="button" onClick={() => setBrandingPicker(key)} className="border border-[#d8d3ca] bg-white px-3 py-2 text-[9px] uppercase tracking-[0.12em] hover:border-[#171717]">Upload / Choose</button>
+              </div>
+              <div className={key === "favicon" ? "flex min-h-20 items-center justify-center bg-white p-4" : "flex min-h-24 items-center justify-center bg-[#f7f5f0] p-5"}>
+                {settings[key] ? <img src={mediaUrl(settings[key])} alt={key === "favicon" ? "Favicon preview" : "Logo preview"} className={key === "favicon" ? "h-12 w-12 object-contain" : "max-h-16 max-w-[260px] object-contain"} /> : <span className="text-xs text-[#aaa49a]">No image selected</span>}
+              </div>
+            </div>
+          ))}
+          {brandingPicker && <MediaPickerModal open required={1} selectedIds={[]} collectionId="" onClose={() => setBrandingPicker(null)} onDone={(_collectionId, _mediaIds, selectedMedia) => {
+            const selected = selectedMedia[0];
+            if (selected) setSettings(current => ({ ...current, [brandingPicker]: selected.path }));
+            setBrandingPicker(null);
+          }} />}
         </>
       )}
 
