@@ -192,10 +192,10 @@ function AdminPagesContent() {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
         const data = await response.json() as { pages?: Page[] };
         const loadedPages = data.pages ?? [];
-        const initialPage = loadedPages.find(item => item.slug === requestedSlug) ?? loadedPages.find(item => item.page_type === "home") ?? loadedPages[0];
+        const initialPage = loadedPages.find(item => item.page_type === "home") ?? loadedPages[0];
         if (initialPage) await openPage(initialPage);
         setLoading(false);
-    }, [openPage, requestedSlug]);
+    }, [openPage]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => { void loadPages(); }, 0);
