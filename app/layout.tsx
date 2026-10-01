@@ -1,23 +1,8 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import StructuredData from "./components/StructuredData";
 import CoverPositionEditor from "./components/CoverPositionEditor";
 import SiteFavicon from "./components/SiteFavicon";
-
-const serif = Cormorant_Garamond({
-  variable: "--font-serif",
-  subsets: ["latin-ext"],
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const sans = DM_Sans({
-  variable: "--font-sans",
-  subsets: ["latin-ext"],
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
 
 const siteUrl = "https://thescenestudio.asia";
 
@@ -69,7 +54,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="en">
       <body>
         <StructuredData />
         <SiteFavicon />
