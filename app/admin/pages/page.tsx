@@ -25,6 +25,37 @@ function parseData(value: string | Record<string, unknown> | undefined) {
 function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function imageCount(variant: string) { return variant === "columns-2" || variant === "text-columns-2" ? 2 : variant === "columns-3" || variant === "text-columns-3" ? 3 : variant === "columns-4" || variant === "text-columns-4" ? 4 : 1; }
 
+const PAGE_LAYOUTS: Record<string, string[]> = {
+    image: ["medium", "large", "full-width", "columns-2", "columns-3", "columns-4", "grid-vertical", "grid-horizontal", "grid-square", "grid-stacked", "slideshow", "carousel", "text-overlay-large", "text-overlay-medium", "text-overlay-full", "text-columns-2", "text-columns-3", "text-columns-4", "text-below-large", "text-below-medium", "text-left-regular", "text-right-regular", "text-left-large", "text-right-large"],
+    text: ["heading-1", "heading-2", "heading-3", "wide", "regular", "narrow", "columns-2", "columns-3", "columns-4"],
+    content: ["regular", "banner-video"],
+};
+
+function pageLayoutLabel(variant: string) {
+    const labels: Record<string, string> = {
+        medium: "Medium · 50%", large: "Large · 70%", "full-width": "Full · 100%",
+        "columns-2": "Columns 2", "columns-3": "Columns 3", "columns-4": "Columns 4",
+        "grid-vertical": "Vertical Grid", "grid-horizontal": "Horizontal Grid", "grid-square": "Square Grid", "grid-stacked": "Stacked Grid",
+        slideshow: "Slideshow", carousel: "Carousel",
+        "text-overlay-large": "Image with Text · Large", "text-overlay-medium": "Image with Text · Medium", "text-overlay-full": "Image with Text · Full",
+        "text-columns-2": "Image with Text · Columns 2", "text-columns-3": "Image with Text · Columns 3", "text-columns-4": "Image with Text · Columns 4",
+        "text-below-large": "Image with Text · Below Large", "text-below-medium": "Image with Text · Below Medium",
+        "text-left-regular": "Image with Text · Left", "text-right-regular": "Image with Text · Right",
+        "text-left-large": "Image with Text · Left Large", "text-right-large": "Image with Text · Right Large",
+        "heading-1": "Heading 1", "heading-2": "Heading 2", "heading-3": "Heading 3",
+        wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "banner-video": "YouTube Video",
+    };
+    return labels[variant] ?? variant;
+}
+
+function nextPageLayout(block: Block) {
+    const layouts = PAGE_LAYOUTS[block.type];
+    if (!layouts) return null;
+    const current = text(block.data.variant) || (block.type === "image" ? "large" : block.type === "text" ? "regular" : "regular");
+    const index = layouts.indexOf(current);
+    return layouts[(index >= 0 ? index + 1 : 0) % layouts.length];
+}
+
 function CoverEditor({ block, onChange }: { block: Block; onChange: (patch: Partial<Block>) => void }) {
     const data = block.data;
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -166,8 +197,8 @@ function AdminPagesContent() {
                                 {draggingId === block.id && <div className="pointer-events-none absolute inset-0 z-10 border-2 border-dashed border-[#8f887e] bg-[#8f887e]/5" />}
                                 <div className="absolute right-3 top-3 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100">
                                     <PageBlockDragHandle disabled={page.page_type === "home" && block.type === "cover"} onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", block.id); setDraggingId(block.id); }} onDragEnd={() => { setDraggingId(null); setDropPosition(null); }} />
-                                    <span className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#77736c]">{BLOCK_LABELS[block.type] ?? block.type}</span>
-                                    <button type="button" onClick={() => setEditingBlockId(editingBlockId === block.id ? null : block.id)} className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#625e57] hover:bg-white">{editingBlockId === block.id ? "Done" : "Edit"}</button>
+                                    <span className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#77736c]">{BLOCK_LABELS[block.type] ?? block.type} · {pageLayoutLabel(text(block.data.variant) || (block.type === "image" ? "large" : block.type === "text" ? "regular" : block.type))}</span>
+                                    {pageLayoutLabel(text(block.data.variant) || (block.type === "image" ? "large" : block.type === "text" ? "regular" : block.type)) && block.type !== "cover" && block.type !== "links" && <button type="button" title="Switch layout" onClick={() => { const next = nextPageLayout(block); if (next) updateBlock(block.id, { data: { ...block.data, variant: next } }); }} className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#625e57] hover:bg-white">↻ Switch layout</button>}<button type="button" onClick={() => setEditingBlockId(editingBlockId === block.id ? null : block.id)} className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#625e57] hover:bg-white">{editingBlockId === block.id ? "Done" : "Edit"}</button>
                                     <button type="button" aria-label={`Delete block ${index + 1}`} onClick={() => { setBlocks(current => current.filter(item => item.id !== block.id)); if (editingBlockId === block.id) setEditingBlockId(null); }} disabled={page.page_type === "home" && block.type === "cover"} className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#8a857d] hover:text-red-700 disabled:opacity-40">Delete</button>
                                 </div>
                                 {editingBlockId === block.id ? <div className="px-5 py-8 sm:px-10"><PageBlockEditor block={block} onChange={patch => updateBlock(block.id, patch)} /></div> : <PageBlockPreview block={block} />}
