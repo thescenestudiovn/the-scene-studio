@@ -1,29 +1,6 @@
 import { ensureSiteSettingsTable, getSiteSettings } from "../../../../lib/site-settings";
 import { getDB } from "../../../../lib/db";
 
-type SiteSettings = {
-  id: string;
-  phone: string;
-  email: string;
-  instagram: string;
-  facebook: string;
-};
-
-async function ensureSettings(): Promise<SiteSettings> {
-  const db = getDB();
-  await ensureSiteSettingsTable();
-
-  return (await db
-    .prepare(`SELECT id,phone,email,instagram,facebook FROM site_settings WHERE id='global' LIMIT 1`)
-    .first<SiteSettings>()) ?? {
-      id: "global",
-      phone: "",
-      email: "",
-      instagram: "",
-      facebook: "",
-    };
-}
-
 export async function GET() {
   try {
     return Response.json({ success: true, settings: await getSiteSettings() });
@@ -35,22 +12,23 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const body = (await request.json()) as Partial<SiteSettings>;
+    const body = await request.json() as Record<string, unknown>;
     const db = getDB();
-
     await ensureSiteSettingsTable();
-    await db.prepare(`
-      UPDATE site_settings
-      SET phone=?, email=?, instagram=?, facebook=?, updated_at=CURRENT_TIMESTAMP
-      WHERE id='global'
-    `).bind(
-      body.phone?.trim() ?? "",
-      body.email?.trim() ?? "",
-      body.instagram?.trim() ?? "",
-      body.facebook?.trim() ?? "",
-    ).run();
 
-    return Response.json({ success: true, settings: await ensureSettings() });
+    const fields = [
+      "phone","email","whatsapp","instagram","facebook","tiktok","pinterest",
+      "address","logo","logo_white","favicon","site_description","seo_title",
+      "seo_description","og_image","footer_text"
+    ] as const;
+
+    const values = fields.map(field => typeof body[field] === "string" ? body[field].trim() : "");
+    const setClause = fields.map(field => `${field}=?`).join(", ");
+
+    await db.prepare(`UPDATE site_settings SET ${setClause}, updated_at=CURRENT_TIMESTAMP WHERE id='global'`)
+      .bind(...values).run();
+
+    return Response.json({ success: true, settings: await getSiteSettings() });
   } catch (error) {
     console.error("PATCH /api/admin/site-settings error:", error);
     return Response.json({ success: false, error: "Failed to save site settings" }, { status: 500 });
