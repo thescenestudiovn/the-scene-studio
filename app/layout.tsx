@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans } from "next/font/google";
+import { Karla, Libre_Caslon_Text } from "next/font/google";
 import "./globals.css";
 import StructuredData from "./components/StructuredData";
 import CoverPositionEditor from "./components/CoverPositionEditor";
 
-const serif = Cormorant_Garamond({
+const serif = Libre_Caslon_Text({
   variable: "--font-serif",
   subsets: ["latin-ext"],
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "700"],
 });
 
-const sans = DM_Sans({
+const sans = Karla({
   variable: "--font-sans",
   subsets: ["latin-ext"],
   display: "swap",

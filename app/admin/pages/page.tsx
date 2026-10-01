@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
 import { mediaUrl } from "../../../lib/media";
+import RichTextEditor from "../../../components/story/editor/RichTextEditor";
+import sanitizeHtml from "sanitize-html";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; collection_id?: string | null; width?: number | null; height?: number | null };
 type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null };
@@ -54,6 +57,16 @@ function PageBlockEditor({ block, onChange }: { block: Block; onChange: (patch: 
         <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Title" value={text(data.title)} onChange={event => update("title", event.target.value)} />
         <MediaPickerModal open={pickerOpen} required={count} selectedIds={selectedIds} collectionId={text(data.collection_id)} onClose={() => setPickerOpen(false)} onDone={(collectionId, mediaIds, media) => { onChange({ data: { ...data, collection_id: collectionId || null, media_ids: mediaIds }, media }); setPickerOpen(false); }} />
     </div>;
+    if (block.type === "text") {
+        const columnCount = variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1;
+        const storedColumns = Array.isArray(data.columns) ? data.columns.map(item => typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
+        if (columnCount > 1) {
+            return <div className={`grid gap-8 ${columnCount === 2 ? "md:grid-cols-2" : columnCount === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
+                {Array.from({ length: columnCount }, (_, index) => <RichTextEditor key={index} variant="regular" placeholder={`Column ${index + 1}`} value={storedColumns[index] ?? ""} onChange={value => { const columns = Array.from({ length: columnCount }, (_, columnIndex) => columnIndex === index ? value : storedColumns[columnIndex] ?? ""); onChange({ data: { ...data, columns: columns.map(content => ({ content })), body: columns.map(content => `<p>${content}</p>`).join("") } }); }} />)}
+            </div>;
+        }
+        return <RichTextEditor variant={variant} placeholder="Click to add text" value={text(data.body)} onChange={value => onChange({ data: { ...data, body: value } })} />;
+    }
     return <div className="grid gap-3">
         <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Eyebrow / label" value={text(data.eyebrow)} onChange={event => update("eyebrow", event.target.value)} />
         <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder={block.type === "content" ? "Video title" : "Title"} value={text(data.title)} onChange={event => update("title", event.target.value)} />
@@ -63,28 +76,115 @@ function PageBlockEditor({ block, onChange }: { block: Block; onChange: (patch: 
     </div>;
 }
 
-export default function AdminPagesPage() {
-    const [pages, setPages] = useState<Page[]>([]);
+function PageBlockPreview({ block }: { block: Block }) {
+    const data = block.data;
+    const variant = text(data.variant) || block.type;
+    const selectedIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
+    const media = selectedIds.map(id => block.media.find(item => item.id === id)).filter((item): item is Media => Boolean(item));
+    const title = text(data.title);
+    const eyebrow = text(data.eyebrow);
+    const body = text(data.body);
+    const safeBody = sanitizeHtml(body);
+
+    if (block.type === "cover") return <div className={`relative mx-auto aspect-[16/7] overflow-hidden bg-[#ddd8cf] ${variant === "cover-contained" ? "max-w-5xl" : "w-full"}`}>
+        {media[0] && <img src={mediaUrl(media[0].path)} alt={media[0].alt || title} className="absolute inset-0 h-full w-full object-cover" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-10"><p className="text-[10px] uppercase tracking-[0.16em]">{eyebrow || "Homepage"}</p><h2 className="mt-2 font-serif text-3xl">{title || "Cover title"}</h2>{body && <p className="mt-2 max-w-xl text-sm">{body}</p>}</div>
+    </div>;
+    if (block.type === "image") return <div className="mx-auto max-w-6xl">
+        {(eyebrow || title) && <div className="mb-5">{eyebrow && <p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow}</p>}{title && <h2 className="mt-2 font-serif text-3xl">{title}</h2>}</div>}
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(imageCount(variant), 4)}, minmax(0, 1fr))` }}>{Array.from({ length: imageCount(variant) }, (_, index) => <div key={index} className="aspect-[4/3] overflow-hidden bg-[#ebe7df]">{media[index] && <img src={mediaUrl(media[index].path)} alt={media[index].alt || media[index].filename || ""} className="h-full w-full object-cover" />}</div>)}</div>
+    </div>;
+    if (block.type === "text") {
+        const columns = Array.isArray(data.columns) ? data.columns.map(item => typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
+        const count = variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1;
+        return <div className="mx-auto max-w-5xl px-6 py-8 md:px-10">{eyebrow && <p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow}</p>}{title && <h2 className="mt-3 font-serif text-4xl">{title}</h2>}{count > 1 ? <div className={`mt-5 grid gap-6 ${count === 2 ? "md:grid-cols-2" : count === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>{Array.from({ length: count }, (_, index) => <div key={index} className="min-w-0 text-sm leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(columns[index] ?? "") }} />)}</div> : body && <div className="mt-5 text-sm leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: safeBody }} />}</div>;
+    }
+    if (block.type === "content") return <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 md:grid-cols-2 md:px-10"><div><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow || "Content"}</p><h2 className="mt-3 font-serif text-4xl">{title || "Video title"}</h2></div><div className="text-sm leading-7 text-[#77736c]">{body || text(data.youtube_url) || "Add content details"}</div></div>;
+    if (block.type === "links") return <div className="mx-auto max-w-6xl border-t border-[#d8d3ca] px-6 py-8 md:px-10"><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow || "Links"}</p><h2 className="mt-2 font-serif text-3xl">{title || "Link collection"}</h2></div>;
+    return <div className="mx-auto max-w-6xl px-6 py-8 md:px-10"><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{BLOCK_LABELS[block.type] ?? block.type} · {variant}</p>{title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}{body && <p className="mt-3 text-sm leading-7 text-[#77736c]">{body}</p>}</div>;
+}
+
+function AddPageBlockTrigger({ onClick }: { onClick: () => void }) {
+    return <div className="group relative h-8 w-full" aria-label="Insert block">
+        <button type="button" onClick={onClick} aria-label="Add block" title="Add block" className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100">
+            <span className="absolute left-0 right-0 h-px bg-[#bdb7ad]" aria-hidden="true" />
+            <span className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[#bdb7ad] bg-[#f7f5f0] text-sm font-light leading-none text-[#5f5a52] transition-transform group-hover:scale-105">+</span>
+        </button>
+    </div>;
+}
+
+function PageBlockDragHandle({ disabled, onDragStart, onDragEnd }: { disabled?: boolean; onDragStart: (event: React.DragEvent<HTMLButtonElement>) => void; onDragEnd: () => void }) {
+    return <button type="button" draggable={!disabled} disabled={disabled} aria-label={disabled ? "Homepage cover stays first" : "Drag to reorder block"} title={disabled ? "Homepage cover stays first" : "Drag to reorder"} onDragStart={onDragStart} onDragEnd={onDragEnd} onMouseDown={event => event.stopPropagation()} className="flex h-7 w-7 cursor-grab items-center justify-center bg-[#f5f2ec] text-[#77736c] hover:bg-white active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40">
+        <svg aria-hidden="true" width="14" height="16" viewBox="0 0 14 16" fill="none"><circle cx="4" cy="3" r="1" fill="currentColor" /><circle cx="10" cy="3" r="1" fill="currentColor" /><circle cx="4" cy="8" r="1" fill="currentColor" /><circle cx="10" cy="8" r="1" fill="currentColor" /><circle cx="4" cy="13" r="1" fill="currentColor" /><circle cx="10" cy="13" r="1" fill="currentColor" /></svg>
+    </button>;
+}
+
+function AdminPagesContent() {
     const [page, setPage] = useState<Page | null>(null);
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [insertIndex, setInsertIndex] = useState<number | null>(null);
+    const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dropPosition, setDropPosition] = useState<{ id: string; side: "before" | "after" } | null>(null);
+    const routeParams = useParams<{ slug?: string }>();
+    const requestedSlug = routeParams.slug ?? "home";
 
-    async function loadPages() { setLoading(true); const response = await fetch("/api/admin/pages", { cache: "no-store" }); const data = await response.json() as { pages?: Page[] }; setPages(data.pages ?? []); setLoading(false); }
-    useEffect(() => { const timer = window.setTimeout(() => { void loadPages(); }, 0); return () => window.clearTimeout(timer); }, []);
-
-    async function openPage(item: Page) { setMessage(""); const response = await fetch(`/api/pages/${item.slug}`, { cache: "no-store" }); const data = await response.json() as PageResponse; const loaded = (data.blocks ?? []).map(block => ({ id: block.id, type: block.type, sort_order: block.sort_order, data: parseData(block.data), media: block.media ?? [] })); setPage(item); if (item.page_type === "home") { const cover = loaded.find(block => block.type === "cover") ?? { id: crypto.randomUUID(), type: "cover", data: { variant: "cover-full" }, media: [] }; setBlocks([cover, ...loaded.filter(block => block.id !== cover.id)]); } else setBlocks(loaded); }
-    function addBlock(selection: ContentBlockSelection) { const variant = selection.variant; const data = selection.category === "image" ? { ...selection.data, variant } : selection.category === "content" ? { ...selection.data, variant } : { variant }; setBlocks(current => [...current, { id: crypto.randomUUID(), type: selection.category, data, media: [] }]); setPickerOpen(false); }
+    const openPage = useCallback(async (item: Page) => { setMessage(""); setEditingBlockId(null); const response = await fetch(`/api/pages/${item.slug}`, { cache: "no-store" }); const data = await response.json() as PageResponse; const loaded = (data.blocks ?? []).map(block => ({ id: block.id, type: block.type, sort_order: block.sort_order, data: parseData(block.data), media: block.media ?? [] })); setPage(item); if (item.page_type === "home") { const cover = loaded.find(block => block.type === "cover") ?? { id: crypto.randomUUID(), type: "cover", data: { variant: "cover-full" }, media: [] }; setBlocks([cover, ...loaded.filter(block => block.id !== cover.id)]); } else setBlocks(loaded); }, []);
+    const loadPages = useCallback(async () => { setLoading(true); const response = await fetch("/api/admin/pages", { cache: "no-store" }); const data = await response.json() as { pages?: Page[] }; const loadedPages = data.pages ?? []; const initialPage = loadedPages.find(item => item.slug === requestedSlug) ?? loadedPages.find(item => item.page_type === "home") ?? loadedPages[0]; if (initialPage) await openPage(initialPage); setLoading(false); }, [openPage, requestedSlug]);
+    useEffect(() => { const timer = window.setTimeout(() => { void loadPages(); }, 0); return () => window.clearTimeout(timer); }, [loadPages]);
+    function addBlock(selection: ContentBlockSelection) { const variant = selection.variant; const data = selection.category === "image" ? { ...selection.data, variant } : selection.category === "content" ? { ...selection.data, variant } : { variant }; const newBlock = { id: crypto.randomUUID(), type: selection.category, data, media: [] }; setBlocks(current => { const index = insertIndex === null ? current.length : Math.min(insertIndex, current.length); return [...current.slice(0, index), newBlock, ...current.slice(index)]; }); setEditingBlockId(newBlock.id); setPickerOpen(false); setInsertIndex(null); }
+    function openBlockPicker(index: number) { setInsertIndex(index); setPickerOpen(true); }
     function updateBlock(id: string, patch: Partial<Block>) { setBlocks(current => current.map(block => block.id === id ? { ...block, ...patch } : block)); }
-    function moveBlock(index: number, direction: -1 | 1) { const target = index + direction; if (target < 0 || target >= blocks.length) return; const next = [...blocks];[next[index], next[target]] = [next[target], next[index]]; if (page?.page_type !== "home" || next[0]?.type === "cover") setBlocks(next); }
     function dropBlock(targetId: string, side: "before" | "after") { if (!draggingId || draggingId === targetId) return; const current = blocks.findIndex(block => block.id === draggingId); const target = blocks.findIndex(block => block.id === targetId); if (current < 0 || target < 0) return; const dragged = blocks[current]; const next = blocks.filter(block => block.id !== draggingId); let index = next.findIndex(block => block.id === targetId); if (side === "after") index += 1; next.splice(Math.max(0, index), 0, dragged); if (page?.page_type !== "home" || next[0]?.type === "cover") setBlocks(next); setDraggingId(null); setDropPosition(null); }
     async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
 
-    if (loading) return <main className="min-h-screen bg-[#f7f5f0] p-12 text-[#171717]">Loading pages…</main>;
-    if (!page) return <main className="min-h-screen bg-[#f7f5f0] px-6 py-12 text-[#171717]"><div className="mx-auto max-w-6xl"><Link href="/admin" className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Admin</Link><h1 className="mt-8 font-serif text-5xl">Pages</h1><p className="mt-3 text-sm text-[#77736c]">Build Home and About from the same content blocks used by Stories.</p><div className="mt-10 grid gap-4 md:grid-cols-2">{pages.map(item => <button type="button" key={item.id} onClick={() => void openPage(item)} className="border border-[#d8d3ca] bg-white p-6 text-left"><p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{item.page_type}</p><h2 className="mt-3 font-serif text-3xl">{item.title}</h2><p className="mt-2 text-xs text-[#77736c]">/{item.slug}</p></button>)}</div></div></main>;
-    return <main className="min-h-screen bg-[#f7f5f0] px-6 py-8 text-[#171717] md:px-10"><div className="mx-auto max-w-6xl"><div className="flex flex-wrap items-center justify-between gap-4"><button type="button" onClick={() => setPage(null)} className="text-xs uppercase tracking-[0.16em] text-[#77736c]">← Pages</button><div className="flex gap-2"><a href={`/${page.slug}`} target="_blank" rel="noreferrer" className="border border-[#d8d3ca] px-4 py-3 text-[10px] uppercase tracking-[0.14em]">Preview</a><button type="button" onClick={() => void save()} disabled={saving} className="bg-[#171717] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-white disabled:opacity-50">{saving ? "Saving…" : "Save page"}</button></div></div><div className="mt-8 border-b border-[#d8d3ca] pb-8"><p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">Page Builder</p><h1 className="mt-3 font-serif text-5xl">{page.title}</h1><p className="mt-2 text-sm text-[#77736c]">/{page.slug}</p>{message && <p className="mt-4 text-sm text-[#77736c]">{message}</p>}</div><section className="mt-8 border border-[#d8d3ca] bg-white p-6"><h2 className="font-serif text-2xl">SEO</h2><div className="mt-5 grid gap-4"><input className="border border-[#d8d3ca] p-3 text-sm" placeholder="SEO title" value={page.seo_title ?? ""} onChange={event => setPage({ ...page, seo_title: event.target.value })} /><textarea className="min-h-20 border border-[#d8d3ca] p-3 text-sm" placeholder="SEO description" value={page.seo_description ?? ""} onChange={event => setPage({ ...page, seo_description: event.target.value })} /></div></section><section className="mt-10"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs uppercase tracking-[0.18em] text-[#77736c]">Content</p><h2 className="mt-2 font-serif text-3xl">Page blocks</h2></div><button type="button" onClick={() => setPickerOpen(true)} className="bg-[#171717] px-4 py-3 text-[10px] uppercase tracking-[0.14em] text-white">Add block</button></div><div className="mt-6 space-y-4">{blocks.map((block, index) => <article key={block.id} onDragOver={event => { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); setDropPosition({ id: block.id, side: event.clientY < rect.top + rect.height / 2 ? "before" : "after" }); }} onDrop={event => { event.preventDefault(); if (dropPosition) dropBlock(block.id, dropPosition.side); }} className={`border bg-white p-5 ${dropPosition?.id === block.id ? "border-[#171717]" : "border-[#d8d3ca]"}`}><div className="mb-5 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><button type="button" draggable onDragStart={() => setDraggingId(block.id)} onDragEnd={() => { setDraggingId(null); setDropPosition(null); }} aria-label="Drag to reorder block" className="cursor-grab border border-[#d8d3ca] px-3 py-2 text-xs text-[#77736c] active:cursor-grabbing">⠿</button><div><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">Block {index + 1}</p><h3 className="mt-1 font-serif text-2xl">{BLOCK_LABELS[block.type] ?? block.type} <span className="font-sans text-xs text-[#77736c]">· {text(block.data.variant) || block.type}</span></h3></div></div><div className="flex gap-2"><button type="button" onClick={() => moveBlock(index, -1)} disabled={index === 0} className="border border-[#d8d3ca] px-3 py-2 text-xs disabled:opacity-30">↑</button><button type="button" onClick={() => moveBlock(index, 1)} disabled={index === blocks.length - 1} className="border border-[#d8d3ca] px-3 py-2 text-xs disabled:opacity-30">↓</button><button type="button" onClick={() => setBlocks(current => current.filter(item => item.id !== block.id))} disabled={page.page_type === "home" && block.type === "cover"} className="border border-[#d8d3ca] px-3 py-2 text-xs disabled:opacity-30">×</button></div></div><PageBlockEditor block={block} onChange={patch => updateBlock(block.id, patch)} /></article>)}</div>{blocks.length === 0 && <div className="mt-6 border border-dashed border-[#c9c3b9] bg-white p-12 text-center text-sm text-[#77736c]">No blocks yet. Add the first content block.</div>}</section></div><ContentBlockPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={addBlock} /></main>;
+    if (loading) return <main className="min-h-[calc(100dvh-64px)] bg-[#f7f5f0] p-12 text-[#171717]">Loading pages…</main>;
+    return <main className="min-h-[calc(100dvh-64px)] bg-[#f0eee8] text-[#171717]">
+        <div className="flex min-h-[calc(100dvh-64px)] flex-col lg:flex-row">
+            <section className="min-w-0 flex-1">
+                <div className="sticky top-16 z-30 flex min-h-[68px] items-center justify-between gap-4 border-b border-[#d8d3ca] bg-[#f7f5f0]/95 px-4 backdrop-blur sm:px-6">
+                    <div className="min-w-0"><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Page builder</p><h1 className="truncate text-sm font-medium">{page?.title ?? "Choose a page"}</h1></div>
+                    {page && <div className="flex shrink-0 items-center gap-2">
+                        <button type="button" onClick={() => openBlockPicker(blocks.length)} className="hidden border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em] sm:inline-flex">+ Block</button>
+                        <details className="group relative"><summary className="cursor-pointer list-none border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em]">SEO</summary><div className="absolute right-0 top-full z-50 mt-2 grid w-[min(84vw,360px)] gap-3 border border-[#d8d3ca] bg-[#fbfaf7] p-4 shadow-lg"><input className="min-w-0 border border-[#d8d3ca] bg-white p-2.5 text-xs" placeholder="SEO title" value={page.seo_title ?? ""} onChange={event => setPage({ ...page, seo_title: event.target.value })} /><textarea className="min-h-20 min-w-0 border border-[#d8d3ca] bg-white p-2.5 text-xs" placeholder="SEO description" value={page.seo_description ?? ""} onChange={event => setPage({ ...page, seo_description: event.target.value })} /></div></details>
+                        <Link href={`/${page.slug}`} target="_blank" rel="noreferrer" className="border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em]">Preview</Link>
+                        <button type="button" onClick={() => void save()} disabled={saving} className="bg-[#171717] px-4 py-2.5 text-[9px] uppercase tracking-[0.12em] text-white disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
+                    </div>}
+                </div>
+                {message && <p className="border-b border-[#d8d3ca] bg-white px-5 py-3 text-xs text-[#666158]">{message}</p>}
+                {page ? <div className="overflow-x-auto p-3 sm:p-6 lg:p-8">
+                    <div className="mx-auto min-h-[70vh] max-w-[1440px] bg-white shadow-[0_8px_32px_rgba(35,31,26,0.08)]">
+                        <div className="flex min-h-16 items-center justify-between gap-4 border-b border-[#eeeae3] px-5 sm:px-8"><Link href="/" target="_blank" className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em]">The Scene Studio</Link><nav className="flex min-w-0 items-center gap-3 overflow-x-auto text-[9px] text-[#77736c] sm:gap-6 sm:text-[10px]"><Link href="/" target="_blank">Home</Link><Link href="/about" target="_blank">About</Link><Link href="/stories" target="_blank">Stories</Link><Link href="/gallery" target="_blank">Gallery</Link><Link href="/contact" target="_blank">Contact</Link></nav></div>
+                        <div>{blocks.map((block, index) => <div key={block.id}>
+                            {dropPosition?.id === block.id && dropPosition.side === "before" && <div className="h-1 bg-[#171717]" />}
+                            <article id={block.id} onDragOver={event => { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); setDropPosition({ id: block.id, side: event.clientY < rect.top + rect.height / 2 ? "before" : "after" }); }} onDrop={event => { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); dropBlock(block.id, event.clientY < rect.top + rect.height / 2 ? "before" : "after"); }} className="group relative border-b border-transparent hover:border-[#d8d3ca]">
+                                {draggingId === block.id && <div className="pointer-events-none absolute inset-0 z-10 border-2 border-dashed border-[#8f887e] bg-[#8f887e]/5" />}
+                                <div className="absolute right-3 top-3 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100">
+                                    <PageBlockDragHandle disabled={page.page_type === "home" && block.type === "cover"} onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", block.id); setDraggingId(block.id); }} onDragEnd={() => { setDraggingId(null); setDropPosition(null); }} />
+                                    <span className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#77736c]">{BLOCK_LABELS[block.type] ?? block.type}</span>
+                                    <button type="button" onClick={() => setEditingBlockId(editingBlockId === block.id ? null : block.id)} className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#625e57] hover:bg-white">{editingBlockId === block.id ? "Done" : "Edit"}</button>
+                                    <button type="button" aria-label={`Delete block ${index + 1}`} onClick={() => { setBlocks(current => current.filter(item => item.id !== block.id)); if (editingBlockId === block.id) setEditingBlockId(null); }} disabled={page.page_type === "home" && block.type === "cover"} className="bg-[#f5f2ec] px-2 py-2 text-[9px] uppercase tracking-[0.12em] text-[#8a857d] hover:text-red-700 disabled:opacity-40">Delete</button>
+                                </div>
+                                {editingBlockId === block.id ? <div className="px-5 py-8 sm:px-10"><PageBlockEditor block={block} onChange={patch => updateBlock(block.id, patch)} /></div> : <PageBlockPreview block={block} />}
+                            </article>
+                            {dropPosition?.id === block.id && dropPosition.side === "after" && <div className="h-1 bg-[#171717]" />}
+                            <AddPageBlockTrigger onClick={() => openBlockPicker(index + 1)} />
+                        </div>)}
+                            {!blocks.length && <div className="px-6 py-24 text-center"><p className="mb-4 font-serif text-3xl">Start your page</p><p className="mb-6 text-sm text-[#77736c]">Choose a block to begin shaping this page.</p><button type="button" onClick={() => openBlockPicker(0)} className="bg-[#171717] px-4 py-3 text-[9px] uppercase tracking-[0.14em] text-white">+ Add block</button></div>}
+                        </div>
+                    </div>
+                </div> : <div className="grid min-h-[60vh] place-items-center px-6 text-center"><div><p className="font-serif text-3xl">Your pages will appear here</p><p className="mt-3 text-sm text-[#77736c]">Select a page from the left panel to edit its content.</p></div></div>}
+            </section>
+        </div>
+        <ContentBlockPicker open={pickerOpen} onClose={() => { setPickerOpen(false); setInsertIndex(null); }} onSelect={addBlock} />
+    </main>;
+}
+
+export default function AdminPagesPage() {
+    return <AdminPagesContent />;
 }

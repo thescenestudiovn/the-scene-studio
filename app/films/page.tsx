@@ -41,7 +41,7 @@ export default function FilmsPage() {
                         Films
                     </p>
 
-                    <h1 className="mt-10 max-w-5xl font-serif text-6xl leading-[0.9] tracking-[-0.04em] md:text-8xl lg:text-9xl">
+                    <h1 className="mt-10 max-w-5xl font-serif text-5xl leading-[0.95] tracking-[-0.04em] md:text-7xl lg:text-8xl">
                         Moving images
                         <br />
                         for stories that
