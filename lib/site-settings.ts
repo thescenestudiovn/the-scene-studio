@@ -28,6 +28,7 @@ const EMPTY: SiteSettings = {
 
 export async function ensureSiteSettingsTable(): Promise<void> {
   const db = await getDBAsync();
+
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS site_settings (
       id TEXT PRIMARY KEY,
@@ -39,6 +40,33 @@ export async function ensureSiteSettingsTable(): Promise<void> {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+
+  // The production D1 may still have the original 0007 schema.
+  // CREATE TABLE IF NOT EXISTS does not add columns to an existing table,
+  // so add any expanded settings columns that are missing.
+  const columns = await db.prepare("PRAGMA table_info(site_settings)").all<{ name: string }>();
+  const existing = new Set(columns.results.map(column => column.name));
+  const missingColumns = [
+    ["whatsapp", "TEXT"],
+    ["tiktok", "TEXT"],
+    ["pinterest", "TEXT"],
+    ["address", "TEXT"],
+    ["logo", "TEXT"],
+    ["logo_white", "TEXT"],
+    ["favicon", "TEXT"],
+    ["site_description", "TEXT"],
+    ["seo_title", "TEXT"],
+    ["seo_description", "TEXT"],
+    ["og_image", "TEXT"],
+    ["footer_text", "TEXT"],
+  ] as const;
+
+  for (const [name, definition] of missingColumns) {
+    if (!existing.has(name)) {
+      await db.prepare(`ALTER TABLE site_settings ADD COLUMN ${name} ${definition}`).run();
+    }
+  }
+
   await db.prepare(`
     INSERT OR IGNORE INTO site_settings (id, phone, email, instagram, facebook)
     VALUES ('global', '', '', '', '')
