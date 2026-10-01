@@ -1,0 +1,12 @@
+ALTER TABLE site_settings ADD COLUMN whatsapp TEXT;
+ALTER TABLE site_settings ADD COLUMN tiktok TEXT;
+ALTER TABLE site_settings ADD COLUMN pinterest TEXT;
+ALTER TABLE site_settings ADD COLUMN address TEXT;
+ALTER TABLE site_settings ADD COLUMN logo TEXT;
+ALTER TABLE site_settings ADD COLUMN logo_white TEXT;
+ALTER TABLE site_settings ADD COLUMN favicon TEXT;
+ALTER TABLE site_settings ADD COLUMN site_description TEXT;
+ALTER TABLE site_settings ADD COLUMN seo_title TEXT;
+ALTER TABLE site_settings ADD COLUMN seo_description TEXT;
+ALTER TABLE site_settings ADD COLUMN og_image TEXT;
+ALTER TABLE site_settings ADD COLUMN footer_text TEXT;
