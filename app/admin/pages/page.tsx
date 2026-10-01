@@ -326,7 +326,6 @@ function AdminPagesContent() {
                                 onBlocksChange={handleStoryBlocksChange}
                                 onDelete={deleteBlock}
                                 onUpdate={updateStoryBlock}
-                                onAddBlock={addBlock}
                             />
                         </div>
                     </div>
