@@ -18,5 +18,11 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
             {pages.map(item => <Link key={item.slug} href={item.href} aria-current={activeSlug === item.slug ? "page" : undefined} className={`flex items-center gap-3 px-3 py-2.5 text-xs transition-colors ${activeSlug === item.slug ? "bg-[#eeece6] text-[#171717]" : "text-[#6f6a61] hover:bg-[#f2f0eb]"}`}><span className="w-4 text-center text-[#8a857d]">{item.icon}</span>{item.label}</Link>)}
             <span title="Testimonials management is not configured yet" aria-disabled="true" className="flex items-center gap-3 px-3 py-2.5 text-xs text-[#aaa49a]"><span className="w-4 text-center">☆</span>Testimonials</span>
         </nav>
+        <nav aria-label="System settings" className="px-3 py-4">
+            <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">System</p>
+            <Link href="/admin/settings" aria-current={activeSlug === "settings" ? "page" : undefined} className={`flex items-center gap-3 px-3 py-2.5 text-xs transition-colors ${activeSlug === "settings" ? "bg-[#eeece6] text-[#171717]" : "text-[#6f6a61] hover:bg-[#f2f0eb]"}`}>
+                <span className="w-4 text-center text-[#8a857d]">⚙</span>Settings
+            </Link>
+        </nav>
     </aside>;
 }
