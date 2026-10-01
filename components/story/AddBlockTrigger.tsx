@@ -16,6 +16,10 @@ export default function AddBlockTrigger({ storyId, afterBlockId, onClick }: Prop
       <button
         type="button"
         onClick={() => {
+          if (onClick) {
+            onClick();
+            return;
+          }
           const query = afterBlockId ? `?after=${encodeURIComponent(afterBlockId)}` : "";
           router.push(`/admin/stories/${storyId}/blocks${query}`);
         }}
