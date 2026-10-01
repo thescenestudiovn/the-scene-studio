@@ -6,7 +6,12 @@ import { useParams } from "next/navigation";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
 import { mediaUrl } from "../../../lib/media";
-import RichTextEditor from "../../../components/story/editor/RichTextEditor";
+import TextColumnsEditor from "../../../components/story/editor/TextColumnsEditor";
+import ImageBlockEditor from "../../../components/story/blocks/image/ImageBlockEditor";
+import ImageWithTextEditor from "../../../components/story/blocks/image/ImageWithTextEditor";
+import GridGalleryEditor from "../../../components/story/blocks/gallery/GridGalleryEditor";
+import VideoBlockEditor from "../../../components/story/blocks/video/VideoBlockEditor";
+import type { StoryBlock } from "../../../components/story/editor/types";
 import sanitizeHtml from "sanitize-html";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; collection_id?: string | null; width?: number | null; height?: number | null };
@@ -30,6 +35,22 @@ const PAGE_LAYOUTS: Record<string, string[]> = {
     text: ["heading-1", "heading-2", "heading-3", "wide", "regular", "narrow", "columns-2", "columns-3", "columns-4"],
     content: ["regular", "banner-video"],
 };
+
+
+function toStoryBlock(block: Block): StoryBlock {
+    const data = block.data;
+    return {
+        id: block.id,
+        type: block.type,
+        variant: text(data.variant) || (block.type === "image" ? "large" : block.type === "text" ? "regular" : "regular"),
+        sort_order: block.sort_order ?? 0,
+        eyebrow: text(data.eyebrow) || null,
+        title: text(data.title) || null,
+        body: text(data.body) || null,
+        media: block.media as StoryBlock["media"],
+        data,
+    };
+}
 
 function pageLayoutLabel(variant: string) {
     const labels: Record<string, string> = {
@@ -74,37 +95,30 @@ function CoverEditor({ block, onChange }: { block: Block; onChange: (patch: Part
 
 function PageBlockEditor({ block, onChange }: { block: Block; onChange: (patch: Partial<Block>) => void }) {
     const data = block.data;
-    const variant = text(data.variant) || block.type;
-    const [pickerOpen, setPickerOpen] = useState(false);
-    const update = (key: string, value: string) => onChange({ data: { ...data, [key]: value } });
-    const selectedIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
-    const count = imageCount(variant);
-    const selectedMedia = selectedIds.map(id => block.media.find(item => item.id === id)).filter((item): item is Media => Boolean(item));
+    const variant = text(data.variant) || (block.type === "image" ? "large" : block.type === "text" ? "regular" : "regular");
+    const updateFromStory = (patch: Partial<StoryBlock>) => {
+        const nextData = patch.data && typeof patch.data === "object" ? patch.data as Record<string, unknown> : data;
+        const nextVariant = typeof patch.variant === "string" ? patch.variant : text(nextData.variant) || variant;
+        onChange({
+            data: { ...nextData, variant: nextVariant },
+            media: patch.media ? patch.media as Block["media"] : undefined,
+        });
+    };
     if (block.type === "cover") return <CoverEditor block={block} onChange={onChange} />;
-    if (block.type === "image") return <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{variant}</span><button type="button" onClick={() => setPickerOpen(true)} className="border border-[#171717] bg-[#171717] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-white">{selectedMedia.length ? "Change images" : "Choose images"}</button></div>
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(count, 4)}, minmax(0, 1fr))` }}>{Array.from({ length: count }, (_, index) => { const item = selectedMedia[index]; return <div key={index} className="aspect-[4/3] overflow-hidden bg-[#ebe7df]">{item ? <img src={mediaUrl(item.path)} alt={item.alt || item.filename || ""} className="h-full w-full object-cover" /> : <button type="button" onClick={() => setPickerOpen(true)} className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.14em] text-[#8a857d]">Add image</button>}</div>; })}</div>
-        <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Eyebrow / label" value={text(data.eyebrow)} onChange={event => update("eyebrow", event.target.value)} />
-        <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Title" value={text(data.title)} onChange={event => update("title", event.target.value)} />
-        <MediaPickerModal open={pickerOpen} required={count} selectedIds={selectedIds} collectionId={text(data.collection_id)} onClose={() => setPickerOpen(false)} onDone={(collectionId, mediaIds, media) => { onChange({ data: { ...data, collection_id: collectionId || null, media_ids: mediaIds }, media }); setPickerOpen(false); }} />
-    </div>;
-    if (block.type === "text") {
-        const columnCount = variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1;
-        const storedColumns = Array.isArray(data.columns) ? data.columns.map(item => typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
-        if (columnCount > 1) {
-            return <div className={`grid gap-8 ${columnCount === 2 ? "md:grid-cols-2" : columnCount === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
-                {Array.from({ length: columnCount }, (_, index) => <RichTextEditor key={index} variant="regular" placeholder={`Column ${index + 1}`} value={storedColumns[index] ?? ""} onChange={value => { const columns = Array.from({ length: columnCount }, (_, columnIndex) => columnIndex === index ? value : storedColumns[columnIndex] ?? ""); onChange({ data: { ...data, columns: columns.map(content => ({ content })), body: columns.map(content => `<p>${content}</p>`).join("") } }); }} />)}
-            </div>;
-        }
-        return <RichTextEditor variant={variant} placeholder="Click to add text" value={text(data.body)} onChange={value => onChange({ data: { ...data, body: value } })} />;
+    if (block.type === "image") {
+        const storyBlock = toStoryBlock(block);
+        if (variant.startsWith("grid-")) return <GridGalleryEditor storyId="" block={storyBlock} onChange={updateFromStory} />;
+        if (variant.startsWith("text-")) return <ImageWithTextEditor storyId="" block={storyBlock} onChange={updateFromStory} />;
+        return <ImageBlockEditor storyId="" block={storyBlock} onChange={updateFromStory} />;
     }
-    return <div className="grid gap-3">
-        <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Eyebrow / label" value={text(data.eyebrow)} onChange={event => update("eyebrow", event.target.value)} />
-        <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder={block.type === "content" ? "Video title" : "Title"} value={text(data.title)} onChange={event => update("title", event.target.value)} />
-        {(block.type === "text" || block.type === "content") && <textarea className="min-h-32 w-full border border-[#d8d3ca] p-3 text-sm leading-6" placeholder={block.type === "content" ? "Description" : "Text content"} value={text(data.body)} onChange={event => update("body", event.target.value)} />}
-        {block.type === "content" && <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="YouTube URL" value={text(data.youtube_url)} onChange={event => update("youtube_url", event.target.value)} />}
-        {block.type !== "text" && block.type !== "content" && <textarea className="min-h-24 w-full border border-[#d8d3ca] p-3 text-sm leading-6" placeholder="Block data (optional)" value={text(data.body)} onChange={event => update("body", event.target.value)} />}
-    </div>;
+    if (block.type === "text") {
+        const storyBlock = toStoryBlock(block);
+        const isColumns = ["columns-1", "columns-2", "columns-3", "columns-4", "text-columns-2", "text-columns-3", "text-columns-4"].includes(variant);
+        if (isColumns) return <TextColumnsEditor block={storyBlock} onChange={updateFromStory} />;
+        return <div className="space-y-3"><input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Eyebrow / label" value={text(data.eyebrow)} onChange={event => onChange({ data: { ...data, eyebrow: event.target.value } })} /><input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Title" value={text(data.title)} onChange={event => onChange({ data: { ...data, title: event.target.value } })} /><div className="border border-transparent"><div className="px-2 pb-2 text-[9px] uppercase tracking-[0.14em] text-[#8a857d]">{pageLayoutLabel(variant)}</div><div className="border border-[#d8d3ca]"><textarea className="min-h-40 w-full resize-y p-4 text-sm leading-7 outline-none" placeholder="Text content" value={text(data.body)} onChange={event => onChange({ data: { ...data, body: event.target.value } })} /></div></div></div>;
+    }
+    if (block.type === "content" && variant === "banner-video") return <VideoBlockEditor block={toStoryBlock(block)} onChange={updateFromStory} onSave={updateFromStory} />;
+    return <div className="grid gap-3"><input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder={block.type === "content" ? "Video title" : "Title"} value={text(data.title)} onChange={event => onChange({ data: { ...data, title: event.target.value } })} /><textarea className="min-h-32 w-full border border-[#d8d3ca] p-3 text-sm leading-6" placeholder="Description" value={text(data.body)} onChange={event => onChange({ data: { ...data, body: event.target.value } })} />{block.type === "content" && <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="YouTube URL" value={text(data.youtube_url)} onChange={event => onChange({ data: { ...data, youtube_url: event.target.value } })} />}</div>;
 }
 
 function PageBlockPreview({ block }: { block: Block }) {
