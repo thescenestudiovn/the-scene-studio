@@ -1,13 +1,54 @@
-import { getSiteSettings } from "../../lib/site-settings";
+"use client";
 
-export default async function Footer() {
-    const settings = await getSiteSettings();
+import { useEffect, useState } from "react";
+
+type FooterSettings = {
+    phone: string;
+    email: string;
+    whatsapp: string;
+    instagram: string;
+    facebook: string;
+    tiktok: string;
+    address: string;
+    logo: string;
+    logo_white: string;
+    footer_text: string;
+};
+
+const EMPTY: FooterSettings = {
+    phone: "",
+    email: "",
+    whatsapp: "",
+    instagram: "",
+    facebook: "",
+    tiktok: "",
+    address: "",
+    logo: "",
+    logo_white: "",
+    footer_text: "",
+};
+
+export default function Footer() {
+    const [settings, setSettings] = useState<FooterSettings>(EMPTY);
+
+    useEffect(() => {
+        fetch("/api/admin/site-settings", { cache: "no-store" })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((data: { settings?: Partial<FooterSettings> } | null) => {
+                if (data?.settings) {
+                    setSettings((current) => ({ ...current, ...data.settings }));
+                }
+            })
+            .catch(() => {});
+    }, []);
+
     const instagram = settings.instagram;
     const facebook = settings.facebook;
     const tiktok = settings.tiktok;
     const email = settings.email || "thescenestudiovn@gmail.com";
     const phone = settings.phone;
     const whatsapp = settings.whatsapp;
+
     return (
         <footer className="bg-[#171717] px-6 py-16 text-[#f7f5f0] md:px-10 md:py-20">
             <div className="mx-auto max-w-7xl">
@@ -23,8 +64,8 @@ export default async function Footer() {
                             {instagram && <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>}
                             {facebook && <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>}
                             {tiktok && <a href={tiktok} target="_blank" rel="noreferrer">TikTok</a>}
-                            {whatsapp && <a href={whatsapp.startsWith("http") ? whatsapp : `https://wa.me/${whatsapp.replace(/[^0-9]/g,"")}`} target="_blank" rel="noreferrer">WhatsApp</a>}
-                            {phone && <a href={`tel:${phone.replace(/\s+/g,"")}`}>Phone</a>}
+                            {whatsapp && <a href={whatsapp.startsWith("http") ? whatsapp : `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a>}
+                            {phone && <a href={`tel:${phone.replace(/\s+/g, "")}`}>Phone</a>}
                             <a href={`mailto:${email}`}>Email</a>
                         </nav></div>
                     </div>
