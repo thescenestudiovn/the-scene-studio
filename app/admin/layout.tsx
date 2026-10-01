@@ -6,7 +6,7 @@ import AdminSiteMenu from "./components/AdminSiteMenu";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const activeSlug = pathname.startsWith("/admin/pages/") ? pathname.split("/").at(-1) ?? "home" : pathname.startsWith("/admin/gallery") ? "gallery" : pathname.startsWith("/admin/stories") ? "stories" : "";
+  const activeSlug = pathname.startsWith("/admin/pages/") ? pathname.split("/").at(-1) ?? "home" : pathname.startsWith("/admin/gallery") ? "gallery" : pathname.startsWith("/admin/stories") ? "stories" : pathname.startsWith("/admin/settings") ? "settings" : "";
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] text-[#171717]">
