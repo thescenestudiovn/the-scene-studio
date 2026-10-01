@@ -41,12 +41,13 @@ function DefaultIntro() {
 
 export default async function ContactPage() {
     const page = await getPage("contact");
+    const blocks = page?.blocks.filter(block => block.type !== "cover") ?? [];
 
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
             <Header light />
-            {page?.blocks.length ? (
-                <PageRenderer blocks={page.blocks} />
+            {blocks.length ? (
+                <PageRenderer blocks={blocks} />
             ) : (
                 <DefaultIntro />
             )}
