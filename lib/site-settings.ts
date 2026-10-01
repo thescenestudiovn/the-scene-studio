@@ -1,4 +1,4 @@
-import { getDB } from "./db";
+import { getDBAsync } from "./db";
 
 export type SiteSettings = {
   phone: string;
@@ -46,7 +46,7 @@ export async function ensureSiteSettingsTable(): Promise<void> {
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
-  const db = getDB();
+  const db = await getDBAsync();
   await ensureSiteSettingsTable();
   const settings = await db.prepare(`
     SELECT phone,email,whatsapp,instagram,facebook,tiktok,pinterest,address,
