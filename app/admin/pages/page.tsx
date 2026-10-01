@@ -204,12 +204,56 @@ function AdminPagesContent() {
 
     function addBlock(selection: ContentBlockSelection, afterBlockId?: string) {
         const variant = selection.variant;
+        const textDefaults: Record<string, string> = {
+            "heading-1": "Heading 1",
+            "heading-2": "Heading 2",
+            "heading-3": "Heading 3",
+            wide: "This is a sample wide text. Tell your story with thoughtful words, meaningful details, and the moments that make this story yours.",
+            regular: "This is a sample regular text. Replace this copy with the story, memories, and details you want your readers to discover.",
+            narrow: "This is a sample narrow text. A more intimate reading width works beautifully for personal stories, reflections, and meaningful details.",
+        };
+        const columnDefaults: Record<string, string[]> = {
+            "columns-2": [
+                "This is the first column. Add your story, a meaningful detail, or a short reflection here.",
+                "This is the second column. Continue the story with another detail, memory, or thought here.",
+            ],
+            "columns-3": [
+                "First column sample text. Add a short story or detail here.",
+                "Second column sample text. Add another meaningful moment here.",
+                "Third column sample text. Finish this section with another thought here.",
+            ],
+            "columns-4": [
+                "First column sample text.",
+                "Second column sample text.",
+                "Third column sample text.",
+                "Fourth column sample text.",
+            ],
+        };
+        const columns = selection.category === "text" ? columnDefaults[variant] : undefined;
         const data = selection.category === "image"
             ? { ...selection.data, variant }
             : selection.category === "content"
                 ? { ...selection.data, variant }
-                : { variant };
-        const newBlock: Block = { id: crypto.randomUUID(), type: selection.category, data, media: [] };
+                : {
+                    variant,
+                    ...(columns ? { columns: columns.map(content => ({ content })) } : {}),
+                };
+        const newBlock: Block = {
+            id: crypto.randomUUID(),
+            type: selection.category,
+            data,
+            media: [],
+            ...(selection.category === "text"
+                ? {
+                    data: {
+                        ...data,
+                        ...(columns
+                            ? { columns: columns.map(content => ({ content })) }
+                            : { body: textDefaults[variant] ?? "This is sample text. Replace this content with your story." }),
+                    },
+                }
+                : {}),
+        };
         setBlocks(current => {
             const afterIndex = afterBlockId ? current.findIndex(block => block.id === afterBlockId) : -1;
             const index = afterIndex >= 0 ? afterIndex + 1 : current.length;
