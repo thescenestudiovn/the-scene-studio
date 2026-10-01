@@ -3,6 +3,7 @@ import { getDB } from "../../../../lib/db";
 
 export async function GET() {
   try {
+    await ensureSiteSettingsTable();
     return Response.json({ success: true, settings: await getSiteSettings() });
   } catch (error) {
     console.error("GET /api/admin/site-settings error:", error);
