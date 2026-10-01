@@ -3,6 +3,7 @@ import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import StructuredData from "./components/StructuredData";
 import CoverPositionEditor from "./components/CoverPositionEditor";
+import SiteFavicon from "./components/SiteFavicon";
 
 const serif = Cormorant_Garamond({
   variable: "--font-serif",
@@ -71,6 +72,7 @@ export default function RootLayout({
     <html lang="en" className={`${serif.variable} ${sans.variable}`}>
       <body>
         <StructuredData />
+        <SiteFavicon />
         <CoverPositionEditor />
         {children}
       </body>
