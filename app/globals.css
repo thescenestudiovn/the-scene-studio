@@ -769,3 +769,29 @@ select {
     min-height: 300px;
   }
 }
+
+
+.scene-admin-contact-reference {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #f3f1ec;
+}
+
+.scene-admin-contact-reference img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.scene-admin-contact-reference span {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 8px;
+  background: rgba(255,255,255,.88);
+  color: #77736c;
+  font: 500 8px/1 var(--font-sans), sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
