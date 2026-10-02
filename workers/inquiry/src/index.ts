@@ -90,8 +90,10 @@ export default {
 
 			// Basic validation
 			const isNewContact =
-				!data.location?.trim() &&
-				Boolean(data.whatsapp?.trim());
+				Boolean(data.whatsapp?.trim()) &&
+				Boolean(data.weddingDate?.trim()) &&
+				Boolean(data.celebration?.trim()) &&
+				Boolean(data.services?.length);
 
 			if (
 				!data.name?.trim() ||
@@ -122,18 +124,22 @@ export default {
 				);
 			}
 
-			const partnerName =
-				data.partnerName?.trim() || "Not specified";
+			const whatsapp =
+				data.whatsapp?.trim() ||
+				data.instagram?.trim() ||
+				"Not specified";
+
+			const interest =
+				data.interest?.trim() ||
+				data.celebration?.trim() ||
+				"Not specified";
 
 			const services =
 				data.services?.length
 					? data.services.join(", ")
 					: "Not specified";
 
-			const subject = `New Inquiry — ${data.name}${data.partnerName
-				? ` & ${data.partnerName}`
-				: ""
-				}`;
+			const subject = `New Wedding Inquiry — ${data.name}`;
 
 			const html = `
 				<div style="font-family: Arial, Helvetica, sans-serif; color: #171717; line-height: 1.7;">
@@ -158,24 +164,14 @@ export default {
 					</p>
 
 					<p>
-						<strong>Partner:</strong>
-						${escapeHtml(partnerName)}
+						<strong>WhatsApp:</strong>
+						${escapeHtml(whatsapp)}
 					</p>
 
 					<p>
 						<strong>Email:</strong>
-						${escapeHtml(data.email)}
+						<a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a>
 					</p>
-
-					${data.instagram
-					? `
-								<p>
-									<strong>Instagram / WhatsApp:</strong>
-									${escapeHtml(data.instagram)}
-								</p>
-							`
-					: ""
-				}
 
 					<h2 style="font-size: 16px; margin-top: 30px;">
 						Wedding
@@ -183,64 +179,24 @@ export default {
 
 					<p>
 						<strong>Date:</strong>
-						${escapeHtml(
-					data.weddingDate ||
-					data.dateStatus ||
-					"Not specified"
-				)}
+						${escapeHtml(data.weddingDate || data.dateStatus || "Not specified")}
 					</p>
 
 					<p>
-						<strong>Location:</strong>
-						${escapeHtml(data.location)}
-					</p>
-
-					<p>
-						<strong>Guests:</strong>
-						${escapeHtml(
-					data.guests || "Not specified"
-				)}
-					</p>
-
-					<p>
-						<strong>Celebration:</strong>
-						${escapeHtml(
-					data.celebration || "Not specified"
-				)}
+						<strong>I’m interested in:</strong>
+						${escapeHtml(interest)}
 					</p>
 
 					<h2 style="font-size: 16px; margin-top: 30px;">
-						Services
+						Product
 					</h2>
 
 					<p>
-						<strong>Services:</strong>
 						${escapeHtml(services)}
 					</p>
 
-					<p>
-						<strong>Coverage:</strong>
-						${escapeHtml(
-					data.coverage || "Not specified"
-				)}
-					</p>
-
-					<p>
-						<strong>Planner:</strong>
-						${escapeHtml(
-					data.planner || "Not specified"
-				)}
-					</p>
-
-					<p>
-						<strong>Budget:</strong>
-						${escapeHtml(
-					data.budget || "Not specified"
-				)}
-					</p>
-
 					<h2 style="font-size: 16px; margin-top: 30px;">
-						Their Story
+						Message
 					</h2>
 
 					<p style="white-space: pre-wrap;">
