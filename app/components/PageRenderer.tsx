@@ -93,19 +93,17 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     </div></section>;
 }
 
-function ContactBlock({ data }: { data: Record<string, unknown> }) {
-    const title = text(data.title) || "Get in touch";
+function ContactBlock({ data, media }: { data: Record<string, unknown>; media: Media[] }) {
+    const title = text(data.title);
     const body = text(data.body);
+    const variant = text(data.variant) as import("../../components/story/picker/blockTypes").ContactBlockVariant;
     return (
-        <section className="px-6 py-16 md:px-10 md:py-24">
-            <div className={`mx-auto ${blockLayout.container.content}`}>
-                <div className="mb-8 max-w-2xl">
-                    {title && <h2 className="font-serif text-4xl md:text-6xl">{title}</h2>}
-                    {body && <p className="mt-5 whitespace-pre-line text-sm leading-7 text-[#77736c]">{body}</p>}
-                </div>
-                <ContactForm />
-            </div>
-        </section>
+        <ContactForm
+            variant={variant || "form-1"}
+            title={title}
+            body={body}
+            image={media[0] ? mediaUrl(media[0].path) : ""}
+        />
     );
 }
 
@@ -140,7 +138,7 @@ export default function PageRenderer({ blocks }: { blocks: Block[] }) {
         if (type === "cover") return <CoverBlock key={block.id} data={data} media={block.media ?? []} />;
         if (type === "image") return <ImageBlock key={block.id} data={data} media={block.media ?? []} />;
         if (type === "text") return <TextBlock key={block.id} data={data} />;
-        if (type === "contact") return <ContactBlock key={block.id} data={data} />;
+        if (type === "contact") return <ContactBlock key={block.id} data={data} media={block.media ?? []} />;
         if (type === "map") return <MapBlock key={block.id} data={data} />;
         if (type === "content" && text(data.variant) === "banner-video" && url) {
             const id = youtubeId(url);
