@@ -603,7 +603,7 @@ select {
   gap: 18px;
 }
 
-.scene-admin-contact-fields > div {
+.scene-admin-contact-fields > label {
   display: flex;
   flex-direction: column;
   gap: 7px;
