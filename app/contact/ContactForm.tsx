@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { ContactBlockVariant } from "../../components/story/picker/blockTypes";
 
 const steps = [
     "About You",
@@ -9,7 +10,19 @@ const steps = [
     "Your Story",
 ];
 
-export default function ContactForm() {
+type ContactFormProps = {
+    variant?: ContactBlockVariant;
+    title?: string;
+    body?: string;
+    image?: string;
+};
+
+export default function ContactForm({
+    variant = "form-1",
+    title = "",
+    body = "",
+    image = "",
+}: ContactFormProps) {
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -165,10 +178,32 @@ export default function ContactForm() {
         }
     };
 
-    return (
-            <section className="border-t border-[#d8d3ca] px-6 py-20 md:px-10 md:py-32">
-                <div className="mx-auto max-w-4xl">
-                    {submitted ? (
+    const hasSideLayout =
+        variant === "form-with-text-left" ||
+        variant === "form-with-text-right" ||
+        variant === "form-with-image-left" ||
+        variant === "form-with-image-right";
+    const isTextSide =
+        variant === "form-with-text-left" ||
+        variant === "form-with-text-right";
+    const isLeftSide =
+        variant === "form-with-text-left" ||
+        variant === "form-with-image-left";
+
+    const formShell = (
+        <div className={variant === "form-2"
+            ? "mx-auto w-full max-w-5xl"
+            : variant === "form-3"
+                ? "mx-auto w-full max-w-4xl border border-[#d8d3ca] bg-white p-6 md:p-10"
+                : "mx-auto w-full max-w-4xl"}>
+            {!hasSideLayout && title && (
+                <div className="mb-10 max-w-2xl">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#77736c]">Contact</p>
+                    <h2 className="mt-4 font-serif text-4xl tracking-[-0.03em] md:text-6xl">{title}</h2>
+                    {body && <p className="mt-4 text-sm leading-7 text-[#77736c]">{body}</p>}
+                </div>
+            )}
+                {submitted ? (
                         <div className="py-20 md:py-32">
                             <p className="font-sans text-xs tracking-[0.2em] uppercase">
                                 Inquiry Received
@@ -607,12 +642,53 @@ export default function ContactForm() {
                             </form>
                         </>
                     )}
-                </div>
-            </section>
 
-
+        </div>
     );
-}
+
+    return (
+        <section className={`border-t border-[#d8d3ca] px-6 py-20 md:px-10 md:py-32 ${variant === "form-3" ? "bg-[#eeece6]" : ""}`}>
+            {hasSideLayout ? (
+                <div className={`mx-auto grid max-w-6xl items-start gap-10 md:gap-16 ${isLeftSide ? "md:grid-cols-[0.8fr_1.2fr]" : "md:grid-cols-[1.2fr_0.8fr]"}`}>
+                    {isLeftSide && (
+                        <aside className="order-1">
+                            {isTextSide ? (
+                                <div className="pt-2">
+                                    {title && <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.03em] md:text-6xl">{title}</h2>}
+                                    {body && <p className="mt-5 max-w-md text-sm leading-7 text-[#77736c]">{body}</p>}
+                                </div>
+                            ) : image ? (
+                                <div className="aspect-[3/4] overflow-hidden bg-[#e8e4dc]">
+                                    <img src={image} alt={title || "The Scene Studio"} className="h-full w-full object-cover" />
+                                </div>
+                            ) : (
+                                <div className="aspect-[3/4] bg-[#e8e4dc]" />
+                            )}
+                        </aside>
+                    )}
+                    <div className="order-2">{formShell}</div>
+                    {!isLeftSide && (
+                        <aside className="order-2">
+                            {isTextSide ? (
+                                <div className="pt-2">
+                                    {title && <h2 className="font-serif text-4xl leading-[0.98] tracking-[-0.03em] md:text-6xl">{title}</h2>}
+                                    {body && <p className="mt-5 max-w-md text-sm leading-7 text-[#77736c]">{body}</p>}
+                                </div>
+                            ) : image ? (
+                                <div className="aspect-[3/4] overflow-hidden bg-[#e8e4dc]">
+                                    <img src={image} alt={title || "The Scene Studio"} className="h-full w-full object-cover" />
+                                </div>
+                            ) : (
+                                <div className="aspect-[3/4] bg-[#e8e4dc]" />
+                            )}
+                        </aside>
+                    )}
+                </div>
+            ) : (
+                formShell
+            )}
+        </section>
+    );
 
 function Field({
     label,
