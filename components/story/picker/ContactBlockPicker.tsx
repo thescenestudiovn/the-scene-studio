@@ -29,6 +29,7 @@ export default function ContactBlockPicker({ onSelect }: Props) {
               data: {
                 title: "Get in touch",
                 body: "Tell us about your plans.",
+                media_ids: [],
               },
             })
           }
