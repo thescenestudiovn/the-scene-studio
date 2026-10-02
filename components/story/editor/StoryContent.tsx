@@ -138,10 +138,6 @@ function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:P
     }
   };
 
-  const focusAndSelectPlaceholder=(element:HTMLElement,placeholder:string)=>{
-    if(element.textContent===placeholder&&!((keyof typeof data) as never)){}
-  };
-
   const fields=<form className="scene-admin-contact-fields" onSubmit={e=>e.preventDefault()}><label><span>Your name *</span><input aria-label="Name" required /></label><label><span>WhatsApp *</span><input aria-label="WhatsApp" required /></label><label><span>Wedding date *</span><input type="date" aria-label="Date" required /></label><label><span>Email address *</span><input type="email" aria-label="Email address" required /></label><label><span>I’m interested in *</span><select aria-label="Interest" defaultValue="" required><option value="">Select an option</option><option>Destination wedding</option><option>Intimate wedding</option><option>Couple session</option><option>Elopement</option><option>Not sure yet</option></select></label><fieldset className="scene-admin-contact-product"><legend className="sr-only">Product</legend><label><input type="checkbox" name="product" value="Photography" /> <span>Photography</span></label><label><input type="checkbox" name="product" value="Film" /> <span>Film</span></label></fieldset><label><span>Message *</span><textarea aria-label="Message" rows={5} required /></label><button type="button">Send Message</button></form>;
 
   const copy=<div className="scene-admin-contact-copy">
