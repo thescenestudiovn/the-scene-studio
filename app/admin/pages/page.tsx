@@ -257,7 +257,15 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             ? { ...selection.data, variant }
             : selection.category === "content"
                 ? { ...selection.data, variant }
-                : selection.category === "contact" || selection.category === "map"
+                : selection.category === "contact"
+                    ? {
+                        ...selection.data,
+                        variant,
+                        ...(variant === "form-with-image-left" || variant === "form-with-image-right"
+                            ? { image_url: "https://assets-pw.pixieset.com/classic-themes/theme-images/sample_photos/sample-9_LG.jpg" }
+                            : {}),
+                    }
+                : selection.category === "map"
                     ? { ...selection.data, variant }
                     : {
                         variant,
