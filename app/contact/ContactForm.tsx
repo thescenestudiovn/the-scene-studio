@@ -649,7 +649,7 @@ export default function ContactForm({
     return (
         <section data-contact-variant={variant} className={`border-t border-[#d8d3ca] px-6 py-20 md:px-10 md:py-32 ${variant === "form-3" ? "bg-[#eeece6]" : ""}`}>
             {hasSideLayout ? (
-                <div className={`mx-auto grid max-w-6xl items-start gap-10 md:gap-16 ${isLeftSide ? "md:grid-cols-[0.8fr_1.2fr]" : "md:grid-cols-[1.2fr_0.8fr]"}`}>
+                <div className="mx-auto grid max-w-7xl items-stretch gap-6 md:grid-cols-2 md:gap-12">
                     {isLeftSide && (
                         <aside className="order-1">
                             {isTextSide ? (
@@ -658,11 +658,11 @@ export default function ContactForm({
                                     {body && <p className="mt-5 max-w-md text-sm leading-7 text-[#77736c]">{body}</p>}
                                 </div>
                             ) : image ? (
-                                <div className="aspect-[3/4] overflow-hidden bg-[#e8e4dc]">
+                                <div className="contact-side-image aspect-[4/5] overflow-hidden bg-[#e8e4dc] md:aspect-auto md:min-h-[650px]">
                                     <img src={image} alt={title || "The Scene Studio"} className="h-full w-full object-cover" />
                                 </div>
                             ) : (
-                                <div className="aspect-[3/4] bg-[#e8e4dc]" />
+                                <div className="contact-side-image aspect-[4/5] bg-[#e8e4dc] md:aspect-auto md:min-h-[650px]" />
                             )}
                         </aside>
                     )}
