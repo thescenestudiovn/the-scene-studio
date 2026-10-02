@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "preview": "opennextjs-cloudflare build && wrangler dev",
-    "deploy": "wrangler d1 migrations apply the-scene-studio-db --remote && opennextjs-cloudflare build && wrangler deploy"
+    "db:migrations:apply": "wrangler d1 migrations apply the-scene-studio-db --remote",
+    "deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.2",
