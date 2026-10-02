@@ -408,7 +408,8 @@ select {
 }
 
 .scene-pixieset-form input,
-.scene-pixieset-form textarea {
+.scene-pixieset-form textarea,
+.scene-pixieset-form select {
   display: block;
   width: 100%;
   margin-top: 10px;
@@ -422,8 +423,14 @@ select {
   transition: border-color 160ms ease;
 }
 
-.scene-pixieset-form input {
+.scene-pixieset-form input,
+.scene-pixieset-form select {
   height: 47px;
+}
+
+.scene-pixieset-form select {
+  appearance: auto;
+  padding: 0 12px;
 }
 
 .scene-pixieset-form textarea {
@@ -619,7 +626,8 @@ select {
 }
 
 .scene-admin-contact-fields input,
-.scene-admin-contact-fields textarea {
+.scene-admin-contact-fields textarea,
+.scene-admin-contact-fields select {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #dcd7cf;
@@ -630,8 +638,14 @@ select {
   color: #171717;
 }
 
-.scene-admin-contact-fields input {
+.scene-admin-contact-fields input,
+.scene-admin-contact-fields select {
   height: 34px;
+}
+
+.scene-admin-contact-fields select {
+  appearance: auto;
+  padding: 0 8px; 
 }
 
 .scene-admin-contact-fields textarea {
