@@ -64,3 +64,30 @@ textarea,
 select {
   letter-spacing: -0.005em;
 }
+
+
+[data-contact-variant="form-2"] input,
+[data-contact-variant="form-2"] textarea,
+[data-contact-variant="form-2"] select {
+  border: 1px solid #d8d3ca;
+  background: #ffffff;
+}
+
+[data-contact-variant="form-2"] input,
+[data-contact-variant="form-2"] select {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+[data-contact-variant="form-2"] textarea {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+[data-contact-variant="form-3"] {
+  border-top-color: transparent;
+}
+
+[data-contact-variant^="form-with-image-"] aside > div {
+  min-height: 360px;
+}
