@@ -709,7 +709,10 @@ function PixiesetContactForm({
     image = "",
 }: Omit<ContactFormProps, "blockMode">) {
     const [name, setName] = useState("");
+    const [whatsapp, setWhatsapp] = useState("");
+    const [date, setDate] = useState("");
     const [email, setEmail] = useState("");
+    const [interest, setInterest] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -717,10 +720,12 @@ function PixiesetContactForm({
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!name.trim() || !email.trim() || !message.trim()) {
-            setError("Please complete all required fields.");
+
+        if (!name.trim() || !email.trim() || !interest || !message.trim()) {
+            setError("Please complete the required fields.");
             return;
         }
+
         if (!/\S+@\S+\.\S+/.test(email)) {
             setError("Please enter a valid email.");
             return;
@@ -740,11 +745,13 @@ function PixiesetContactForm({
                         partnerName: "",
                         email,
                         instagram: "",
-                        weddingDate: "",
-                        dateStatus: "",
+                        whatsapp,
+                        weddingDate: date,
+                        dateStatus: date ? "I know my date" : "",
                         location: "",
                         guests: "",
-                        celebration: "",
+                        celebration: interest,
+                        interest,
                         services: [],
                         coverage: "",
                         planner: "",
@@ -755,13 +762,17 @@ function PixiesetContactForm({
             );
 
             if (!response.ok) {
-                throw new Error((await response.text()) || "Unable to send inquiry.");
+                throw new Error(
+                    (await response.text()) || "Unable to send inquiry."
+                );
             }
 
             setSubmitted(true);
         } catch (submitError) {
             console.error("Contact block submission error:", submitError);
-            setError("Something went wrong while sending your message. Please try again.");
+            setError(
+                "Something went wrong while sending your message. Please try again."
+            );
         } finally {
             setSubmitting(false);
         }
@@ -779,26 +790,80 @@ function PixiesetContactForm({
             {submitted ? (
                 <div className="scene-pixieset-form__success">
                     <span>Thank you.</span>
-                    <p>Your message has been received. We&apos;ll be in touch soon.</p>
+                    <p>
+                        Your message has been received. We&apos;ll be in touch
+                        soon.
+                    </p>
                 </div>
             ) : (
                 <form onSubmit={submit}>
                     <label>
                         Name <span>*</span>
-                        <input value={name} onChange={(event) => setName(event.target.value)} />
+                        <input
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                        />
+                    </label>
+
+                    <label>
+                        WhatsApp
+                        <input
+                            value={whatsapp}
+                            onChange={(event) =>
+                                setWhatsapp(event.target.value)
+                            }
+                        />
+                    </label>
+
+                    <label>
+                        Date
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(event) => setDate(event.target.value)}
+                        />
                     </label>
 
                     <label>
                         Email address <span>*</span>
-                        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                        />
+                    </label>
+
+                    <label>
+                        Interest <span>*</span>
+                        <select
+                            value={interest}
+                            onChange={(event) => setInterest(event.target.value)}
+                        >
+                            <option value="">Select an option</option>
+                            <option value="Destination wedding">
+                                Destination wedding
+                            </option>
+                            <option value="Intimate wedding">
+                                Intimate wedding
+                            </option>
+                            <option value="Couple">Couple</option>
+                            <option value="Elopement">Elopement</option>
+                            <option value="Not sure">Not sure</option>
+                        </select>
                     </label>
 
                     <label>
                         Message <span>*</span>
-                        <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={7} />
+                        <textarea
+                            value={message}
+                            onChange={(event) => setMessage(event.target.value)}
+                            rows={7}
+                        />
                     </label>
 
-                    {error && <p className="scene-pixieset-form__error">{error}</p>}
+                    {error && (
+                        <p className="scene-pixieset-form__error">{error}</p>
+                    )}
 
                     <button type="submit" disabled={submitting}>
                         {submitting ? "Sending..." : "Send Message"}
@@ -808,12 +873,21 @@ function PixiesetContactForm({
         </div>
     );
 
-    if (variant === "form-with-text-left" || variant === "form-with-text-right") {
+    if (
+        variant === "form-with-text-left" ||
+        variant === "form-with-text-right"
+    ) {
         const left = variant === "form-with-text-left";
         return (
             <section className="scene-contact-block scene-contact-block--soft">
                 <div className="scene-contact-block__two-col">
-                    <div className={left ? "scene-contact-block__copy scene-contact-block__copy--left" : "scene-contact-block__form scene-contact-block__form--left"}>
+                    <div
+                        className={
+                            left
+                                ? "scene-contact-block__copy scene-contact-block__copy--left"
+                                : "scene-contact-block__form scene-contact-block__form--left"
+                        }
+                    >
                         {left ? (
                             title || body ? (
                                 <div>
@@ -821,24 +895,38 @@ function PixiesetContactForm({
                                     {body && <p>{body}</p>}
                                 </div>
                             ) : null
-                        ) : form}
-                    </div>
-                    <div className={!left ? "scene-contact-block__copy scene-contact-block__copy--right" : "scene-contact-block__form scene-contact-block__form--right"}>
-                        {left ? form : (
-                            title || body ? (
-                                <div>
-                                    {title && <h2>{title}</h2>}
-                                    {body && <p>{body}</p>}
-                                </div>
-                            ) : null
+                        ) : (
+                            form
                         )}
+                    </div>
+
+                    <div
+                        className={
+                            !left
+                                ? "scene-contact-block__copy scene-contact-block__copy--right"
+                                : "scene-contact-block__form scene-contact-block__form--right"
+                        }
+                    >
+                        {left
+                            ? form
+                            : title || body
+                              ? (
+                                    <div>
+                                        {title && <h2>{title}</h2>}
+                                        {body && <p>{body}</p>}
+                                    </div>
+                                )
+                              : null}
                     </div>
                 </div>
             </section>
         );
     }
 
-    if (variant === "form-with-image-left" || variant === "form-with-image-right") {
+    if (
+        variant === "form-with-image-left" ||
+        variant === "form-with-image-right"
+    ) {
         const left = variant === "form-with-image-left";
         const media = image ? (
             <div className="scene-contact-block__image">
@@ -851,10 +939,22 @@ function PixiesetContactForm({
         return (
             <section className="scene-contact-block">
                 <div className="scene-contact-block__two-col">
-                    <div className={left ? "scene-contact-block__media" : "scene-contact-block__form"}>
+                    <div
+                        className={
+                            left
+                                ? "scene-contact-block__media"
+                                : "scene-contact-block__form"
+                        }
+                    >
                         {left ? media : form}
                     </div>
-                    <div className={left ? "scene-contact-block__form" : "scene-contact-block__media"}>
+                    <div
+                        className={
+                            left
+                                ? "scene-contact-block__form"
+                                : "scene-contact-block__media"
+                        }
+                    >
                         {left ? form : media}
                     </div>
                 </div>
@@ -866,12 +966,18 @@ function PixiesetContactForm({
         variant === "form-2"
             ? "scene-contact-block scene-contact-block--soft"
             : variant === "form-3"
-                ? "scene-contact-block scene-contact-block--boxed"
-                : "scene-contact-block";
+              ? "scene-contact-block scene-contact-block--boxed"
+              : "scene-contact-block";
 
     return (
         <section className={variantClass}>
-            <div className={variant === "form-2" ? "scene-contact-block__form scene-contact-block__form--wide" : "scene-contact-block__form"}>
+            <div
+                className={
+                    variant === "form-2"
+                        ? "scene-contact-block__form scene-contact-block__form--wide"
+                        : "scene-contact-block__form"
+                }
+            >
                 {form}
             </div>
         </section>
