@@ -29,7 +29,7 @@ export default function ContactBlockPicker({ onSelect }: Props) {
               data: {
                 title: variant.includes("text") ? "Enter a Heading" : "",
                 body: variant.includes("text")
-                  ? "This is a paragraph. Tell your clients more about your story and the kind of photography you offer."
+                  ? "This is a paragraph. Click edit and enter your own text. You can make changes like making the text bold, underline or italic. This is a great place for you to tell your clients more about your story and to describe the type of photographer you are. You can come back at any time to make more changes."
                   : "",
                 media_ids: [],
               },
