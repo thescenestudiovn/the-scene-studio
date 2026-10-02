@@ -771,7 +771,9 @@ function PixiesetContactForm({
         } catch (submitError) {
             console.error("Contact block submission error:", submitError);
             setError(
-                "Something went wrong while sending your message. Please try again."
+                submitError instanceof Error && submitError.message
+                    ? submitError.message
+                    : "Something went wrong while sending your message. Please try again."
             );
         } finally {
             setSubmitting(false);
