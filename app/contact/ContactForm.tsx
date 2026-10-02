@@ -15,6 +15,7 @@ type ContactFormProps = {
     title?: string;
     body?: string;
     image?: string;
+    blockMode?: boolean;
 };
 
 export default function ContactForm({
@@ -22,7 +23,12 @@ export default function ContactForm({
     title = "",
     body = "",
     image = "",
+    blockMode = false,
 }: ContactFormProps) {
+    if (blockMode) {
+        return <PixiesetContactForm variant={variant} title={title} body={body} image={image} />;
+    }
+
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -687,6 +693,183 @@ export default function ContactForm({
             ) : (
                 formShell
             )}
+        </section>
+    );
+}
+
+
+function PixiesetContactForm({
+    variant = "form-1",
+    title = "",
+    body = "",
+    image = "",
+}: Omit<ContactFormProps, "blockMode">) {
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [message, setMessage] = useState("");
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!name.trim() || !email.trim() || !message.trim()) {
+            setError("Please complete all required fields.");
+            return;
+        }
+        if (!/\S+@\S+\.\S+/.test(email)) {
+            setError("Please enter a valid email.");
+            return;
+        }
+
+        setError("");
+        setSubmitting(true);
+
+        try {
+            const response = await fetch(
+                "https://inquiry.thescenestudio.workers.dev/inquiry",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name,
+                        partnerName: "",
+                        email,
+                        instagram: "",
+                        weddingDate: "",
+                        dateStatus: "",
+                        location: "",
+                        guests: "",
+                        celebration: "",
+                        services: [],
+                        coverage: "",
+                        planner: "",
+                        budget: "",
+                        story: message,
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error((await response.text()) || "Unable to send inquiry.");
+            }
+
+            setSubmitted(true);
+        } catch (submitError) {
+            console.error("Contact block submission error:", submitError);
+            setError("Something went wrong while sending your message. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const form = (
+        <div className="scene-pixieset-form">
+            {(title || body) && (
+                <div className="scene-pixieset-form__intro">
+                    {title && <h2>{title}</h2>}
+                    {body && <p>{body}</p>}
+                </div>
+            )}
+
+            {submitted ? (
+                <div className="scene-pixieset-form__success">
+                    <span>Thank you.</span>
+                    <p>Your message has been received. We&apos;ll be in touch soon.</p>
+                </div>
+            ) : (
+                <form onSubmit={submit}>
+                    <label>
+                        Name <span>*</span>
+                        <input value={name} onChange={(event) => setName(event.target.value)} />
+                    </label>
+
+                    <label>
+                        Email address <span>*</span>
+                        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                    </label>
+
+                    <label>
+                        Message <span>*</span>
+                        <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={7} />
+                    </label>
+
+                    {error && <p className="scene-pixieset-form__error">{error}</p>}
+
+                    <button type="submit" disabled={submitting}>
+                        {submitting ? "Sending..." : "Send Message"}
+                    </button>
+                </form>
+            )}
+        </div>
+    );
+
+    if (variant === "form-with-text-left" || variant === "form-with-text-right") {
+        const left = variant === "form-with-text-left";
+        return (
+            <section className="scene-contact-block scene-contact-block--soft">
+                <div className="scene-contact-block__two-col">
+                    <div className={left ? "scene-contact-block__copy scene-contact-block__copy--left" : "scene-contact-block__form scene-contact-block__form--left"}>
+                        {left ? (
+                            title || body ? (
+                                <div>
+                                    {title && <h2>{title}</h2>}
+                                    {body && <p>{body}</p>}
+                                </div>
+                            ) : null
+                        ) : form}
+                    </div>
+                    <div className={!left ? "scene-contact-block__copy scene-contact-block__copy--right" : "scene-contact-block__form scene-contact-block__form--right"}>
+                        {left ? form : (
+                            title || body ? (
+                                <div>
+                                    {title && <h2>{title}</h2>}
+                                    {body && <p>{body}</p>}
+                                </div>
+                            ) : null
+                        )}
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (variant === "form-with-image-left" || variant === "form-with-image-right") {
+        const left = variant === "form-with-image-left";
+        const media = image ? (
+            <div className="scene-contact-block__image">
+                <img src={image} alt={title || "The Scene Studio"} />
+            </div>
+        ) : (
+            <div className="scene-contact-block__image scene-contact-block__image--placeholder" />
+        );
+
+        return (
+            <section className="scene-contact-block">
+                <div className="scene-contact-block__two-col">
+                    <div className={left ? "scene-contact-block__media" : "scene-contact-block__form"}>
+                        {left ? media : form}
+                    </div>
+                    <div className={left ? "scene-contact-block__form" : "scene-contact-block__media"}>
+                        {left ? form : media}
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    const variantClass =
+        variant === "form-2"
+            ? "scene-contact-block scene-contact-block--soft"
+            : variant === "form-3"
+                ? "scene-contact-block scene-contact-block--boxed"
+                : "scene-contact-block";
+
+    return (
+        <section className={variantClass}>
+            <div className={variant === "form-2" ? "scene-contact-block__form scene-contact-block__form--wide" : "scene-contact-block__form"}>
+                {form}
+            </div>
         </section>
     );
 }
