@@ -883,3 +883,17 @@ select {
   margin: 0 !important;
   padding: 0 !important;
 }
+
+
+/* Contact page Page Builder sections use tighter vertical rhythm. */
+.scene-contact-page__blocks > section {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+@media (max-width: 767px) {
+  .scene-contact-page__blocks > section {
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+}
