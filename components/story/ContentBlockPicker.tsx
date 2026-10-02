@@ -8,7 +8,7 @@ import ContactBlockPicker from "./picker/ContactBlockPicker";
 import MapBlockPicker from "./picker/MapBlockPicker";
 import { BLOCK_CATEGORIES, type ContentBlockSelection } from "./picker/blockTypes";
 
-export type { ContentBlockSelection, ImageBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
+export type { ContactBlockVariant, ContentBlockSelection, ImageBlockVariant, MapBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
 
 type Props = { open: boolean; onClose: () => void; onSelect: (selection: ContentBlockSelection) => void };
 type Category = (typeof BLOCK_CATEGORIES)[number][0];
