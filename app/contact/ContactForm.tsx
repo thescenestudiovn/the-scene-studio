@@ -713,6 +713,7 @@ function PixiesetContactForm({
     const [date, setDate] = useState("");
     const [email, setEmail] = useState("");
     const [interest, setInterest] = useState("");
+    const [products, setProducts] = useState<string[]>([]);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -721,7 +722,7 @@ function PixiesetContactForm({
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!name.trim() || !whatsapp.trim() || !date || !email.trim() || !interest || !message.trim()) {
+        if (!name.trim() || !whatsapp.trim() || !date || !email.trim() || !interest || products.length === 0 || !message.trim()) {
             setError("Please complete the required fields.");
             return;
         }
@@ -752,7 +753,8 @@ function PixiesetContactForm({
                         guests: "",
                         celebration: interest,
                         interest,
-                        services: [],
+                        services: products,
+                        products,
                         coverage: "",
                         planner: "",
                         budget: "",
@@ -856,6 +858,28 @@ function PixiesetContactForm({
                             <option value="Not sure">Not sure</option>
                         </select>
                     </label>
+
+                    <fieldset className="scene-pixieset-form__product">
+                        <legend>Product <span>*</span></legend>
+                        <div className="scene-pixieset-form__checkboxes">
+                            {["Photograph", "Videograph"].map((product) => (
+                                <label key={product} className="scene-pixieset-form__checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={products.includes(product)}
+                                        onChange={() =>
+                                            setProducts((current) =>
+                                                current.includes(product)
+                                                    ? current.filter((item) => item !== product)
+                                                    : [...current, product]
+                                            )
+                                        }
+                                    />
+                                    <span>{product}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </fieldset>
 
                     <label>
                         Message <span>*</span>
