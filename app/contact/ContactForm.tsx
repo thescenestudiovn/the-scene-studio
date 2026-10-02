@@ -752,9 +752,7 @@ function PixiesetContactForm({
                         location: "",
                         guests: "",
                         celebration: interest,
-                        interest,
                         services: products,
-                        products,
                         coverage: "",
                         planner: "",
                         budget: "",
@@ -860,7 +858,7 @@ function PixiesetContactForm({
                     </label>
 
                     <fieldset className="scene-pixieset-form__product">
-                        <legend className="sr-only">Product</legend>
+                        <legend>Product <span>*</span></legend>
                         <div className="scene-pixieset-form__checkboxes">
                             {["Photography", "Film"].map((product) => (
                                 <label key={product} className="scene-pixieset-form__checkbox">
