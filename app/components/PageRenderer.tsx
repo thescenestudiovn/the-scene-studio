@@ -103,6 +103,7 @@ function ContactBlock({ data, media }: { data: Record<string, unknown>; media: M
             title={title}
             body={body}
             image={media[0] ? mediaUrl(media[0].path) : ""}
+            blockMode
         />
     );
 }
