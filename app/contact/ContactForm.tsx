@@ -18,17 +18,21 @@ type ContactFormProps = {
     blockMode?: boolean;
 };
 
-export default function ContactForm({
+export default function ContactForm(props: ContactFormProps) {
+    const { blockMode, ...contactProps } = props;
+    return blockMode ? (
+        <PixiesetContactForm {...contactProps} />
+    ) : (
+        <InquiryContactForm {...contactProps} />
+    );
+}
+
+function InquiryContactForm({
     variant = "form-1",
     title = "",
     body = "",
     image = "",
-    blockMode = false,
-}: ContactFormProps) {
-    if (blockMode) {
-        return <PixiesetContactForm variant={variant} title={title} body={body} image={image} />;
-    }
-
+}: Omit<ContactFormProps, "blockMode">) {
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
