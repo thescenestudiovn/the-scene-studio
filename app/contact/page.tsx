@@ -48,7 +48,9 @@ export default async function ContactPage() {
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
             <Header light />
             {blocks.length ? (
-                <PageRenderer blocks={blocks} />
+                <div className="scene-contact-page__blocks">
+                    <PageRenderer blocks={blocks} />
+                </div>
             ) : (
                 <DefaultIntro />
             )}
