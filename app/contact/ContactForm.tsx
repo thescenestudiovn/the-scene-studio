@@ -675,11 +675,11 @@ export default function ContactForm({
                                     {body && <p className="mt-5 max-w-md text-sm leading-7 text-[#77736c]">{body}</p>}
                                 </div>
                             ) : image ? (
-                                <div className="aspect-[3/4] overflow-hidden bg-[#e8e4dc]">
+                                <div className="contact-side-image aspect-[4/5] overflow-hidden bg-[#e8e4dc] md:aspect-auto md:min-h-[650px]">
                                     <img src={image} alt={title || "The Scene Studio"} className="h-full w-full object-cover" />
                                 </div>
                             ) : (
-                                <div className="aspect-[3/4] bg-[#e8e4dc]" />
+                                <div className="contact-side-image aspect-[4/5] bg-[#e8e4dc] md:aspect-auto md:min-h-[650px]" />
                             )}
                         </aside>
                     )}
