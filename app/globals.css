@@ -525,7 +525,7 @@ select {
 }
 
 .scene-contact-block__copy--left {
-  justify-self: end;
+  justify-self: start;
 }
 
 .scene-contact-block__copy--right {
@@ -546,7 +546,7 @@ select {
   .scene-contact-block__copy--left,
   .scene-contact-block__copy--right {
     order: 1;
-    justify-self: stretch;
+    justify-self: start;
   }
 
   .scene-contact-block__form,
