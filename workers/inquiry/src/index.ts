@@ -26,6 +26,7 @@ const ALLOWED_ORIGINS = [
 	"https://inquiry.thescenestudio.workers.dev",
 
 	"https://the-scene-studio.thescenestudio.workers.dev",
+	"https://thescenestudio.asia",
 	// Sau này thêm domain production của The Scene Studio vào đây.
 ];
 
