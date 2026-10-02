@@ -3,6 +3,7 @@ import sanitizeHtml from "sanitize-html";
 import { getDB } from "../../lib/db";
 import { mediaUrl } from "../../lib/media";
 import { blockLayout, blockGrid, imageBlockContainer } from "../../components/content/blockLayout";
+import ContactForm from "../contact/ContactForm";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; width?: number | null; height?: number | null };
 type Block = { id: string; type: string; data: string | Record<string, unknown>; media?: Media[] };
@@ -92,8 +93,62 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     </div></section>;
 }
 
+function ContactBlock({ data }: { data: Record<string, unknown> }) {
+    const title = text(data.title) || "Get in touch";
+    const body = text(data.body);
+    return (
+        <section className="px-6 py-16 md:px-10 md:py-24">
+            <div className={`mx-auto ${blockLayout.container.content}`}>
+                <div className="mb-8 max-w-2xl">
+                    {title && <h2 className="font-serif text-4xl md:text-6xl">{title}</h2>}
+                    {body && <p className="mt-5 whitespace-pre-line text-sm leading-7 text-[#77736c]">{body}</p>}
+                </div>
+                <ContactForm />
+            </div>
+        </section>
+    );
+}
+
+function MapBlock({ data }: { data: Record<string, unknown> }) {
+    const address = text(data.address);
+    const embedUrl = text(data.embed_url);
+    const variant = text(data.variant) || "map-1-regular";
+    const full = variant === "map-1-full";
+    return (
+        <section className={full ? "px-0 py-16 md:py-24" : "px-6 py-16 md:px-10 md:py-24"}>
+            <div className={`mx-auto ${full ? "w-full" : blockLayout.container.content}`}>
+                {address && <p className="mb-6 text-xs uppercase tracking-[0.16em] text-[#77736c]">{address}</p>}
+                {embedUrl ? (
+                    <div className="aspect-[16/9] overflow-hidden bg-[#e8e4dc]">
+                        <iframe src={embedUrl} title={address || "The Scene Studio location"} className="h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                    </div>
+                ) : (
+                    <div className="flex aspect-[16/9] items-center justify-center bg-[#e8e4dc] text-xs uppercase tracking-[0.14em] text-[#8a857d]">
+                        Add a Google Maps embed URL
+                    </div>
+                )}
+            </div>
+        </section>
+    );
+}
 export default function PageRenderer({ blocks }: { blocks: Block[] }) {
-    const renderedBlocks = blocks.map(block => { const data = parseData(block.data); const type = block.type; const url = text(data.youtube_url) || text(data.url); const title = text(data.title); if (type === "cover") return <CoverBlock key={block.id} data={data} media={block.media ?? []} />; if (type === "image") return <ImageBlock key={block.id} data={data} media={block.media ?? []} />; if (type === "text") return <TextBlock key={block.id} data={data} />; if (type === "content" && text(data.variant) === "banner-video" && url) { const id = youtubeId(url); return id ? <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} overflow-hidden bg-black`}><div className="aspect-video"><iframe className="h-full w-full" src={`https://www.youtube.com/embed/${id}`} title={title || "The Scene Studio film"} allowFullScreen /></div></div></section> : null; } if (type === "content") return <section key={block.id} className="px-6 py-20 md:px-10 md:py-32"><div className={`mx-auto grid ${blockLayout.container.content} gap-10 md:grid-cols-12 md:items-end`}><div className="md:col-span-7"><p className={blockLayout.typography.eyebrow}>{text(data.eyebrow)}</p><h2 className={`mt-5 ${blockLayout.typography.display} leading-[0.95]`}>{title}</h2></div><div className="whitespace-pre-line text-sm leading-7 text-[#77736c] md:col-span-4 md:col-start-9">{text(data.body)}</div></div></section>; if (type === "links") return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} border-t border-[#d8d3ca] pt-6`}><h2 className="font-serif text-4xl">{title}</h2><div className="mt-6 flex flex-wrap gap-6">{(Array.isArray(data.links) ? data.links : []).map((item, index) => { const link = item && typeof item === "object" ? item as Record<string, unknown> : {}; return <Link key={index} href={text(link.url) || "#"} className="text-xs uppercase tracking-[0.15em]">{text(link.label) || "Link"} →</Link>; })}</div></div></section>; return null;
+    const renderedBlocks = blocks.map(block => {
+        const data = parseData(block.data);
+        const type = block.type;
+        const url = text(data.youtube_url) || text(data.url);
+        const title = text(data.title);
+        if (type === "cover") return <CoverBlock key={block.id} data={data} media={block.media ?? []} />;
+        if (type === "image") return <ImageBlock key={block.id} data={data} media={block.media ?? []} />;
+        if (type === "text") return <TextBlock key={block.id} data={data} />;
+        if (type === "contact") return <ContactBlock key={block.id} data={data} />;
+        if (type === "map") return <MapBlock key={block.id} data={data} />;
+        if (type === "content" && text(data.variant) === "banner-video" && url) {
+            const id = youtubeId(url);
+            return id ? <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} overflow-hidden bg-black`}><div className="aspect-video"><iframe className="h-full w-full" src={`https://www.youtube.com/embed/${id}`} title={title || "The Scene Studio film"} allowFullScreen /></div></div></section> : null;
+        }
+        if (type === "content") return <section key={block.id} className="px-6 py-20 md:px-10 md:py-32"><div className={`mx-auto grid ${blockLayout.container.content} gap-10 md:grid-cols-12 md:items-end`}><div className="md:col-span-7"><p className={blockLayout.typography.eyebrow}>{text(data.eyebrow)}</p><h2 className={`mt-5 ${blockLayout.typography.display} leading-[0.95]`}>{title}</h2></div><div className="whitespace-pre-line text-sm leading-7 text-[#77736c] md:col-span-4 md:col-start-9">{text(data.body)}</div></div></section>;
+        if (type === "links") return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} border-t border-[#d8d3ca] pt-6`}><h2 className="font-serif text-4xl">{title}</h2><div className="mt-6 flex flex-wrap gap-6">{(Array.isArray(data.links) ? data.links : []).map((item, index) => { const link = item && typeof item === "object" ? item as Record<string, unknown> : {}; return <Link key={index} href={text(link.url) || "#"} className="text-xs uppercase tracking-[0.15em]">{text(link.label) || "Link"} →</Link>; })}</div></div></section>;
+        return null;
     });
     return <div>{renderedBlocks}</div>;
 }
