@@ -257,12 +257,14 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             ? { ...selection.data, variant }
             : selection.category === "content"
                 ? { ...selection.data, variant }
-                : {
-                    variant,
-                    ...(columns
-                        ? { columns: columns.map(content => ({ content })) }
-                        : { body: textDefaults[variant] ?? "This is sample text. Replace this content with your story." }),
-                };
+                : selection.category === "contact" || selection.category === "map"
+                    ? { ...selection.data, variant }
+                    : {
+                        variant,
+                        ...(columns
+                            ? { columns: columns.map(content => ({ content })) }
+                            : { body: textDefaults[variant] ?? "This is sample text. Replace this content with your story." }),
+                    };
         const newBlock: Block = { id: crypto.randomUUID(), type: selection.category, data, media: [] };
         setBlocks(current => {
             const afterIndex = afterBlockId ? current.findIndex(block => block.id === afterBlockId) : -1;
