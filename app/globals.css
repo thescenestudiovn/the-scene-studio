@@ -91,3 +91,236 @@ select {
 [data-contact-variant^="form-with-image-"] aside > div {
   min-height: 360px;
 }
+
+
+/* Contact block visual system — compact editorial layout inspired by the Pixieset reference. */
+[data-contact-variant] {
+  --contact-ink: #171717;
+  --contact-muted: #77736c;
+  --contact-line: #d7d2c9;
+  --contact-paper: #ffffff;
+  --contact-soft: #f5f2ec;
+}
+
+[data-contact-variant] .contact-form {
+  color: var(--contact-ink);
+}
+
+[data-contact-variant] .contact-form h2 {
+  max-width: 12ch;
+  font-size: clamp(2.35rem, 4vw, 4.25rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+[data-contact-variant] .contact-form label {
+  display: block;
+  color: var(--contact-muted);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+[data-contact-variant] .contact-form input,
+[data-contact-variant] .contact-form textarea,
+[data-contact-variant] .contact-form select {
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+[data-contact-variant] .contact-form input {
+  min-height: 50px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+[data-contact-variant] .contact-form textarea {
+  min-height: 175px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  resize: vertical;
+}
+
+[data-contact-variant] .contact-form input::placeholder,
+[data-contact-variant] .contact-form textarea::placeholder {
+  color: #aaa59c;
+  opacity: 1;
+}
+
+[data-contact-variant] .contact-form .contact-select-wrap {
+  min-height: 50px;
+}
+
+[data-contact-variant] .contact-form .contact-select-wrap select {
+  min-height: 50px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+[data-contact-variant] .contact-form button {
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, opacity 180ms ease;
+}
+
+[data-contact-variant] .contact-progress {
+  position: relative;
+  padding-bottom: 14px;
+  margin-bottom: 34px;
+  border-bottom: 1px solid var(--contact-line);
+}
+
+[data-contact-variant] .contact-progress > div {
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+[data-contact-variant] .contact-progress > div:first-child {
+  color: var(--contact-ink);
+}
+
+[data-contact-variant] .contact-navigation {
+  margin-top: 44px;
+  padding-top: 18px;
+}
+
+[data-contact-variant] .contact-navigation button {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+}
+
+[data-contact-variant] .contact-navigation button[type="submit"] {
+  min-width: 132px;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--contact-ink);
+  color: #f7f5f0;
+}
+
+[data-contact-variant] .contact-navigation button[type="submit"]:hover {
+  opacity: 0.78;
+}
+
+[data-contact-variant="form-1"] .contact-form-shell,
+[data-contact-variant="form-3"] .contact-form-shell {
+  background: var(--contact-paper);
+}
+
+[data-contact-variant="form-2"],
+[data-contact-variant="form-with-text-left"],
+[data-contact-variant="form-with-text-right"],
+[data-contact-variant="form-with-image-left"],
+[data-contact-variant="form-with-image-right"] {
+  background: var(--contact-soft);
+}
+
+[data-contact-variant="form-2"] .contact-form-shell {
+  padding: 36px;
+  border: 1px solid var(--contact-line);
+  background: var(--contact-paper);
+}
+
+[data-contact-variant="form-2"] .contact-form input,
+[data-contact-variant="form-2"] .contact-form textarea,
+[data-contact-variant="form-2"] .contact-form select {
+  border: 1px solid var(--contact-line);
+  border-radius: 0;
+  background: var(--contact-paper);
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+[data-contact-variant="form-2"] .contact-form .contact-select-wrap {
+  border: 0;
+}
+
+[data-contact-variant="form-2"] .contact-form .contact-select-wrap span {
+  right: 14px;
+}
+
+[data-contact-variant="form-3"] .contact-form-shell {
+  box-shadow: 0 18px 55px rgba(23, 23, 23, 0.05);
+}
+
+[data-contact-variant^="form-with-"] .contact-form-shell {
+  width: 100%;
+  max-width: none;
+  padding: 34px 32px;
+  border: 1px solid var(--contact-line);
+  background: var(--contact-paper);
+}
+
+[data-contact-variant^="form-with-"] .contact-form input,
+[data-contact-variant^="form-with-"] .contact-form textarea,
+[data-contact-variant^="form-with-"] .contact-form select {
+  border: 1px solid var(--contact-line);
+  border-radius: 0;
+  background: var(--contact-paper);
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+[data-contact-variant^="form-with-"] .contact-form .contact-select-wrap {
+  border: 0;
+}
+
+[data-contact-variant^="form-with-"] .contact-form .contact-select-wrap span {
+  right: 14px;
+}
+
+[data-contact-variant^="form-with-"] .contact-side-image {
+  width: 100%;
+  height: 100%;
+  min-height: 650px;
+}
+
+[data-contact-variant^="form-with-text-"] .contact-form-shell {
+  align-self: stretch;
+}
+
+[data-contact-variant^="form-with-text-"] aside > div:not(.contact-side-image) {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding: 30px 10px;
+}
+
+[data-contact-variant^="form-with-text-"] aside h2 {
+  max-width: 10ch;
+  font-size: clamp(3rem, 5vw, 5rem);
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+}
+
+@media (max-width: 767px) {
+  [data-contact-variant] {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  [data-contact-variant] .contact-form-shell {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  [data-contact-variant="form-2"] .contact-form-shell,
+  [data-contact-variant^="form-with-"] .contact-form-shell {
+    padding: 24px 20px;
+  }
+
+  [data-contact-variant] .contact-form h2 {
+    max-width: 11ch;
+    font-size: clamp(2.15rem, 11vw, 3rem);
+  }
+
+  [data-contact-variant^="form-with-"] .contact-side-image {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 4 / 5;
+  }
+}
