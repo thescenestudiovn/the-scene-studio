@@ -203,12 +203,18 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const loadPages = useCallback(async () => {
         setLoading(true);
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
-        const data = await response.json() as { pages?: Page[] };
+        const data = await response.json() as { success?: boolean; pages?: Page[]; error?: string };
+        if (!response.ok || !data.success) {
+            setMessage(data.error || "Failed to load pages");
+            setLoading(false);
+            return;
+        }
         const loadedPages = data.pages ?? [];
         const initialPage =
             loadedPages.find(item => item.slug === initialSlug) ??
             (initialSlug === "home" ? loadedPages.find(item => item.page_type === "home") : undefined);
         if (initialPage) await openPage(initialPage);
+        else setMessage("Page not found: " + initialSlug);
         setLoading(false);
     }, [openPage]);
 
