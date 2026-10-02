@@ -393,7 +393,8 @@ select {
   gap: 26px;
 }
 
-.scene-pixieset-form label {
+.scene-pixieset-form > form > label,
+.scene-pixieset-form > form > fieldset > legend {
   display: block;
   color: #171717;
   font-size: 10px;
@@ -403,11 +404,12 @@ select {
   text-transform: uppercase;
 }
 
-.scene-pixieset-form label span {
+.scene-pixieset-form > form > label > span,
+.scene-pixieset-form > form > fieldset > legend > span {
   color: #77736c;
 }
 
-.scene-pixieset-form input,
+.scene-pixieset-form input:not([type="checkbox"]),
 .scene-pixieset-form textarea,
 .scene-pixieset-form select {
   display: block;
@@ -812,7 +814,7 @@ select {
   margin-top: 12px;
 }
 
-.scene-pixieset-form__checkbox {
+.scene-pixieset-form .scene-pixieset-form__checkbox {
   display: inline-flex !important;
   flex-direction: row !important;
   align-items: center;
@@ -826,7 +828,7 @@ select {
   cursor: pointer;
 }
 
-.scene-pixieset-form__checkbox input {
+.scene-pixieset-form .scene-pixieset-form__checkbox input[type="checkbox"] {
   width: 15px !important;
   height: 15px !important;
   min-height: 15px !important;
