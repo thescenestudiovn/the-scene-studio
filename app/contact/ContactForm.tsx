@@ -800,7 +800,7 @@ function PixiesetContactForm({
             ) : (
                 <form onSubmit={submit}>
                     <label>
-                        Name <span>*</span>
+                        Your name <span>*</span>
                         <input
                             value={name}
                             required
@@ -820,7 +820,7 @@ function PixiesetContactForm({
                     </label>
 
                     <label>
-                        Date <span>*</span>
+                        Wedding date <span>*</span>
                         <input
                             type="date"
                             required
@@ -840,7 +840,7 @@ function PixiesetContactForm({
                     </label>
 
                     <label>
-                        Interest <span>*</span>
+                        I’m interested in <span>*</span>
                         <select
                             value={interest}
                             required
@@ -853,16 +853,16 @@ function PixiesetContactForm({
                             <option value="Intimate wedding">
                                 Intimate wedding
                             </option>
-                            <option value="Couple">Couple</option>
+                            <option value="Couple session">Couple session</option>
                             <option value="Elopement">Elopement</option>
-                            <option value="Not sure">Not sure</option>
+                            <option value="Not sure yet">Not sure yet</option>
                         </select>
                     </label>
 
                     <fieldset className="scene-pixieset-form__product">
-                        <legend>Product <span>*</span></legend>
+                        <legend className="sr-only">Product</legend>
                         <div className="scene-pixieset-form__checkboxes">
-                            {["Photograph", "Videograph"].map((product) => (
+                            {["Photography", "Film"].map((product) => (
                                 <label key={product} className="scene-pixieset-form__checkbox">
                                     <input
                                         type="checkbox"
