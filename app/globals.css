@@ -885,15 +885,25 @@ select {
 }
 
 
-/* Contact page Page Builder sections use tighter vertical rhythm. */
+/* Contact page Page Builder rhythm:
+   - first block gets breathing room below the fixed header
+   - following blocks use a tighter shared gap */
 .scene-contact-page__blocks > section {
-  padding-top: 40px;
-  padding-bottom: 40px;
+  padding-top: 24px !important;
+  padding-bottom: 32px !important;
+}
+
+.scene-contact-page__blocks > section:first-child {
+  padding-top: 112px !important;
 }
 
 @media (max-width: 767px) {
   .scene-contact-page__blocks > section {
-    padding-top: 32px;
-    padding-bottom: 32px;
+    padding-top: 16px !important;
+    padding-bottom: 24px !important;
+  }
+
+  .scene-contact-page__blocks > section:first-child {
+    padding-top: 84px !important;
   }
 }
