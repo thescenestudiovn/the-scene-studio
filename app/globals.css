@@ -560,3 +560,212 @@ select {
     width: 100%;
   }
 }
+
+
+/* Admin Contact block preview — mirror the Classic/Pixieset block composition. */
+.scene-admin-contact-wrap {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e2ddd4;
+  padding: 18px;
+}
+
+.scene-admin-contact-preview {
+  overflow: hidden;
+  background: #fff;
+}
+
+.scene-admin-contact-preview--form-2 {
+  background: #f7f6f3;
+  padding: 24px;
+}
+
+.scene-admin-contact-preview--form-3 {
+  background: #efede8;
+  padding: 24px;
+}
+
+.scene-admin-contact-single,
+.scene-admin-contact-card {
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
+.scene-admin-contact-card {
+  background: #fff;
+  border: 1px solid #ded9d1;
+  padding: 28px;
+}
+
+.scene-admin-contact-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.scene-admin-contact-fields > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.scene-admin-contact-fields span {
+  color: #55514b;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: .16em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.scene-admin-contact-fields input,
+.scene-admin-contact-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dcd7cf;
+  border-radius: 0;
+  background: #fff;
+  outline: 0;
+  font: 400 11px/1.5 var(--font-sans), sans-serif;
+  color: #171717;
+}
+
+.scene-admin-contact-fields input {
+  height: 34px;
+}
+
+.scene-admin-contact-fields textarea {
+  min-height: 86px;
+  resize: none;
+}
+
+.scene-admin-contact-fields button {
+  align-self: flex-start;
+  min-width: 104px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: #171717;
+  color: #fff;
+  font: 500 8px/1 var(--font-sans), sans-serif;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.scene-admin-contact-copy-col {
+  display: flex;
+  min-height: 360px;
+  align-items: center;
+}
+
+.scene-admin-contact-copy {
+  max-width: 390px;
+  padding: 28px;
+}
+
+.scene-admin-contact-copy h3 {
+  margin: 0;
+  max-width: 9ch;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(32px, 4vw, 54px);
+  font-weight: 400;
+  line-height: .9;
+  letter-spacing: -.045em;
+}
+
+.scene-admin-contact-copy p {
+  max-width: 340px;
+  margin: 18px 0 0;
+  color: #77736c;
+  font-size: 10px;
+  line-height: 1.75;
+}
+
+.scene-admin-contact-media {
+  min-width: 0;
+}
+
+.scene-admin-contact-image {
+  width: 100%;
+  min-height: 390px;
+  overflow: hidden;
+  background: #ece9e3;
+}
+
+.scene-admin-contact-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 390px;
+  object-fit: cover;
+}
+
+.scene-admin-contact-image-placeholder {
+  display: flex;
+  min-height: 390px;
+  align-items: center;
+  justify-content: center;
+  color: #918c84;
+  font-size: 8px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.scene-admin-contact-preview--form-with-text-left,
+.scene-admin-contact-preview--form-with-text-right,
+.scene-admin-contact-preview--form-with-image-left,
+.scene-admin-contact-preview--form-with-image-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 42px;
+  align-items: center;
+  padding: 30px;
+  background: #f7f6f3;
+}
+
+.scene-admin-contact-preview--form-with-image-left,
+.scene-admin-contact-preview--form-with-image-right {
+  align-items: stretch;
+}
+
+.scene-admin-contact-preview--form-with-image-left .scene-admin-contact-form,
+.scene-admin-contact-preview--form-with-image-right .scene-admin-contact-form {
+  display: flex;
+  align-items: center;
+}
+
+.scene-admin-contact-preview--form-with-image-left .scene-admin-contact-fields,
+.scene-admin-contact-preview--form-with-image-right .scene-admin-contact-fields {
+  width: 100%;
+}
+
+.scene-admin-contact-preview--form-with-image-left .scene-admin-contact-image,
+.scene-admin-contact-preview--form-with-image-right .scene-admin-contact-image {
+  min-height: 500px;
+}
+
+.scene-admin-contact-preview--form-with-image-left .scene-admin-contact-image img,
+.scene-admin-contact-preview--form-with-image-right .scene-admin-contact-image img {
+  min-height: 500px;
+}
+
+@media (max-width: 780px) {
+  .scene-admin-contact-preview--form-with-text-left,
+  .scene-admin-contact-preview--form-with-text-right,
+  .scene-admin-contact-preview--form-with-image-left,
+  .scene-admin-contact-preview--form-with-image-right {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 22px;
+  }
+
+  .scene-admin-contact-copy-col {
+    min-height: auto;
+  }
+
+  .scene-admin-contact-image,
+  .scene-admin-contact-image img {
+    min-height: 300px;
+  }
+}
