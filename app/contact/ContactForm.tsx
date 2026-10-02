@@ -780,9 +780,13 @@ function PixiesetContactForm({
         }
     };
 
+    const isTextSideLayout =
+        variant === "form-with-text-left" ||
+        variant === "form-with-text-right";
+
     const form = (
         <div className="scene-pixieset-form">
-            {(title || body) && (
+            {!isTextSideLayout && (title || body) && (
                 <div className="scene-pixieset-form__intro">
                     {title && <h2>{title}</h2>}
                     {body && <p>{body}</p>}
