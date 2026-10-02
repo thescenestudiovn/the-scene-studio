@@ -8,7 +8,7 @@ export type ContentBlockSelection =
   | { category: "text"; variant: TextBlockVariant; data?: Record<string, unknown> }
   | { category: "image"; variant: ImageBlockVariant; data: { collection_id: string; media_ids: string[] } }
   | { category: "content"; variant: VideoBlockVariant; data: { youtube_url: string } }
-  | { category: "contact"; variant: ContactBlockVariant; data: { title: string; body: string } }
+  | { category: "contact"; variant: ContactBlockVariant; data: { title: string; body: string; media_ids: string[] } }
   | { category: "map"; variant: MapBlockVariant; data: { address: string; embed_url: string } };
 
 export const BLOCK_CATEGORIES = [
