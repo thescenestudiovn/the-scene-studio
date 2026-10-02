@@ -721,7 +721,7 @@ function PixiesetContactForm({
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!name.trim() || !email.trim() || !interest || !message.trim()) {
+        if (!name.trim() || !whatsapp.trim() || !date || !email.trim() || !interest || !message.trim()) {
             setError("Please complete the required fields.");
             return;
         }
@@ -801,14 +801,16 @@ function PixiesetContactForm({
                         Name <span>*</span>
                         <input
                             value={name}
+                            required
                             onChange={(event) => setName(event.target.value)}
                         />
                     </label>
 
                     <label>
-                        WhatsApp
+                        WhatsApp <span>*</span>
                         <input
                             value={whatsapp}
+                            required
                             onChange={(event) =>
                                 setWhatsapp(event.target.value)
                             }
@@ -816,9 +818,10 @@ function PixiesetContactForm({
                     </label>
 
                     <label>
-                        Date
+                        Date <span>*</span>
                         <input
                             type="date"
+                            required
                             value={date}
                             onChange={(event) => setDate(event.target.value)}
                         />
@@ -828,6 +831,7 @@ function PixiesetContactForm({
                         Email address <span>*</span>
                         <input
                             type="email"
+                            required
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
                         />
@@ -837,6 +841,7 @@ function PixiesetContactForm({
                         Interest <span>*</span>
                         <select
                             value={interest}
+                            required
                             onChange={(event) => setInterest(event.target.value)}
                         >
                             <option value="">Select an option</option>
@@ -856,6 +861,7 @@ function PixiesetContactForm({
                         Message <span>*</span>
                         <textarea
                             value={message}
+                            required
                             onChange={(event) => setMessage(event.target.value)}
                             rows={7}
                         />
