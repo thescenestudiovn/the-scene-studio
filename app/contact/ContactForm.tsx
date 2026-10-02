@@ -647,7 +647,7 @@ export default function ContactForm({
     );
 
     return (
-        <section className={`border-t border-[#d8d3ca] px-6 py-20 md:px-10 md:py-32 ${variant === "form-3" ? "bg-[#eeece6]" : ""}`}>
+        <section data-contact-variant={variant} className={`border-t border-[#d8d3ca] px-6 py-20 md:px-10 md:py-32 ${variant === "form-3" ? "bg-[#eeece6]" : ""}`}>
             {hasSideLayout ? (
                 <div className={`mx-auto grid max-w-6xl items-start gap-10 md:gap-16 ${isLeftSide ? "md:grid-cols-[0.8fr_1.2fr]" : "md:grid-cols-[1.2fr_0.8fr]"}`}>
                     {isLeftSide && (
