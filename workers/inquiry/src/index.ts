@@ -7,11 +7,13 @@ type InquiryData = {
 	partnerName?: string;
 	email: string;
 	instagram?: string;
+	whatsapp?: string;
 	weddingDate?: string;
 	dateStatus?: string;
-	location: string;
+	location?: string;
 	guests?: string;
 	celebration?: string;
+	interest?: string;
 	services: string[];
 	coverage?: string;
 	planner?: string;
@@ -87,11 +89,20 @@ export default {
 				(await request.json()) as InquiryData;
 
 			// Basic validation
+			const isNewContact =
+				!data.location?.trim() &&
+				Boolean(data.whatsapp?.trim());
+
 			if (
 				!data.name?.trim() ||
 				!data.email?.trim() ||
-				!data.location?.trim() ||
-				!data.story?.trim()
+				!data.story?.trim() ||
+				(isNewContact
+					? !data.whatsapp?.trim() ||
+					  !data.weddingDate?.trim() ||
+					  !data.interest?.trim() ||
+					  !data.services?.length
+					: !data.location?.trim())
 			) {
 				return jsonResponse(
 					{
@@ -101,7 +112,6 @@ export default {
 					origin
 				);
 			}
-
 			if (!/\S+@\S+\.\S+/.test(data.email)) {
 				return jsonResponse(
 					{
