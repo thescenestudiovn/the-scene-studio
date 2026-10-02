@@ -27,8 +27,10 @@ export default function ContactBlockPicker({ onSelect }: Props) {
               category: "contact",
               variant,
               data: {
-                title: "Get in touch",
-                body: "Tell us about your plans.",
+                title: variant.includes("text") ? "Enter a Heading" : "",
+                body: variant.includes("text")
+                  ? "This is a paragraph. Tell your clients more about your story and the kind of photography you offer."
+                  : "",
                 media_ids: [],
               },
             })
