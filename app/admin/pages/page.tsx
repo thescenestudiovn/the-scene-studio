@@ -205,7 +205,9 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
         const data = await response.json() as { pages?: Page[] };
         const loadedPages = data.pages ?? [];
-        const initialPage = loadedPages.find(item => item.slug === initialSlug) ?? loadedPages.find(item => item.page_type === "home") ?? loadedPages[0];
+        const initialPage =
+            loadedPages.find(item => item.slug === initialSlug) ??
+            (initialSlug === "home" ? loadedPages.find(item => item.page_type === "home") : undefined);
         if (initialPage) await openPage(initialPage);
         setLoading(false);
     }, [openPage]);
