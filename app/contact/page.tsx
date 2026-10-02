@@ -42,6 +42,7 @@ function DefaultIntro() {
 export default async function ContactPage() {
     const page = await getPage("contact");
     const blocks = page?.blocks.filter(block => block.type !== "cover") ?? [];
+    const hasContactFormBlock = blocks.some(block => block.type === "contact");
 
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
@@ -51,7 +52,7 @@ export default async function ContactPage() {
             ) : (
                 <DefaultIntro />
             )}
-            <ContactForm />
+            {!hasContactFormBlock && <ContactForm />}
             <Footer />
         </main>
     );
