@@ -3,11 +3,49 @@ import { getDB } from "../../../../lib/db";
 export async function GET() {
   try {
     const db = getDB();
+
+    // Keep the admin Page Builder usable even when the initial page seed
+    // has not been applied to an existing D1 database yet.
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS pages (
+        id TEXT PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        page_type TEXT NOT NULL,
+        seo_title TEXT,
+        seo_description TEXT,
+        published INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS page_blocks (
+        id TEXT PRIMARY KEY,
+        page_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        data TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    await db.batch([
+      db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published) VALUES ('page-home','home','Home','home',1)`),
+      db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published) VALUES ('page-about','about','About','about',1)`),
+      db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,seo_title,seo_description,published) VALUES ('page-contact','contact','Contact','contact','Contact — The Scene Studio','Contact The Scene Studio for destination wedding photography and films in Vietnam and beyond.',1)`),
+    ]);
+
     const pages = await db.prepare(`SELECT * FROM pages ORDER BY page_type ASC`).all();
     return Response.json({ success: true, pages: pages.results });
   } catch (error) {
     console.error("GET /api/admin/pages error:", error);
-    return Response.json({ success: false, error: "Failed to fetch pages" }, { status: 500 });
+    return Response.json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch pages",
+    }, { status: 500 });
   }
 }
 
