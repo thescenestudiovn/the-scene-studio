@@ -689,6 +689,7 @@ export default function ContactForm({
             )}
         </section>
     );
+}
 
 function Field({
     label,
