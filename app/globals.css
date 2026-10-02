@@ -347,7 +347,7 @@ select {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 72px;
-  align-items: center;
+  align-items: start;
 }
 
 .scene-contact-block__form {
@@ -672,7 +672,7 @@ select {
 .scene-admin-contact-copy-col {
   display: flex;
   min-height: 360px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .scene-admin-contact-copy {
