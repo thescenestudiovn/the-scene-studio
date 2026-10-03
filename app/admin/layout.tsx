@@ -18,7 +18,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           : "";
 
   const topNav = [
-    { label: "Admin", href: "/admin", active: pathname === "/admin" || pathname.startsWith("/admin/pages/") },
     { label: "Stories", href: "/admin/stories", active: pathname.startsWith("/admin/stories") },
     { label: "Gallery", href: "/admin/gallery", active: pathname.startsWith("/admin/gallery") },
     { label: "Settings", href: "/admin/settings", active: pathname.startsWith("/admin/settings") },
@@ -28,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[#f7f5f0] text-[#171717]">
       <header className="sticky top-0 z-50 border-b border-[#ddd7cd] bg-[#f7f5f0]/95 backdrop-blur">
         <div className="flex min-h-[64px] items-center gap-8 px-5 md:px-8">
-          <Link href="/admin" className="shrink-0 text-[11px] uppercase tracking-[0.2em]">
+          <Link href="/admin/pages/home" className="shrink-0 text-[11px] uppercase tracking-[0.2em]">
             The Scene Studio <span className="text-[#99958e]">/ Admin</span>
           </Link>
           <nav aria-label="Admin sections" className="hidden items-stretch gap-7 md:flex">
