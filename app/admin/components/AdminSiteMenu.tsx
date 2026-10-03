@@ -105,7 +105,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const loadPages = useCallback(async () => {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
         const data = await response.json() as { success?: boolean; pages?: Page[] };
-        if (response.ok && data.success) setPages((data.pages ?? []).filter(page => page.menu_visibility !== "hidden" && page.menu_visibility !== "footer"));
+        if (response.ok && data.success) setPages(data.pages ?? []);
         setLoadingPages(false);
     }, []);
     useEffect(() => { void loadPages(); }, [loadPages]);
@@ -166,7 +166,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
             <nav aria-label="Site menu" className="px-3 py-4">
                 <div className="mb-3 flex items-center justify-between px-2"><p className="text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site Menu</p><button type="button" onClick={addPage} className="text-[9px] uppercase tracking-[0.12em] text-[#77736c] hover:text-[#171717]">+ Add Page</button></div>
-                {loadingPages ? <p className="px-2 py-4 text-[10px] text-[#aaa49a]">Loading…</p> : pages.map(page => (
+                {loadingPages ? <p className="px-2 py-4 text-[10px] text-[#aaa49a]">Loading…</p> : pages.filter(page => page.menu_visibility !== "hidden" && page.menu_visibility !== "footer").map(page => (
                     <div key={page.id} draggable onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/page-id", page.id); }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void reorderPage(event.dataTransfer.getData("text/page-id"), page.id); }} className="group flex items-center gap-1">
                         <Link href={"/admin/pages/" + page.slug} aria-current={activeSlug === page.slug ? "page" : undefined} className={activeSlug === page.slug ? "flex min-w-0 flex-1 items-center gap-2 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
                             <span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span>{Number(page.homepage) === 1 && <span className="ml-auto shrink-0 text-[8px] uppercase tracking-[0.1em] text-[#aaa49a]">Homepage</span>}
