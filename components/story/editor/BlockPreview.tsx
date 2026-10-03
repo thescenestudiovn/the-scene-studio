@@ -58,6 +58,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
     variant === "wide" ? "w-full" :
     variant === "narrow" ? "w-full md:w-1/2" :
     "w-full md:w-[70%]";
+  const isHeadingLayout = variant === "heading-1" || variant === "heading-2" || variant === "heading-3";
 
   return <section className="px-6 py-12 md:px-10 md:py-16"><div className={`mx-auto ${textWidthClass}`}>
     {eyebrow && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{eyebrow}</p>}
@@ -65,7 +66,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
     {lines.length > 0 ? (
       <div className="mt-5 text-[#77736c]">
         {lines.map((line, index) => (
-          <div key={index} className={`whitespace-pre-wrap ${textStyle(line.textSize)}`} dangerouslySetInnerHTML={{ __html: line.content }} />
+          <div key={index} className={`whitespace-pre-wrap ${isHeadingLayout ? "text-center " : ""}${textStyle(line.textSize)}`} dangerouslySetInnerHTML={{ __html: line.content }} />
         ))}
       </div>
     ) : body ? (
