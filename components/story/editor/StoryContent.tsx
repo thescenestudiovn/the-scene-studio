@@ -177,6 +177,23 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     });
   },[lines,editingLine]);
   useEffect(()=>{
+    const frame=requestAnimationFrame(()=>{
+      const editor=lineRefs.current[0];
+      if(!editor)return;
+      setEditingLine(current=>current===null?0:current);
+      editor.focus();
+      const selection=window.getSelection();
+      if(!selection)return;
+      const range=document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      selectionRef.current={range:range.cloneRange(),editor};
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[]);
+  useEffect(()=>{
     if(editingLine===null)return;
     const closeOnOutsideClick=(event:MouseEvent)=>{
       const target=event.target as Node|null;
