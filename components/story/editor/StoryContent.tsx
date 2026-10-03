@@ -130,8 +130,8 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     holder.innerHTML=legacyContent;
     const lineNodes=Array.from(holder.querySelectorAll("p,div,h1,h2,h3,h4,h5,h6,blockquote,li"));
     if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize}));
-    const text=holder.innerHTML.replace(/<br\\s*\\/?>(?=.)/gi,"\\n");
-    return text.split(/\\n+/).map(content=>({content,textSize:defaultSize}));
+    const text=holder.innerHTML.replace(/<br\s*\/?>(?=.)/gi,"\n");
+    return text.split(/\n+/).map(content=>({content,textSize:defaultSize}));
   }
   const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
   const [editingLine,setEditingLine]=useState<number|null>(null);
