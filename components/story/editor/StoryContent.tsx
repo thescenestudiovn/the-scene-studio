@@ -126,10 +126,13 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
   const makeInitialLines=():TextLine[]=>{
     if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize}));
-    const matches=legacyContent.match(/<(?:p|div|h[1-6]|blockquote|li)[^>]*>[\\s\\S]*?<\\/(?:p|div|h[1-6]|blockquote|li)>/gi);
-    if(matches?.length)return matches.map(content=>({content,textSize:defaultSize}));
-    return legacyContent.split(/\\n+/).map(content=>({content,textSize:defaultSize}));
-  };
+    const holder=document.createElement("div");
+    holder.innerHTML=legacyContent;
+    const lineNodes=Array.from(holder.querySelectorAll("p,div,h1,h2,h3,h4,h5,h6,blockquote,li"));
+    if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize}));
+    const text=holder.innerHTML.replace(/<br\\s*\\/?>(?=.)/gi,"\\n");
+    return text.split(/\\n+/).map(content=>({content,textSize:defaultSize}));
+  }
   const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
   const [editingLine,setEditingLine]=useState<number|null>(null);
   const lineRefs=useRef<Array<HTMLDivElement|null>>([]);
