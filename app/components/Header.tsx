@@ -8,6 +8,7 @@ export default function Header({ light = false }: { light?: boolean }) {
     const [scrolled, setScrolled] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [settings, setSettings] = useState<Settings>({ logo:"", logo_white:"" });
+    const [pages, setPages] = useState<Array<{ slug:string; title:string; menu_visibility?:string; page_status?:string; homepage?:number }>>([]);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 80);
@@ -16,6 +17,10 @@ export default function Header({ light = false }: { light?: boolean }) {
         fetch("/api/admin/site-settings", { cache:"no-store" })
             .then(r => r.ok ? r.json() : null)
             .then(d => { const data = d as { settings?: Partial<Settings> }; if (data.settings) setSettings({ logo:data.settings.logo || "", logo_white:data.settings.logo_white || "" }); })
+            .catch(() => {});
+        fetch("/api/admin/pages", { cache:"no-store" })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { const data = d as { pages?: Array<{ slug:string; title:string; menu_visibility?:string; page_status?:string; homepage?:number }> }; if (data.pages) setPages(data.pages.filter(page => page.menu_visibility === "visible" && page.page_status !== "offline")); })
             .catch(() => {});
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
@@ -38,7 +43,7 @@ export default function Header({ light = false }: { light?: boolean }) {
                 </nav>
             </header>
             <div className={`fixed right-0 top-[58px] z-40 w-[260px] rounded-b-sm bg-[#f7f5f0] p-8 text-[#171717] shadow-xl transition-all duration-300 md:hidden ${menuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0"}`}>
-                <nav className="flex flex-col gap-6"><a href="/" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Home</a><a href="/about" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">About</a><a href="/stories" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Stories</a><a href="/gallery" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Gallery</a><a href="/films" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Film</a><a href="/contact" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Contact</a></nav>
+                <nav className="flex flex-col gap-6">{pages.map(page => <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : "/" + page.slug} onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">{page.title}</a>)}</nav>
             </div>
         </>
     );
