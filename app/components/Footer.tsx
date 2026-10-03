@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { stories } from "../../data/stories";
 
 
+
+function locationSlug(value: string) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
 
 type FooterPage = { slug: string; title: string; homepage?: number; menu_visibility?: string; page_status?: string };
 
@@ -35,6 +38,7 @@ const EMPTY: FooterSettings = {
 export default function Footer() {
     const [settings, setSettings] = useState<FooterSettings>(EMPTY);
     const [pages, setPages] = useState<FooterPage[]>([]);
+    const locations = Array.from(new Map(stories.map((story) => [locationSlug(story.location), story.location])).entries());
 
     useEffect(() => {
         fetch("/api/admin/pages", { cache: "no-store" })
@@ -76,11 +80,8 @@ export default function Footer() {
                         <p className="mt-8 max-w-md font-serif text-4xl leading-[0.95] tracking-[-0.03em] md:text-6xl">{settings.footer_text || "Stories worth remembering."}</p>
                         <p className="mt-8 font-sans text-xs tracking-[0.15em] uppercase text-[#77736b]">{settings.address || "Da Nang · Vietnam"}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-10 md:col-span-4 md:col-start-9">
-                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p>{pages.map((page) => (
-                            <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : `/${page.slug}`}>{page.title}</a>
-                        ))}</div>
-                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
+                    <div className="grid grid-cols-2 gap-10 md:col-span-6 md:col-start-7 lg:grid-cols-3">
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">{pages.map((page) => (\n                            <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : `/${page.slug}`}>{page.title}</a>\n                        ))}</nav></div>\n                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Locations</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">{locations.map(([slug, name]) => (\n                            <a key={slug} href={`/stories?location=${encodeURIComponent(slug)}`}>{name}</a>\n                        ))}</nav></div>\n                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
                             {instagram && <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>}
                             {facebook && <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>}
                             {tiktok && <a href={tiktok} target="_blank" rel="noreferrer">TikTok</a>}
