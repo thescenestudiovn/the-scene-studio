@@ -37,7 +37,7 @@ export default function Header({ light = false }: { light?: boolean }) {
                         {logo ? <img src={logo} alt="The Scene Studio" className="h-auto max-h-10 w-auto max-w-[180px] object-contain" /> : <span className="font-sans text-xs tracking-[0.2em] uppercase">The Scene Studio</span>}
                     </a>
                     <div className="hidden items-center gap-8 font-sans text-xs tracking-[0.15em] uppercase md:flex">
-                        <a href="/" className="transition-opacity hover:opacity-50">Home</a><a href="/about" className="transition-opacity hover:opacity-50">About</a><a href="/stories" className="transition-opacity hover:opacity-50">Stories</a><a href="/gallery" className="transition-opacity hover:opacity-50">Gallery</a><a href="/films" className="transition-opacity hover:opacity-50">Film</a><a href="/contact" className="transition-opacity hover:opacity-50">Contact</a>
+                        {pages.map(page => <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : "/" + page.slug} className="transition-opacity hover:opacity-50">{page.title}</a>)}
                     </div>
                     <button onClick={() => setMenuOpen(!menuOpen)} className="font-sans text-xs tracking-[0.2em] uppercase md:hidden">{menuOpen ? "Close" : "Menu"}</button>
                 </nav>
