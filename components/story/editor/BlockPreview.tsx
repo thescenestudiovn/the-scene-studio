@@ -21,15 +21,53 @@ function TextPreview({ block }: { block: StoryBlock }) {
   const body = text(data.body || block.body);
   const title = text(data.title || block.title);
   const eyebrow = text(data.eyebrow || block.eyebrow);
-  const style =
-    variant === "heading-1" ? "font-serif text-5xl leading-[1.08]" :
-    variant === "heading-2" ? "font-serif text-4xl leading-[1.12]" :
-    variant === "heading-3" ? "font-serif text-3xl leading-[1.16]" :
-    variant === "wide" ? "text-xl leading-8" :
+  const storedLines = Array.isArray(data.lines) ? data.lines as unknown[] : [];
+  const defaultSize = text(data.textSize) || (
+    variant === "heading-1" ? "heading-1" :
+    variant === "heading-2" ? "heading-2" :
+    variant === "heading-3" ? "heading-3" :
+    variant === "wide" ? "paragraph-1" :
+    variant === "narrow" ? "paragraph-3" :
+    "paragraph-2"
+  );
+  const textStyle = (size: string) =>
+    size === "banner-heading" ? "font-serif text-6xl leading-[1.05]" :
+    size === "banner-subtitle" ? "text-lg leading-7" :
+    size === "heading-1" ? "font-serif text-5xl leading-[1.08]" :
+    size === "heading-2" ? "font-serif text-4xl leading-[1.12]" :
+    size === "heading-3" ? "font-serif text-3xl leading-[1.16]" :
+    size === "heading-4" ? "font-serif text-2xl leading-[1.2]" :
+    size === "heading-5" ? "font-serif text-xl leading-[1.25]" :
+    size === "heading-6" ? "font-serif text-lg leading-[1.3]" :
+    size === "paragraph-1" ? "text-xl leading-8" :
+    size === "paragraph-3" ? "text-sm leading-6" :
     "text-base leading-7";
-  return <section className="px-6 py-12 md:px-10 md:py-16"><div className="mx-auto max-w-4xl">{eyebrow && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{eyebrow}</p>}{title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}{body && <div className={`mt-5 whitespace-pre-wrap text-[#77736c] ${style}`} dangerouslySetInnerHTML={{ __html: body }} />}</div></section>;
-}
 
+  const lines = storedLines
+    .map(item => {
+      if (typeof item !== "object" || item === null) return null;
+      const value = item as { content?: unknown; textSize?: unknown };
+      return {
+        content: typeof value.content === "string" ? value.content : "",
+        textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,
+      };
+    })
+    .filter((line): line is { content: string; textSize: string } => Boolean(line));
+
+  return <section className="px-6 py-12 md:px-10 md:py-16"><div className="mx-auto max-w-4xl">
+    {eyebrow && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{eyebrow}</p>}
+    {title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}
+    {lines.length > 0 ? (
+      <div className="mt-5 text-[#77736c]">
+        {lines.map((line, index) => (
+          <div key={index} className={`whitespace-pre-wrap ${textStyle(line.textSize)}`} dangerouslySetInnerHTML={{ __html: line.content }} />
+        ))}
+      </div>
+    ) : body ? (
+      <div className={`mt-5 whitespace-pre-wrap text-[#77736c] ${textStyle(defaultSize)}`} dangerouslySetInnerHTML={{ __html: body }} />
+    ) : null}
+  </div></section>;
+}
 function ImagePreview({ block }: { block: StoryBlock }) {
   const data = block.data ?? {};
   const variant = text(data.variant) || block.variant || "large";
