@@ -46,6 +46,9 @@ function nextVariant(variant:string,blockType:string){
     for(const list of imageTextGroups){const index=(list as readonly string[]).indexOf(variant);if(index>=0)return list[(index+1)%list.length];}
   }
   if(blockType==="text"||blockType.startsWith("text-")){
+    if(variant==="heading")return "paragraph";
+    if(variant==="paragraph")return "columns";
+    if(variant==="columns")return "heading";
     const headingIndex=HEADING_VARIANTS.indexOf(variant as (typeof HEADING_VARIANTS)[number]);
     if(headingIndex>=0)return HEADING_VARIANTS[(headingIndex%3+1)%3];
     const widthIndex=TEXT_WIDTH_VARIANTS.indexOf(variant as (typeof TEXT_WIDTH_VARIANTS)[number]);
@@ -76,6 +79,9 @@ function switchLabel(variant:string,blockType:string){
   }
   if(blockType==="content")return LABELS[variant]??"Content";
   if(blockType==="text"||blockType.startsWith("text-")){
+    if(variant==="heading")return "Heading";
+    if(variant==="paragraph")return "Text";
+    if(variant==="columns")return "Columns";
     if(variant.startsWith("heading-")||variant.startsWith("text-h"))return LABELS[variant]??"Heading";
     if(variant.startsWith("text-columns-"))return `Columns ${variant.replace("text-columns-","")}`;
     if(variant.startsWith("columns-"))return `Columns ${variant.replace("columns-","")}`;
