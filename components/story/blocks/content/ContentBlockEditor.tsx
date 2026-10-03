@@ -481,7 +481,7 @@ function InfoBlockEditor({ block, onChange }: Props) {
 
           <label className="grid gap-2">
             <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Eyebrow</span>
-            <input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.eyebrow)} onChange={e => update("eyebrow", e.target.value)} />
+            <input aria-label="Eyebrow" className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.eyebrow)} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} onChange={e => update("eyebrow", e.target.value)} />
           </label>
           <label className="grid gap-2">
             <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Title</span>
