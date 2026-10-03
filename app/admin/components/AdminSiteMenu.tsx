@@ -1,8 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useAdminEditor } from "./AdminEditorContext";
+import { BlockEditor } from "../../../components/story/editor/StoryContent";
+
+function labelForBlock(block: { type: string; variant?: string | null; data?: Record<string, unknown> }) {
+    const variant = typeof block.variant === "string" && block.variant ? block.variant : typeof block.data?.variant === "string" ? block.data.variant : "";
+    const labels: Record<string, string> = {
+        "banner-1": "Banner 1", "banner-2": "Banner 2", "banner-3": "Banner 3", "banner-headline": "Banner · Headline",
+        "banner-media": "Banner · Media", "banner-slider-1": "Banner · Slider", "banner-video": "YouTube Video",
+        "info-1": "Info 1", "info-2": "Info 2", "info-3": "Info 3",
+        "testimonial-1": "Testimonial 1", "testimonial-2": "Testimonial 2", "testimonial-3": "Testimonial 3",
+        "pricing-1": "Pricing 1", "pricing-2": "Pricing 2", "pricing-3": "Pricing 3",
+        "faq-1": "FAQ 1", "faq-2": "FAQ 2", "faq-3": "FAQ 3",
+        "quote-1": "Quote 1", "quote-2": "Quote 2", "quote-3": "Quote 3",
+        "heading-1": "Heading 1", "heading-2": "Heading 2", "heading-3": "Heading 3",
+    };
+    return labels[variant] ?? (variant ? variant.replace(/-/g, " ") : block.type);
+}
 
 export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
+    const { editor } = useAdminEditor();
     const pages = [
         { slug: "home", label: "Home", icon: "⌂", href: "/admin/pages/home" },
         { slug: "about", label: "About", icon: "▯", href: "/admin/pages/about" },
@@ -10,6 +28,30 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         { slug: "gallery", label: "Gallery", icon: "▧", href: "/admin/gallery" },
         { slug: "stories", label: "Stories (Blog)", icon: "▤", href: "/admin/stories" },
     ];
+
+    if (editor) {
+        return <aside className="flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[340px] lg:overflow-hidden lg:border-b-0 lg:border-r">
+            <div className="shrink-0 border-b border-[#e5e0d8] px-5 py-4">
+                <button type="button" onClick={editor.onClose} className="text-[9px] uppercase tracking-[0.16em] text-[#77736c] hover:text-[#171717]">← Pages</button>
+                <p className="mt-5 text-[9px] uppercase tracking-[0.18em] text-[#aaa49a]">Edit block</p>
+                <h2 className="mt-1 font-serif text-2xl leading-tight">{labelForBlock(editor.block)}</h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+                <div className="overflow-hidden border border-[#d8d3ca] bg-white">
+                    <BlockEditor
+                        storyId={editor.storyId}
+                        block={editor.block}
+                        blocks={editor.blocks}
+                        onBlocksChange={editor.onBlocksChange}
+                        onUpdate={editor.onUpdate}
+                    />
+                </div>
+            </div>
+            <div className="shrink-0 border-t border-[#e5e0d8] bg-[#fbfaf7] p-3">
+                <button type="button" onClick={() => { editor.onDelete(editor.block.id); editor.onClose(); }} className="w-full border border-[#d8d3ca] bg-white px-3 py-2.5 text-[9px] uppercase tracking-[0.14em] text-[#8a857d] hover:border-red-300 hover:text-red-700">Delete block</button>
+            </div>
+        </aside>;
+    }
 
     return <aside className="flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <div className="border-b border-[#e5e0d8] px-5 py-5"><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Website</p><h2 className="mt-1 font-serif text-2xl">Pages</h2></div>
