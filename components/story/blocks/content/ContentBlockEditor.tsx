@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MediaPickerModal from "../image/MediaPickerModal";
 import { mediaUrl } from "../../../../lib/media";
 import type { Media, StoryBlock } from "../../editor/types";
-import ContentBlockView from "./ContentBlockView";
 
 type Props = { block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 type SitePage = { slug: string; title: string };
@@ -132,8 +131,6 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const pageMode = selectedPage ? selectedPage : buttonUrl ? "__custom__" : "";
 
   return <div className="grid gap-5">
-    <ContentBlockView variant={variant} data={data} media={media} />
-
     <div className="grid gap-6 border border-[#d8d3ca] bg-[#fbfaf7] p-5">
       <div className="grid gap-4">
         <div>
