@@ -22,7 +22,11 @@ const AdminEditorActionsContext = createContext<EditorActionsContextValue | null
 
 export function AdminEditorProvider({ children }: { children: React.ReactNode }) {
   const [editor, setEditor] = useState<AdminBlockEditorController | null>(null);
-  const registerEditor = useCallback((next: AdminBlockEditorController | null) => setEditor(next), []);
+  const [, setEditorRevision] = useState(0);
+  const registerEditor = useCallback((next: AdminBlockEditorController | null) => {
+    setEditor(next);
+    setEditorRevision(revision => revision + 1);
+  }, []);
   const actions = useMemo(() => ({ registerEditor }), [registerEditor]);
   return (
     <AdminEditorActionsContext.Provider value={actions}>
