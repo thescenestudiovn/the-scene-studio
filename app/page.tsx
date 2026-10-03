@@ -7,7 +7,7 @@ import StructuredData from "./components/StructuredData";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const page = await getPage("home");
+  const page = await getPage("homepage");
   return { title: page?.seo_title || "The Scene Studio — Destination Wedding Photography", description: page?.seo_description || "Destination wedding photography and films in Vietnam and worldwide." };
 }
 
