@@ -117,6 +117,15 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         setLoadingPages(false);
     }, []);
     useEffect(() => { void loadPages(); }, [loadPages]);
+    useEffect(() => {
+        if (!actionPageId) return;
+        const handlePointerDown = (event: MouseEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (!target?.closest("[data-page-action-menu]")) setActionPageId(null);
+        };
+        document.addEventListener("mousedown", handlePointerDown);
+        return () => document.removeEventListener("mousedown", handlePointerDown);
+    }, [actionPageId]);
 
     async function addPage() {
         const title = window.prompt("Page Name", "New Page");
@@ -184,7 +193,10 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     }
 
     if (settingsPage) {
-        return <SettingsPanel page={settingsPage} onClose={() => setSettingsPage(null)} onSaved={page => { setSettingsPage(page); void loadPages(); }} onDelete={() => void deletePage(settingsPage)} onDuplicate={() => void duplicatePage(settingsPage)} />;
+        return <>
+            <div aria-hidden="true" className="fixed inset-0 z-30 bg-black/40" />
+            <SettingsPanel page={settingsPage} onClose={() => setSettingsPage(null)} onSaved={page => { setSettingsPage(page); void loadPages(); }} onDelete={() => void deletePage(settingsPage)} onDuplicate={() => void duplicatePage(settingsPage)} />
+        </>;
     }
 
     return <>
@@ -198,7 +210,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                                 <Link href={"/admin/pages/" + page.slug} aria-current={activeSlug === page.slug ? "page" : undefined} className={activeSlug === page.slug ? "flex min-w-0 flex-1 items-center gap-2 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
                                     <span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span>{Number(page.homepage) === 1 && <span className="ml-auto shrink-0 text-[8px] uppercase tracking-[0.1em] text-[#aaa49a]">Homepage</span>}
                                 </Link>
-                                <div className="relative mr-1 shrink-0">
+                                <div data-page-action-menu className="relative mr-1 shrink-0">
                                     <button type="button" onClick={() => setActionPageId(actionPageId === page.id ? null : page.id)} aria-label={"Page actions for " + page.title} title="Page actions" className="flex h-8 w-8 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
                                     {actionPageId === page.id && <div className="absolute right-0 top-9 z-[70] w-36 border border-[#d8d3ca] bg-[#fbfaf7] py-1 shadow-lg">
                                         <button type="button" onClick={() => { setActionPageId(null); setSettingsPage(page); }} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Settings</button>
