@@ -17,7 +17,7 @@ function youtubeId(value: string) {
 
 function TextPreview({ block }: { block: StoryBlock }) {
   const data = block.data ?? {};
-  const variant = text(data.variant) || block.variant || "regular";
+  const variant = text(data.layout) || text(data.variant) || block.variant || "regular";
   const body = text(data.body || block.body);
   const title = text(data.title || block.title);
   const eyebrow = text(data.eyebrow || block.eyebrow);
