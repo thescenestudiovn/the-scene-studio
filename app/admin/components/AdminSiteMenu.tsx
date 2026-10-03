@@ -106,6 +106,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const { editor } = useAdminEditor();
     const [pages, setPages] = useState<Page[]>([]);
     const [settingsPage, setSettingsPage] = useState<Page | null>(null);
+    const [actionPageId, setActionPageId] = useState<string | null>(null);
     const [loadingPages, setLoadingPages] = useState(true);
 
     const loadPages = useCallback(async () => {
@@ -126,6 +127,13 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
             if (data.page) window.location.href = "/admin/pages/" + data.page.slug;
         }
     }
+    async function renamePage(page: Page) {
+        const title = window.prompt("Page Name", page.title);
+        if (!title?.trim() || title.trim() === page.title) return;
+        const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: title.trim() }) });
+        if (response.ok) { setActionPageId(null); await loadPages(); }
+        else { const data = await response.json() as { error?: string }; window.alert(data.error || "Could not rename page"); }
+    }
     async function duplicatePage(page: Page) {
         const response = await fetch("/api/admin/pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: page.title + " Copy", duplicate_from_id: page.id }) });
         if (response.ok) {
@@ -139,7 +147,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         if (!window.confirm('Delete "' + page.title + '"? This cannot be undone.')) return;
         const response = await fetch("/api/admin/pages", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id }) });
         if (response.ok) {
-            setSettingsPage(null); await loadPages();
+            setActionPageId(null); setSettingsPage(null); await loadPages();
             if (activeSlug === page.slug) window.location.href = "/admin/pages/home";
         } else {
             const data = await response.json() as { error?: string }; window.alert(data.error || "Could not delete page");
@@ -189,7 +197,15 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                                 <Link href={"/admin/pages/" + page.slug} aria-current={activeSlug === page.slug ? "page" : undefined} className={activeSlug === page.slug ? "flex min-w-0 flex-1 items-center gap-2 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
                                     <span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span>{Number(page.homepage) === 1 && <span className="ml-auto shrink-0 text-[8px] uppercase tracking-[0.1em] text-[#aaa49a]">Homepage</span>}
                                 </Link>
-                                <button type="button" onClick={() => setSettingsPage(page)} aria-label={"Settings for " + page.title} title="Page settings" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                                <div className="relative mr-1 shrink-0">
+                                    <button type="button" onClick={() => setActionPageId(actionPageId === page.id ? null : page.id)} aria-label={"Page actions for " + page.title} title="Page actions" className="flex h-8 w-8 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                                    {actionPageId === page.id && <div className="absolute right-0 top-9 z-[70] w-36 border border-[#d8d3ca] bg-[#fbfaf7] py-1 shadow-lg">
+                                        <button type="button" onClick={() => { setActionPageId(null); setSettingsPage(page); }} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Settings</button>
+                                        <button type="button" onClick={() => void renamePage(page)} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Rename</button>
+                                        <button type="button" onClick={() => { setActionPageId(null); void duplicatePage(page); }} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Duplicate</button>
+                                        <button type="button" onClick={() => { setActionPageId(null); void deletePage(page); }} disabled={Number(page.homepage) === 1} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] text-[#7a4d43] hover:bg-[#f3e9e6] disabled:opacity-40">Delete</button>
+                                    </div>}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -201,7 +217,15 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                     {pages.filter(page => page.menu_visibility === "hidden").map(page => (
                         <div key={page.id} draggable onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/page-id", page.id); }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); event.stopPropagation(); void movePage(event.dataTransfer.getData("text/page-id"), page.id, "hidden"); }} className="group flex items-center gap-1">
                             <Link href={"/admin/pages/" + page.slug} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"><span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span></Link>
-                            <button type="button" onClick={() => setSettingsPage(page)} aria-label={"Settings for " + page.title} title="Page settings" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                            <div className="relative mr-1 shrink-0">
+                                    <button type="button" onClick={() => setActionPageId(actionPageId === page.id ? null : page.id)} aria-label={"Page actions for " + page.title} title="Page actions" className="flex h-8 w-8 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                                    {actionPageId === page.id && <div className="absolute right-0 top-9 z-[70] w-36 border border-[#d8d3ca] bg-[#fbfaf7] py-1 shadow-lg">
+                                        <button type="button" onClick={() => { setActionPageId(null); setSettingsPage(page); }} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Settings</button>
+                                        <button type="button" onClick={() => void renamePage(page)} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Rename</button>
+                                        <button type="button" onClick={() => { setActionPageId(null); void duplicatePage(page); }} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] hover:bg-[#eeece6]">Duplicate</button>
+                                        <button type="button" onClick={() => { setActionPageId(null); void deletePage(page); }} disabled={Number(page.homepage) === 1} className="block w-full px-3 py-2 text-left text-[10px] uppercase tracking-[0.12em] text-[#7a4d43] hover:bg-[#f3e9e6] disabled:opacity-40">Delete</button>
+                                    </div>}
+                                </div>
                         </div>
                     ))}
                     {pages.filter(page => page.menu_visibility === "hidden").length === 0 && <p className="px-3 py-3 text-[10px] leading-5 text-[#aaa49a]">Drag pages here to hide them from the website menu.</p>}
