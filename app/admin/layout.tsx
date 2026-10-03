@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
       </header>
       <AdminEditorProvider>
-        {pathname.startsWith("/admin/stories") ? (
+        {pathname.startsWith("/admin/stories") || pathname.startsWith("/admin/gallery") || pathname.startsWith("/admin/settings") ? (
           <div className="min-h-[calc(100dvh-64px)]">{children}</div>
         ) : (
           <div className="flex min-h-[calc(100dvh-64px)] flex-col lg:flex-row">
