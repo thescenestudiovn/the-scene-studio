@@ -80,14 +80,12 @@ function defaultData(variant: ContentBlockVariant): Record<string, unknown> {
   }
   if (variant.startsWith("info")) {
     return {
-      eyebrow: "Info",
+      eyebrow: "Info Block",
       title: "Enter a Heading",
-      body: "Add information about your studio, services, process or experience.",
-      items: [
-        { title: "Title", text: "Add supporting information here." },
-        { title: "Title", text: "Add supporting information here." },
-        { title: "Title", text: "Add supporting information here." },
-      ],
+      subtitle: "Lorem ipsum dolor",
+      body: "This is a paragraph. Click edit and enter your own text. You can make changes like making the text bold, underline or italic.",
+      button_text: "Learn More",
+      button_url: "#",
       media_ids: [],
     };
   }
