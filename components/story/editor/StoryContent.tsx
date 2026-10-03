@@ -107,13 +107,13 @@ const SIZE_OPTIONS=[
 
 function AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
 
-function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,currentSize,top,left}:{editorRef:React.RefObject<HTMLDivElement|null>;selectionRef:React.MutableRefObject<SavedSelection|null>;onChange:()=>void;onSizeChange:(layout:string)=>void;currentSize:string;top:number;left:number}){
+function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,currentSize,top,left,onHeightChange}:{editorRef:React.RefObject<HTMLDivElement|null>;selectionRef:React.MutableRefObject<SavedSelection|null>;onChange:()=>void;onSizeChange:(layout:string)=>void;currentSize:string;top:number;left:number;onHeightChange:(height:number)=>void}){
   const restore=()=>{const saved=selectionRef.current,editor=editorRef.current;if(!saved||!editor||saved.editor!==editor)return false;editor.focus();const s=window.getSelection();if(!s)return false;s.removeAllRanges();s.addRange(saved.range);return true};
   const save=()=>{const editor=editorRef.current,s=window.getSelection();if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor}};
   const run=(command:string,value?:string)=>{if(!restore())return;document.execCommand(command,false,value);save();onChange()};
   const setSize=(option:(typeof SIZE_OPTIONS)[number])=>{onSizeChange(option.value)};
   const align=[['justifyLeft','left','Align left'],['justifyCenter','center','Align center'],['justifyRight','right','Align right'],['justifyFull','justify','Justify']] as const;
-  const toolbar=<div data-rich-text-toolbar style={{position:"fixed",top,left}} className="z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-lg" onMouseDown={e=>e.stopPropagation()}><select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>{const o=SIZE_OPTIONS.find(x=>x.value===e.target.value);if(o)setSize(o)}} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none hover:border-[#aaa49a] focus:border-[#8f887e]">{SIZE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{[["bold","B"],["italic","I"],["underline","U"]].map(([cmd,label])=><button key={cmd} type="button" title={cmd} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className={`flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white ${cmd==='bold'?'font-bold':cmd==='italic'?'italic':'underline'}`}>{label}</button>)}<label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm hover:bg-white" onMouseDown={e=>{e.preventDefault();save()}}><span className="border-b-4 border-[#7d4f45] text-sm font-semibold">A</span><input type="color" defaultValue="#222222" className="absolute inset-0 opacity-0" onChange={e=>run("foreColor",e.target.value)}/></label><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{align.map(([cmd,val,title])=><button key={cmd} type="button" title={title} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><AlignIcon align={val}/></button>)}<span className="mx-1 h-5 w-px bg-[#d9d3ca]"/><button type="button" title="Remove formatting" onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button></div>;
+  const toolbar=<div ref={node=>{if(node)onHeightChange(node.getBoundingClientRect().height)}} data-rich-text-toolbar style={{position:"fixed",top,left}} className="z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-lg" onMouseDown={e=>e.stopPropagation()}><select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>{const o=SIZE_OPTIONS.find(x=>x.value===e.target.value);if(o)setSize(o)}} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none hover:border-[#aaa49a] focus:border-[#8f887e]">{SIZE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{[["bold","B"],["italic","I"],["underline","U"]].map(([cmd,label])=><button key={cmd} type="button" title={cmd} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className={`flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white ${cmd==='bold'?'font-bold':cmd==='italic'?'italic':'underline'}`}>{label}</button>)}<label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm hover:bg-white" onMouseDown={e=>{e.preventDefault();save()}}><span className="border-b-4 border-[#7d4f45] text-sm font-semibold">A</span><input type="color" defaultValue="#222222" className="absolute inset-0 opacity-0" onChange={e=>run("foreColor",e.target.value)}/></label><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{align.map(([cmd,val,title])=><button key={cmd} type="button" title={title} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><AlignIcon align={val}/></button>)}<span className="mx-1 h-5 w-px bg-[#d9d3ca]"/><button type="button" title="Remove formatting" onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button></div>;
   return typeof document!=="undefined" ? createPortal(toolbar,document.body) : null;
 }
 
@@ -138,6 +138,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
   const [editingLine,setEditingLine]=useState<number|null>(null);
   const [toolbarPosition,setToolbarPosition]=useState<{top:number;left:number;visible:boolean}>({top:0,left:0,visible:false});
+  const [toolbarHeight,setToolbarHeight]=useState(0);
   const lineRefs=useRef<Array<HTMLDivElement|null>>([]);
   const wrapperRef=useRef<HTMLDivElement|null>(null);
   const selectionRef=useRef<SavedSelection|null>(null);
@@ -155,17 +156,18 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
       const editor=lineRefs.current[editingLine];
       if(!editor)return;
       const rect=editor.getBoundingClientRect();
-      const toolbarHeight=44;
       const gap=8;
+      const height=toolbarHeight||44;
       const spaceAbove=rect.top;
-      const top=spaceAbove>=toolbarHeight+gap ? rect.top-toolbarHeight-gap : rect.bottom+gap;
-      setToolbarPosition({top:Math.max(8,top),left:Math.max(8,rect.left),visible:true});
+      const top=spaceAbove>=height+gap ? rect.top-height-gap : rect.bottom+gap;
+      const toolbarLeft=Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-360));
+      setToolbarPosition({top:Math.max(8,top),left:toolbarLeft,visible:true});
     };
     updatePosition();
     window.addEventListener("resize",updatePosition);
     window.addEventListener("scroll",updatePosition,true);
     return()=>{window.removeEventListener("resize",updatePosition);window.removeEventListener("scroll",updatePosition,true);};
-  },[editingLine]);
+  },[editingLine,toolbarHeight]);
   useEffect(()=>{
     if(editingLine===null)return;
     const closeOnOutsideClick=(event:MouseEvent)=>{
@@ -183,7 +185,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
   return <div ref={wrapperRef} className="relative w-full" onBlurCapture={handleBlur}>
     {lines.map((line,index)=>{const size=line.textSize||defaultSize;const isActive=editingLine===index;return <div key={index} className="relative w-full" onMouseDown={e=>e.stopPropagation()}>
-      {isActive&&toolbarPosition.visible&&index===editingLine&&<div><TextToolbar editorRef={{current:lineRefs.current[index]}} selectionRef={selectionRef} onChange={()=>updateLineContent(index)} currentSize={size} top={toolbarPosition.top} left={toolbarPosition.left} onSizeChange={next=>updateLineSize(index,next)}/></div>}
+      {isActive&&toolbarPosition.visible&&index===editingLine&&<div><TextToolbar editorRef={{current:lineRefs.current[index]}} selectionRef={selectionRef} onChange={()=>updateLineContent(index)} currentSize={size} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={next=>updateLineSize(index,next)}/></div>}
       <div className={isActive?"w-full border border-[#d9d3ca]":"w-full border border-transparent hover:border-[#e5e0d8]"}>
         <div ref={el=>{lineRefs.current[index]=el}} contentEditable suppressContentEditableWarning spellCheck className={`min-h-10 w-full whitespace-pre-wrap px-2 py-2 outline-none ${TEXT_STYLES[size]??"text-base leading-7"}`} dangerouslySetInnerHTML={{__html:line.content}} onFocus={()=>{setEditingLine(index);saveSelection(index)}} onMouseUp={()=>saveSelection(index)} onKeyUp={()=>saveSelection(index)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();const sel=window.getSelection();if(sel?.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);splitLine(index,pre.toString().length);}}else if(e.key==="Backspace"){const sel=window.getSelection();if(sel?.isCollapsed&&sel.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);if(pre.toString().length===0){e.preventDefault();mergeWithPrevious(index);}}}}} onInput={()=>updateLineContent(index)} />
       </div>
