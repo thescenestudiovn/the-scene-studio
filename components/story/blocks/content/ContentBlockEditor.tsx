@@ -416,7 +416,6 @@ function InfoBlockEditor({ block, onChange }: Props) {
   }
 
   return <div className="grid gap-5">
-    <ContentBlockView variant={variant} data={data} media={media} />
     <div className="grid gap-6 border border-[#d8d3ca] bg-[#fbfaf7] p-5">
       <div>
         <p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Info</p>
