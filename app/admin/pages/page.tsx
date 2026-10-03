@@ -17,7 +17,7 @@ import StoryContent from "../../../components/story/editor/StoryContent";
 import sanitizeHtml from "sanitize-html";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; collection_id?: string | null; width?: number | null; height?: number | null };
-type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null };
+type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null; homepage?: number; menu_order?: number; menu_visibility?: "visible" | "hidden" | "footer"; page_status?: "online" | "offline" | "password" };
 type Block = { id: string; type: string; sort_order?: number; data: Record<string, unknown>; media: Media[] };
 type PageResponse = { blocks?: Array<{ id: string; type: string; sort_order?: number; data: string | Record<string, unknown>; media?: Media[] }> };
 
