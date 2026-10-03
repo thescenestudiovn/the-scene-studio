@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Footer from "../components/Footer";
+import Header from "../components/Header";
 import PageRenderer, { getPage } from "../components/PageRenderer";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function ContactPage() {
 
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
+            <Header />
             <PageRenderer blocks={page?.blocks ?? []} />
             <Footer />
         </main>
