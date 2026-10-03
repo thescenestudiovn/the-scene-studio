@@ -54,7 +54,12 @@ function TextPreview({ block }: { block: StoryBlock }) {
     })
     .filter((line): line is { content: string; textSize: string } => Boolean(line));
 
-  return <section className="px-6 py-12 md:px-10 md:py-16"><div className="mx-auto max-w-4xl">
+  const textWidthClass =
+    variant === "wide" ? "w-full" :
+    variant === "narrow" ? "w-full md:w-1/2" :
+    "w-full md:w-[70%]";
+
+  return <section className="px-6 py-12 md:px-10 md:py-16"><div className={`mx-auto ${textWidthClass}`}>
     {eyebrow && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{eyebrow}</p>}
     {title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}
     {lines.length > 0 ? (
