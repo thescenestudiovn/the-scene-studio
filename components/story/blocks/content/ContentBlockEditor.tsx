@@ -391,8 +391,8 @@ function InfoBlockEditor({ block, onChange }: Props) {
     try {
       const uploaded: Media[] = [];
       for (const file of incoming) {
-        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(\`${file.name}: JPEG, PNG or WebP only\`);
-        if (file.size > 5 * 1024 * 1024) throw new Error(\`${file.name}: maximum 5 MB\`);
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(`${file.name}: JPEG, PNG or WebP only`);
+        if (file.size > 5 * 1024 * 1024) throw new Error(`${file.name}: maximum 5 MB`);
         const { width, height } = await imageDimensions(file);
         const form = new FormData();
         form.append("file", file);
@@ -401,7 +401,7 @@ function InfoBlockEditor({ block, onChange }: Props) {
         form.append("height", String(height));
         const response = await fetch("/api/admin/media/upload", { method: "POST", body: form });
         const result = await response.json() as { success?: boolean; error?: string; media?: unknown };
-        if (!response.ok || !result.success) throw new Error(result.error || \`Failed to upload ${file.name}\`);
+        if (!response.ok || !result.success) throw new Error(result.error || `Failed to upload ${file.name}`);
         const record = mediaFromResponse(result.media);
         if (record) uploaded.push(record);
       }
@@ -429,7 +429,7 @@ function InfoBlockEditor({ block, onChange }: Props) {
           <div className="grid gap-3">
             <p className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Image</p>
             <div
-              className={\`relative overflow-hidden border border-dashed bg-white transition ${dragOver ? "border-[#171717] bg-[#f5f2ed]" : "border-[#cfc8bf]"}\`}
+              className={`relative overflow-hidden border border-dashed bg-white transition ${dragOver ? "border-[#171717] bg-[#f5f2ed]" : "border-[#cfc8bf]"}`}
               onDragOver={event => { event.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={event => { event.preventDefault(); setDragOver(false); void upload(event.dataTransfer.files); }}
