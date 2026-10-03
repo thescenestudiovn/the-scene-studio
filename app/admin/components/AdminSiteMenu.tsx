@@ -32,23 +32,46 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     if (editor) {
         return <aside className="flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[340px] lg:overflow-hidden lg:border-b-0 lg:border-r">
             <div className="shrink-0 border-b border-[#e5e0d8] px-5 py-4">
-                <button type="button" onClick={editor.onClose} className="text-[9px] uppercase tracking-[0.16em] text-[#77736c] hover:text-[#171717]">← Pages</button>
+                <div className="flex items-center justify-between gap-3">
+                    <button type="button" onClick={editor.onClose} className="text-[9px] uppercase tracking-[0.16em] text-[#77736c] hover:text-[#171717]">← Pages</button>
+                    <button type="button" onClick={() => { editor.onDelete(editor.block.id); editor.onClose(); }} className="text-[9px] uppercase tracking-[0.14em] text-[#9a4d42] hover:text-red-700">Delete</button>
+                </div>
                 <p className="mt-5 text-[9px] uppercase tracking-[0.18em] text-[#aaa49a]">Edit block</p>
                 <h2 className="mt-1 font-serif text-2xl leading-tight">{labelForBlock(editor.block)}</h2>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-                <div className="overflow-hidden border border-[#d8d3ca] bg-white">
-                    <BlockEditor
-                        storyId={editor.storyId}
-                        block={editor.block}
-                        blocks={editor.blocks}
-                        onBlocksChange={editor.onBlocksChange}
-                        onUpdate={editor.onUpdate}
-                    />
-                </div>
+                {(() => {
+                    const variant = typeof editor.block.variant === "string" ? editor.block.variant : typeof editor.block.data?.variant === "string" ? editor.block.data.variant : "";
+                    const bannerVariants = [
+                        ["banner-1", "Banner 1"],
+                        ["banner-2", "Banner 2"],
+                        ["banner-3", "Banner 3"],
+                        ["banner-headline", "Headline"],
+                        ["banner-media", "Media"],
+                        ["banner-slider-1", "Slider"],
+                    ] as const;
+                    const isBanner = editor.block.type === "content" && bannerVariants.some(([id]) => id === variant);
+                    return <div className="grid gap-4">
+                        {isBanner && <section className="border border-[#d8d3ca] bg-white p-3">
+                            <p className="mb-3 text-[9px] uppercase tracking-[0.16em] text-[#8a857d]">Banner style</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                {bannerVariants.map(([id, label]) => <button key={id} type="button" onClick={() => editor.onUpdate(editor.block, { variant: id })} className={`min-h-10 border px-2 py-2 text-left text-[9px] uppercase tracking-[0.1em] transition ${variant === id ? "border-[#171717] bg-[#171717] text-white" : "border-[#d8d3ca] bg-[#fbfaf7] text-[#625e57] hover:border-[#99938b] hover:bg-white"}`}>{label}</button>)}
+                            </div>
+                        </section>}
+                        <div className="overflow-hidden border border-[#d8d3ca] bg-white">
+                            <BlockEditor
+                                storyId={editor.storyId}
+                                block={editor.block}
+                                blocks={editor.blocks}
+                                onBlocksChange={editor.onBlocksChange}
+                                onUpdate={editor.onUpdate}
+                            />
+                        </div>
+                    </div>;
+                })()}
             </div>
             <div className="shrink-0 border-t border-[#e5e0d8] bg-[#fbfaf7] p-3">
-                <button type="button" onClick={() => { editor.onDelete(editor.block.id); editor.onClose(); }} className="w-full border border-[#d8d3ca] bg-white px-3 py-2.5 text-[9px] uppercase tracking-[0.14em] text-[#8a857d] hover:border-red-300 hover:text-red-700">Delete block</button>
+                <button type="button" onClick={() => { editor.onDelete(editor.block.id); editor.onClose(); }} className="w-full border border-[#c9a9a4] bg-white px-3 py-2.5 text-[9px] uppercase tracking-[0.14em] text-[#9a4d42] hover:border-[#9a4d42] hover:bg-[#fdf7f6]">Delete block</button>
             </div>
         </aside>;
     }
