@@ -134,7 +134,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const pageMode = selectedPage ? selectedPage : buttonUrl ? "__custom__" : "";
 
   return <div className="grid gap-5">
-    <ContentBlockView variant={variant} data={data} media={media} />
+    <ContentBlockView variant={variant} data={data} media={media} useThumbnailPreview={BANNER_VARIANTS.includes(variant)} />
 
     <div className="grid gap-6 border border-[#d8d3ca] bg-[#fbfaf7] p-5">
       <div className="grid gap-4">
