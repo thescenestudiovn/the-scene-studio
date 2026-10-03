@@ -147,12 +147,18 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
             const data = await response.json() as { error?: string }; window.alert(data.error || "Could not delete page");
         }
     }
-    async function reorderPage(draggedId: string, targetId: string) {
-        if (draggedId === targetId) return;
-        const current = [...pages]; const from = current.findIndex(page => page.id === draggedId); const to = current.findIndex(page => page.id === targetId);
-        if (from < 0 || to < 0) return;
-        const [moved] = current.splice(from, 1); current.splice(to, 0, moved); setPages(current);
-        await Promise.all(current.map((page, index) => fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, menu_order: index }) })));
+    async function movePage(draggedId: string, targetId: string | null, targetVisibility: "visible" | "hidden") {
+        const current = [...pages];
+        const from = current.findIndex(page => page.id === draggedId);
+        if (from < 0) return;
+        const [moved] = current.splice(from, 1);
+        moved.menu_visibility = targetVisibility;
+        const targetIndex = targetId ? current.findIndex(page => page.id === targetId) : -1;
+        if (targetIndex >= 0) current.splice(targetIndex, 0, moved);
+        else if (targetVisibility === "visible") current.push(moved);
+        else current.push(moved);
+        setPages(current);
+        await Promise.all(current.map((page, index) => fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, menu_order: index, menu_visibility: page.menu_visibility === "footer" ? "footer" : page.menu_visibility === "hidden" ? "hidden" : "visible" }) })));
     }
 
     const editorType = editor?.block.type ?? "";
@@ -174,18 +180,30 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
             <nav aria-label="Site menu" className="px-3 py-4">
                 <div className="mb-3 flex items-center justify-between px-2"><p className="text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site Menu</p><button type="button" onClick={addPage} className="text-[9px] uppercase tracking-[0.12em] text-[#77736c] hover:text-[#171717]">+ Add Page</button></div>
-                {loadingPages ? <p className="px-2 py-4 text-[10px] text-[#aaa49a]">Loading…</p> : pages.filter(page => page.menu_visibility !== "hidden" && page.menu_visibility !== "footer").map(page => (
-                    <div key={page.id} draggable onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/page-id", page.id); }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void reorderPage(event.dataTransfer.getData("text/page-id"), page.id); }} className="group flex items-center gap-1">
-                        <Link href={"/admin/pages/" + page.slug} aria-current={activeSlug === page.slug ? "page" : undefined} className={activeSlug === page.slug ? "flex min-w-0 flex-1 items-center gap-2 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
-                            <span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span>{Number(page.homepage) === 1 && <span className="ml-auto shrink-0 text-[8px] uppercase tracking-[0.1em] text-[#aaa49a]">Homepage</span>}
-                        </Link>
-                        <button type="button" onClick={() => setSettingsPage(page)} aria-label={"Settings for " + page.title} title="Page settings" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                {loadingPages ? <p className="px-2 py-4 text-[10px] text-[#aaa49a]">Loading…</p> : <>
+                    <div onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void movePage(event.dataTransfer.getData("text/page-id"), null, "visible"); }}>
+                        {pages.filter(page => page.menu_visibility !== "hidden" && page.menu_visibility !== "footer").map(page => (
+                            <div key={page.id} draggable onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/page-id", page.id); }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); event.stopPropagation(); void movePage(event.dataTransfer.getData("text/page-id"), page.id, "visible"); }} className="group flex items-center gap-1">
+                                <Link href={"/admin/pages/" + page.slug} aria-current={activeSlug === page.slug ? "page" : undefined} className={activeSlug === page.slug ? "flex min-w-0 flex-1 items-center gap-2 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
+                                    <span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span>{Number(page.homepage) === 1 && <span className="ml-auto shrink-0 text-[8px] uppercase tracking-[0.1em] text-[#aaa49a]">Homepage</span>}
+                                </Link>
+                                <button type="button" onClick={() => setSettingsPage(page)} aria-label={"Settings for " + page.title} title="Page settings" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </>}
             </nav>
-            <nav aria-label="Pages not in site menu" className="border-t border-[#e5e0d8] px-3 py-4">
+            <nav aria-label="Pages not in site menu" className="border-t border-[#e5e0d8] px-3 py-4" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void movePage(event.dataTransfer.getData("text/page-id"), null, "hidden"); }}>
                 <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Not in menu</p>
-                <p className="px-3 py-2 text-[10px] leading-5 text-[#aaa49a]">Pages hidden from the site menu appear here.</p>
+                <div className="min-h-16 rounded border border-dashed border-[#d8d3ca] p-1">
+                    {pages.filter(page => page.menu_visibility === "hidden").map(page => (
+                        <div key={page.id} draggable onDragStart={event => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/page-id", page.id); }} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); event.stopPropagation(); void movePage(event.dataTransfer.getData("text/page-id"), page.id, "hidden"); }} className="group flex items-center gap-1">
+                            <Link href={"/admin/pages/" + page.slug} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"><span className="w-4 shrink-0 text-center text-[#8a857d]">☰</span><span className="truncate">{page.title}</span></Link>
+                            <button type="button" onClick={() => setSettingsPage(page)} aria-label={"Settings for " + page.title} title="Page settings" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center text-[#8a857d] opacity-70 hover:bg-[#f2f0eb] hover:text-[#171717]">⚙</button>
+                        </div>
+                    ))}
+                    {pages.filter(page => page.menu_visibility === "hidden").length === 0 && <p className="px-3 py-3 text-[10px] leading-5 text-[#aaa49a]">Drag pages here to hide them from the website menu.</p>}
+                </div>
             </nav>
         </aside>
         {settingsPage && <SettingsPanel page={settingsPage} onClose={() => setSettingsPage(null)} onSaved={page => { setSettingsPage(page); void loadPages(); }} onDelete={() => void deletePage(settingsPage)} onDuplicate={() => void duplicatePage(settingsPage)} />}
