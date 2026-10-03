@@ -7,8 +7,7 @@ import { BlockEditor } from "../../../components/story/editor/StoryContent";
 function labelForBlock(block: { type: string; variant?: string | null; data?: Record<string, unknown> }) {
     const variant = typeof block.variant === "string" && block.variant ? block.variant : typeof block.data?.variant === "string" ? block.data.variant : "";
     const labels: Record<string, string> = {
-        "banner-1": "Banner 1", "banner-2": "Banner 2", "banner-3": "Banner 3", "banner-headline": "Banner · Headline",
-        "banner-media": "Banner · Media", "banner-slider-1": "Banner · Slider", "banner-video": "YouTube Video",
+        "banner-1": "Banner 1", "banner-2": "Banner 2", "banner-3": "Banner 3", "banner-video": "YouTube Video",
         "info-1": "Info 1", "info-2": "Info 2", "info-3": "Info 3",
         "testimonial-1": "Testimonial 1", "testimonial-2": "Testimonial 2", "testimonial-3": "Testimonial 3",
         "pricing-1": "Pricing 1", "pricing-2": "Pricing 2", "pricing-3": "Pricing 3",
@@ -45,9 +44,6 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                         ["banner-1", "Banner 1"],
                         ["banner-2", "Banner 2"],
                         ["banner-3", "Banner 3"],
-                        ["banner-headline", "Headline"],
-                        ["banner-media", "Media"],
-                        ["banner-slider-1", "Slider"],
                     ] as const;
                     const isBanner = editor.block.type === "content" && bannerVariants.some(([id]) => id === variant);
                     return <div className="grid gap-4">
