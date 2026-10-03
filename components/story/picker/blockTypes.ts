@@ -16,10 +16,11 @@ export type ContentBlockSelection =
   | { category: "text"; variant: TextBlockVariant; data?: Record<string, unknown> }
   | { category: "image"; variant: ImageBlockVariant; data: { collection_id: string; media_ids: string[] } }
   | { category: "content"; variant: ContentBlockVariant; data?: Record<string, unknown> }
+  | { category: "video"; variant: VideoBlockVariant; data: { youtube_url: string } }
   | { category: "contact"; variant: ContactBlockVariant; data: { title: string; body: string; media_ids: string[] } }
   | { category: "map"; variant: MapBlockVariant; data: { address: string; embed_url: string } };
 
 export const BLOCK_CATEGORIES = [
-  ["text", "Text"], ["image", "Image"], ["content", "Content"], ["links", "Links"],
+  ["text", "Text"], ["image", "Image"], ["content", "Content"], ["video", "Video"], ["links", "Links"],
   ["blog", "Blog"], ["contact", "Contact Form"], ["map", "Map"], ["social", "Social"], ["others", "Others"], ["flex", "Flex Block"],
 ] as const;
