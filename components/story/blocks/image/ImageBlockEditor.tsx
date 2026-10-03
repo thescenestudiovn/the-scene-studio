@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { mediaUrl } from "@/lib/media";
 import type { StoryBlock } from "../../editor/types";
 import MediaPickerModal from "./MediaPickerModal";
