@@ -202,7 +202,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
   }
 
   const backgroundType = text(data.background_type) || (variant === "banner-2" ? "image" : "image");
-  const bannerSize = text(data.banner_size) || "large";
+  const bannerRatio = text(data.banner_ratio) || "16:9";
   const tint = bannerTintValue(data.background_tint);
   const buttonUrl = text(data.button_url);
   const selectedPage = pages.some(page => `/${page.slug}` === buttonUrl) ? buttonUrl : "";
@@ -285,9 +285,9 @@ function BannerBlockEditor({ block, onChange }: Props) {
           <div className="mb-3 text-[10px] font-medium uppercase tracking-[0.16em] text-[#5f5a52]">Options</div>
           <div className="grid gap-4">
             <div>
-              <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Banner size</p>
+              <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Banner ratio</p>
               <div className="grid grid-cols-3 border border-[#d8d3ca] bg-white">
-                {["large", "medium", "small"].map(size => <button key={size} type="button" onClick={() => update("banner_size", size)} className={`px-3 py-2.5 text-[10px] uppercase tracking-[0.14em] ${bannerSize === size ? "bg-[#171717] text-white" : "text-[#77736c] hover:bg-[#f5f2ed]"}`}>{size}</button>)}
+                {["2:3", "16:9", "21:9"].map(ratio => <button key={ratio} type="button" onClick={() => update("banner_ratio", ratio)} className={`px-3 py-2.5 text-[10px] uppercase tracking-[0.14em] ${bannerRatio === ratio ? "bg-[#171717] text-white" : "text-[#77736c] hover:bg-[#f5f2ed]"}`}>{ratio}</button>)}
               </div>
             </div>
             <label className="grid gap-2">
