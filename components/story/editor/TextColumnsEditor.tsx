@@ -101,7 +101,7 @@ function columnCount(variant:string){
 }
 
 function getColumns(block: StoryBlock): Column[] {
-  const variant=block.variant??"columns-1";
+  const variant=typeof block.data?.layout==="string"?block.data.layout:"columns-2";
   const desired=columnCount(variant);
   const raw = block.data?.columns;
   const existing = Array.isArray(raw) ? raw.map(item => ({ content: typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "") })) : [];
