@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MediaPickerModal from "../image/MediaPickerModal";
 import { mediaUrl } from "../../../../lib/media";
 import type { Media, StoryBlock } from "../../editor/types";
+import ContentBlockView from "./ContentBlockView";
 
 type Props = { block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 type SitePage = { slug: string; title: string };
