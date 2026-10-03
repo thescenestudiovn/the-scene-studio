@@ -344,7 +344,7 @@ function InfoBlockEditor({ block, onChange }: Props) {
 
   const applyMedia = (ids: string[], records: Media[]) => {
     onChange({
-      data: { ...data, variant, media_ids: ids.slice(0, 1) },
+      data: { ...data, variant, media_ids: ids.slice(0, 1), focal_point: "50% 50%" },
       media: records.slice(0, 1) as StoryBlock["media"],
     });
   };
