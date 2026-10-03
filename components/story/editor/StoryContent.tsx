@@ -116,97 +116,41 @@ function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,currentSize}:
 }
 
 function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}){
-  const editorRef=useRef<HTMLDivElement|null>(null);
-  const wrapperRef=useRef<HTMLDivElement|null>(null);
-  const selectionRef=useRef<SavedSelection|null>(null);
-  const [editing,setEditing]=useState(false);
-  const [toolbarTop,setToolbarTop]=useState<number|null>(null);
-  const content=block.body??block.title??"";
+  type TextLine={content:string;textSize:string};
   const rawVariant=block.variant??"paragraph";
   const variant=rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant.startsWith("columns-")?"columns":rawVariant;
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
-  const textSize=typeof block.data?.textSize==="string"&&TEXT_STYLES[block.data.textSize]?block.data.textSize:layout;
-  const style=TEXT_STYLES[textSize]??"text-base leading-7";
   const isColumns=variant==="columns";
-
-  useEffect(()=>{if(editorRef.current&&!editing&&!isColumns&&editorRef.current.innerHTML!==content)editorRef.current.innerHTML=content},[content,editing,isColumns]);
-
-  const saveSelection=()=>{
-    const editor=editorRef.current,s=window.getSelection();
-    if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor};
+  const defaultSize=typeof block.data?.textSize==="string"&&TEXT_STYLES[block.data.textSize]?block.data.textSize:(layout.startsWith("heading-")?layout:layout==="wide"?"paragraph-1":layout==="narrow"?"paragraph-3":"paragraph-2");
+  const legacyContent=block.body??block.title??"";
+  const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
+  const makeInitialLines=():TextLine[]=>{
+    if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize}));
+    const matches=legacyContent.match(/<(?:p|div|h[1-6]|blockquote|li)[^>]*>[\\s\\S]*?<\\/(?:p|div|h[1-6]|blockquote|li)>/gi);
+    if(matches?.length)return matches.map(content=>({content,textSize:defaultSize}));
+    return legacyContent.split(/\\n+/).map(content=>({content,textSize:defaultSize}));
   };
-
-  const updateToolbarPosition=()=>{
-    const editor=editorRef.current,wrapper=wrapperRef.current,s=window.getSelection();
-    if(!editor||!wrapper||!s||!s.rangeCount||!editor.contains(s.anchorNode))return;
-    const range=s.getRangeAt(0).cloneRange();
-    if(!range.collapsed)range.collapse(true);
-    const clientRect=range.getClientRects()[0];
-    let rect:DOMRect=clientRect??range.getBoundingClientRect();
-    if(!rect||(!rect.width&&!rect.height)){
-      const node=s.anchorNode instanceof Element?s.anchorNode:s.anchorNode?.parentElement;
-      const nodeRect=node?.getBoundingClientRect();
-      if(nodeRect)rect=nodeRect;
-    }
-    if(!rect)return;
-    const wrapperRect=wrapper.getBoundingClientRect();
-    setToolbarTop(Math.max(-52,rect.top-wrapperRect.top-48));
-  };
-
-  const beginEditing=()=>{
-    setEditing(true);
-    requestAnimationFrame(updateToolbarPosition);
-  };
-
-  const changed=()=>{
-    saveSelection();
-    updateToolbarPosition();
-    const body=editorRef.current?.innerHTML??"";
-    onChange({body,data:{...(block.data??{}),variant,layout,body}});
-  };
-
-  const handleSelection=()=>{
-    saveSelection();
-    if(editing)requestAnimationFrame(updateToolbarPosition);
-  };
-
-  const handleBlur=(e:React.FocusEvent<HTMLDivElement>)=>{
-    if(!wrapperRef.current?.contains(e.relatedTarget as Node|null)){
-      setEditing(false);
-      setToolbarTop(null);
-      onBlur();
-    }
-  };
-
-  return <div className="grid gap-4">
-    {isColumns
-      ? <TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/>
-      : <div ref={wrapperRef} className="relative w-full" onFocusCapture={beginEditing} onBlurCapture={handleBlur}>
-          {editing&&toolbarTop!==null&&<div className="pointer-events-auto absolute left-0 right-0 z-30" style={{top:toolbarTop}}>
-            <TextToolbar
-              editorRef={editorRef}
-              selectionRef={selectionRef}
-              onChange={changed}
-              currentSize={typeof block.data?.textSize==="string"&&SIZE_OPTIONS.some(option=>option.value===block.data?.textSize)?String(block.data.textSize):layout.startsWith("heading-")?layout:layout==="wide"?"paragraph-1":layout==="narrow"?"paragraph-3":"paragraph-2"}
-              onSizeChange={next=>{
-                const nextLayout=next.startsWith("heading-")?next:next==="paragraph-1"?"wide":next==="paragraph-3"?"narrow":"regular";
-                onChange({variant:next.startsWith("heading-")?"heading":"paragraph",data:{...(block.data??{}),variant:next.startsWith("heading-")?"heading":"paragraph",layout:nextLayout,textSize:next}});
-              }}
-            />
-          </div>}
-          <div className="w-full border border-transparent focus-within:border-[#d9d3ca]">
-            <div className="w-full pt-0">
-              <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck
-                className={`min-h-12 w-full whitespace-pre-wrap px-2 py-2 outline-none ${style}`}
-                onFocus={()=>{saveSelection();requestAnimationFrame(updateToolbarPosition)}}
-                onKeyUp={()=>{saveSelection();requestAnimationFrame(updateToolbarPosition)}}
-                onMouseUp={()=>{saveSelection();requestAnimationFrame(updateToolbarPosition)}}
-                onInput={changed}
-              />
-            </div>
-          </div>
-        </div>}
-  </div>
+  const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
+  const [editingLine,setEditingLine]=useState<number|null>(null);
+  const lineRefs=useRef<Array<HTMLDivElement|null>>([]);
+  const wrapperRef=useRef<HTMLDivElement|null>(null);
+  const selectionRef=useRef<SavedSelection|null>(null);
+  const linesKey=JSON.stringify(storedLines??legacyContent);
+  useEffect(()=>{if(editingLine!==null)return;const initial=makeInitialLines();setLines(initial.length?initial:[{content:"",textSize:defaultSize}]);},[linesKey,block.id]);
+  const saveSelection=(index:number)=>{const editor=lineRefs.current[index],s=window.getSelection();if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor};};
+  const persist=(next:TextLine[])=>onChange({body:next.map(line=>line.content).join(""),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
+  const updateLineContent=(index:number)=>{const editor=lineRefs.current[index];if(!editor)return;const next=lines.map((line,i)=>i===index?{...line,content:editor.innerHTML}:line);setLines(next);saveSelection(index);persist(next);};
+  const updateLineSize=(index:number,nextSize:string)=>{const next=lines.map((line,i)=>i===index?{...line,textSize:nextSize}:line);setLines(next);persist(next);};
+  const handleBlur=(e:React.FocusEvent<HTMLDivElement>)=>{if(!wrapperRef.current?.contains(e.relatedTarget as Node|null)){setEditingLine(null);selectionRef.current=null;onBlur();}};
+  if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
+  return <div ref={wrapperRef} className="relative w-full" onBlurCapture={handleBlur}>
+    {lines.map((line,index)=>{const size=line.textSize||defaultSize;const isActive=editingLine===index;return <div key={index} className="relative w-full" onMouseDown={e=>e.stopPropagation()}>
+      {isActive&&<div className="relative z-30 mb-2 w-full"><TextToolbar editorRef={{current:lineRefs.current[index]}} selectionRef={selectionRef} onChange={()=>updateLineContent(index)} currentSize={size} onSizeChange={next=>updateLineSize(index,next)}/></div>}
+      <div className={isActive?"w-full border border-[#d9d3ca]":"w-full border border-transparent hover:border-[#e5e0d8]"}>
+        <div ref={el=>{lineRefs.current[index]=el}} contentEditable suppressContentEditableWarning spellCheck className={`min-h-10 w-full whitespace-pre-wrap px-2 py-2 outline-none ${TEXT_STYLES[size]??"text-base leading-7"}`} dangerouslySetInnerHTML={{__html:line.content}} onFocus={()=>{setEditingLine(index);saveSelection(index)}} onMouseUp={()=>saveSelection(index)} onKeyUp={()=>saveSelection(index)} onInput={()=>updateLineContent(index)} />
+      </div>
+    </div>})}
+  </div>;
 }
 
 
