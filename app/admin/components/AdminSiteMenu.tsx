@@ -61,9 +61,9 @@ function SettingsPanel({ page, onClose, onSaved, onDelete, onDuplicate }: {
         finally { setSaving(false); }
     }
 
-    return <div className="fixed inset-0 z-[100] flex justify-end bg-black/20" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
-        <aside className="h-full w-full max-w-[520px] overflow-y-auto border-l border-[#d8d3ca] bg-[#fbfaf7] p-5 shadow-2xl sm:p-7">
-            <div className="flex items-start justify-between gap-4 border-b border-[#e5e0d8] pb-5">
+    return <div className="absolute inset-0 z-[80] bg-[#fbfaf7]" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+        <aside className="h-full w-full overflow-y-auto bg-[#fbfaf7] p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-4 border-b border-[#e5e0d8] pb-4">
                 <div><p className="text-[9px] uppercase tracking-[0.18em] text-[#aaa49a]">Page Settings</p><h2 className="mt-1 font-serif text-3xl">{page.title}</h2></div>
                 <button type="button" onClick={onClose} className="text-lg text-[#77736c]" aria-label="Close settings">×</button>
             </div>
