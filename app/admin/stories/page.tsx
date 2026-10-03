@@ -76,7 +76,6 @@ export default function AdminStoriesPage() {
   return (
     <main className="min-h-screen bg-[#f7f5f0] px-5 py-8 text-[#171717] md:px-10 md:py-12">
       <div className="mx-auto max-w-7xl">
-        <Link href="/admin" className="text-[11px] uppercase tracking-[0.18em] text-[#77736c] hover:text-[#171717]">← Admin</Link>
         <header className="mt-10 flex flex-col justify-between gap-6 border-b border-[#d8d3ca] pb-8 md:flex-row md:items-end">
           <div><p className="text-[11px] uppercase tracking-[0.24em] text-[#77736c]">Editorial</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.02em] md:text-6xl">Stories</h1><p className="mt-4 max-w-2xl text-sm leading-6 text-[#77736c]">Manage the journal of The Scene Studio — stories, essays and visual narratives.</p></div>
           <Link href="/admin/stories/new" className="inline-flex w-fit items-center gap-3 bg-[#171717] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white hover:opacity-80"><span className="text-base leading-none">+</span> New Story</Link>
