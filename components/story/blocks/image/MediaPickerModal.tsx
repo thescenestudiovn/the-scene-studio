@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { mediaUrl } from "@/lib/media";
 import type { Media } from "../../editor/types";
 
@@ -146,7 +147,7 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
     onDone(activeCollection, ids, selectedMedia);
   };
 
-  return (
+  const modal = (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]">
       <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex shrink-0 items-center justify-between border-b border-[#ebe7e0] px-6 py-5">
@@ -212,4 +213,6 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
