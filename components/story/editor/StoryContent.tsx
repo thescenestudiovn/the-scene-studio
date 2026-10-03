@@ -284,7 +284,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const firstSize=lines[0]?.textSize||defaultSize;
   const isHeadingLayout=layout==="heading-1"||layout==="heading-2"||layout==="heading-3";
   const textWidthClass=layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
-  const html=lines.map(line=>"<div class=\\"w-full outline-none whitespace-pre-wrap "+(isHeadingLayout?"text-center ":"")+(TEXT_STYLES[line.textSize]??"text-base leading-7")+"\\">"+(line.content||"")+"</div>").join("");
+  const html=lines.map(line=>`<div class="w-full outline-none whitespace-pre-wrap ${isHeadingLayout?"text-center ":""}${TEXT_STYLES[line.textSize]??"text-base leading-7"}">${line.content||""}</div>`).join("");
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
     <div ref={wrapperRef} className={`relative mx-auto ${textWidthClass}`}>
       {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize}/>}
