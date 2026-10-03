@@ -92,7 +92,8 @@ function SettingsPanel({ page, onClose, onSaved, onDelete, onDuplicate }: {
                     {draft.social_image && <img src={mediaUrl(draft.social_image)} alt="Social thumbnail" className="mt-3 aspect-[1.91/1] w-full object-cover" />}
                 </div>
             </section>
-            <MediaPickerModal open={socialPickerOpen} required={1} selectedIds={[]} collectionId="" onClose={() => setSocialPickerOpen(false)} onDone={(_collectionId, _mediaIds, selectedMedia) => { update({ social_image: selectedMedia[0]?.path ?? null }); setSocialPickerOpen(false); }} />\n            {message && <p className="py-4 text-xs text-[#666158]">{message}</p>}
+            <MediaPickerModal open={socialPickerOpen} required={1} selectedIds={[]} collectionId="" onClose={() => setSocialPickerOpen(false)} onDone={(_collectionId, _mediaIds, selectedMedia) => { update({ social_image: selectedMedia[0]?.path ?? null }); setSocialPickerOpen(false); }} />
+            {message && <p className="py-4 text-xs text-[#666158]">{message}</p>}
             <div className="sticky bottom-0 -mx-5 mt-2 flex flex-wrap gap-2 border-t border-[#e5e0d8] bg-[#fbfaf7] p-5 sm:-mx-7 sm:px-7">
                 <button type="button" onClick={setHomepage} disabled={saving || Number(page.homepage) === 1} className="border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em] disabled:opacity-40">{Number(page.homepage) === 1 ? "Homepage" : "Set as Homepage"}</button>
                 <button type="button" onClick={onDuplicate} disabled={saving} className="border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em]">Duplicate Page</button>
