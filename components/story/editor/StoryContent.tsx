@@ -140,26 +140,27 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const [toolbarPosition,setToolbarPosition]=useState<{top:number;left:number;visible:boolean}>({top:0,left:0,visible:false});
   const [toolbarHeight,setToolbarHeight]=useState(0);
   const lineRefs=useRef<Array<HTMLDivElement|null>>([]);
+  const linesRef=useRef<TextLine[]>(lines);
+  useEffect(()=>{linesRef.current=lines;},[lines]);
   const wrapperRef=useRef<HTMLDivElement|null>(null);
   const selectionRef=useRef<SavedSelection|null>(null);
   const linesKey=JSON.stringify(storedLines??legacyContent);
   useEffect(()=>{if(editingLine!==null)return;const initial=makeInitialLines();setLines(initial.length?initial:[{content:"",textSize:defaultSize}]);},[linesKey,block.id]);
   const saveSelection=(index:number)=>{const editor=lineRefs.current[index],s=window.getSelection();if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor};};
   const persist=(next:TextLine[])=>onChange({body:next.map(line=>line.content).join("<br />"),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
-  const updateLineContent=(index:number)=>{const editor=lineRefs.current[index];if(!editor)return;const next=lines.map((line,i)=>i===index?{...line,content:editor.innerHTML}:line);setLines(next);saveSelection(index);persist(next);};
-  const updateLineSize=(index:number,nextSize:string)=>{const next=lines.map((line,i)=>i===index?{...line,textSize:nextSize}:line);setLines(next);persist(next);};
+  const updateLineContent=(index:number)=>{const editor=lineRefs.current[index];if(!editor)return;const next=linesRef.current.map((line,i)=>i===index?{...line,content:editor.innerHTML}:line);linesRef.current=next;setLines(next);saveSelection(index);persist(next);};
+  const updateLineSize=(index:number,nextSize:string)=>{const next=linesRef.current.map((line,i)=>i===index?{...line,textSize:nextSize}:line);linesRef.current=next;setLines(next);persist(next);};
   const splitLine=(index:number,caretOffset:number)=>{const editor=lineRefs.current[index];if(!editor)return;const html=editor.innerHTML;const text=editor.innerText;const beforeText=text.slice(0,caretOffset);const afterText=text.slice(caretOffset);const beforeHtml=beforeText?beforeText.replace(/\\n/g,"<br />"):"";const afterHtml=afterText?afterText.replace(/\\n/g,"<br />"):"";const next=[...lines.slice(0,index),{...lines[index],content:beforeHtml},{...lines[index],content:afterHtml},...lines.slice(index+1)];setLines(next);persist(next);requestAnimationFrame(()=>{setEditingLine(index+1);const nextEditor=lineRefs.current[index+1];if(nextEditor){nextEditor.focus();const range=document.createRange();range.selectNodeContents(nextEditor);range.collapse(true);const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(range);selectionRef.current={range:range.cloneRange(),editor:nextEditor};}});};
   const mergeWithPrevious=(index:number)=>{if(index<=0)return;const current=lineRefs.current[index];const previous=lineRefs.current[index-1];if(!current||!previous)return;const next=[...lines.slice(0,index-1),{...lines[index-1],content:lines[index-1].content+lines[index].content},...lines.slice(index+1)];setLines(next);persist(next);requestAnimationFrame(()=>{setEditingLine(index-1);const editor=lineRefs.current[index-1];if(editor){editor.focus();const range=document.createRange();range.selectNodeContents(editor);range.collapse(false);const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(range);selectionRef.current={range:range.cloneRange(),editor};}});};
   useEffect(()=>{
     if(editingLine===null){setToolbarPosition(p=>p.visible?{...p,visible:false}:p);return;}
     const updatePosition=()=>{
-      const editor=lineRefs.current[editingLine];
-      if(!editor)return;
-      const rect=editor.getBoundingClientRect();
+      const firstLine=lineRefs.current[0];
+      if(!firstLine)return;
+      const rect=firstLine.getBoundingClientRect();
       const gap=8;
       const height=toolbarHeight||44;
-      const spaceAbove=rect.top;
-      const top=spaceAbove>=height+gap ? rect.top-height-gap : rect.bottom+gap;
+      const top=rect.top-height-gap;
       const toolbarLeft=Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-360));
       setToolbarPosition({top:Math.max(8,top),left:toolbarLeft,visible:true});
     };
@@ -168,6 +169,13 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     window.addEventListener("scroll",updatePosition,true);
     return()=>{window.removeEventListener("resize",updatePosition);window.removeEventListener("scroll",updatePosition,true);};
   },[editingLine,toolbarHeight]);
+  useEffect(()=>{
+    lines.forEach((line,index)=>{
+      const editor=lineRefs.current[index];
+      if(!editor||index===editingLine)return;
+      if(editor.innerHTML!==line.content)editor.innerHTML=line.content;
+    });
+  },[lines,editingLine]);
   useEffect(()=>{
     if(editingLine===null)return;
     const closeOnOutsideClick=(event:MouseEvent)=>{
@@ -181,13 +189,17 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     document.addEventListener("mousedown",closeOnOutsideClick);
     return()=>document.removeEventListener("mousedown",closeOnOutsideClick);
   },[editingLine,onBlur]);
-  const handleBlur=(e:React.FocusEvent<HTMLDivElement>)=>{if(!wrapperRef.current?.contains(e.relatedTarget as Node|null)){setEditingLine(null);selectionRef.current=null;onBlur();}};
+  const handleBlur=(e:React.FocusEvent<HTMLDivElement>)=>{
+    const related=e.relatedTarget as Element|null;
+    if(related?.closest?.("[data-rich-text-toolbar]"))return;
+    if(!wrapperRef.current?.contains(related as Node|null)){setEditingLine(null);selectionRef.current=null;onBlur();}
+  };
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
   return <div ref={wrapperRef} className="relative w-full" onBlurCapture={handleBlur}>
     {lines.map((line,index)=>{const size=line.textSize||defaultSize;const isActive=editingLine===index;return <div key={index} className="relative w-full" onMouseDown={e=>e.stopPropagation()}>
       {isActive&&toolbarPosition.visible&&index===editingLine&&<div><TextToolbar editorRef={{current:lineRefs.current[index]}} selectionRef={selectionRef} onChange={()=>updateLineContent(index)} currentSize={size} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={next=>updateLineSize(index,next)}/></div>}
       <div className={isActive?"w-full border border-[#d9d3ca]":"w-full border border-transparent hover:border-[#e5e0d8]"}>
-        <div ref={el=>{lineRefs.current[index]=el}} contentEditable suppressContentEditableWarning spellCheck className={`min-h-10 w-full whitespace-pre-wrap px-2 py-2 outline-none ${TEXT_STYLES[size]??"text-base leading-7"}`} dangerouslySetInnerHTML={{__html:line.content}} onFocus={()=>{setEditingLine(index);saveSelection(index)}} onMouseUp={()=>saveSelection(index)} onKeyUp={()=>saveSelection(index)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();const sel=window.getSelection();if(sel?.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);splitLine(index,pre.toString().length);}}else if(e.key==="Backspace"){const sel=window.getSelection();if(sel?.isCollapsed&&sel.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);if(pre.toString().length===0){e.preventDefault();mergeWithPrevious(index);}}}}} onInput={()=>updateLineContent(index)} />
+        <div ref={el=>{lineRefs.current[index]=el}} contentEditable suppressContentEditableWarning spellCheck className={`min-h-10 w-full whitespace-pre-wrap px-2 py-2 outline-none ${TEXT_STYLES[size]??"text-base leading-7"}`} onFocus={()=>{setEditingLine(index);saveSelection(index)}} onMouseUp={()=>saveSelection(index)} onKeyUp={()=>saveSelection(index)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();const sel=window.getSelection();if(sel?.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);splitLine(index,pre.toString().length);}}else if(e.key==="Backspace"){const sel=window.getSelection();if(sel?.isCollapsed&&sel.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);if(pre.toString().length===0){e.preventDefault();mergeWithPrevious(index);}}}}} onInput={()=>updateLineContent(index)} />
       </div>
     </div>})}
   </div>;
