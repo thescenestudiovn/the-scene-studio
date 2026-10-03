@@ -98,6 +98,11 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const [altOpen, setAltOpen] = useState(false);
   const focalPoint = text(data.focal_point) || "50% 50%";
   const inputRef = useRef<HTMLInputElement>(null);
+  const [eyebrowDraft, setEyebrowDraft] = useState(() => text(data.eyebrow));
+
+  useEffect(() => {
+    setEyebrowDraft(text(data.eyebrow));
+  }, [block.id]);
 
   useEffect(() => {
     let active = true;
@@ -481,7 +486,7 @@ function InfoBlockEditor({ block, onChange }: Props) {
 
           <label className="grid gap-2">
             <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Eyebrow</span>
-            <input aria-label="Eyebrow" className="border border-[#d8d3ca] bg-white p-3 text-sm outline-none focus:border-[#99938a]" value={text(data.eyebrow)} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} onChange={e => update("eyebrow", e.target.value)} />
+            <input aria-label="Eyebrow" className="border border-[#d8d3ca] bg-white p-3 text-sm outline-none focus:border-[#99938a]" value={eyebrowDraft} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} onChange={e => { const value = e.target.value; setEyebrowDraft(value); update("eyebrow", value); }} />
           </label>
           <label className="grid gap-2">
             <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Title</span>
