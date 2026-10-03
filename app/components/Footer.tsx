@@ -51,7 +51,7 @@ export default function Footer() {
     const whatsapp = settings.whatsapp;
 
     return (
-        <footer className="bg-[#f7f5f0] px-6 py-16 text-[#171717] md:px-10 md:py-20">
+        <footer className="bg-[#e9e4da] px-6 py-16 text-[#171717] md:px-10 md:py-20">
             <div className="mx-auto max-w-7xl">
                 <div className="grid gap-16 md:grid-cols-12">
                     <div className="md:col-span-6">
@@ -60,8 +60,8 @@ export default function Footer() {
                         <p className="mt-8 font-sans text-xs tracking-[0.15em] uppercase text-[#77736b]">{settings.address || "Da Nang · Vietnam"}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-10 md:col-span-4 md:col-start-9">
-                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#9d9a93]">Explore</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm"><a href="/stories">Stories</a><a href="/films">Films</a><a href="/destinations">Destinations</a><a href="/about">About</a><a href="/contact">Contact</a></nav></div>
-                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#9d9a93]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm"><a href="/stories">Stories</a><a href="/films">Films</a><a href="/destinations">Destinations</a><a href="/about">About</a><a href="/contact">Contact</a></nav></div>
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
                             {instagram && <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>}
                             {facebook && <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>}
                             {tiktok && <a href={tiktok} target="_blank" rel="noreferrer">TikTok</a>}
@@ -71,7 +71,7 @@ export default function Footer() {
                         </nav></div>
                     </div>
                 </div>
-                <div className="mt-20 flex flex-col justify-between gap-4 border-t border-black/10 pt-6 font-sans text-[10px] tracking-[0.15em] uppercase text-[#9d9a93] md:flex-row"><p>© {new Date().getFullYear()} The Scene Studio</p><p>{settings.address || "Da Nang · Vietnam"}</p></div>
+                <div className="mt-20 flex flex-col justify-between gap-4 border-t border-black/10 pt-6 font-sans text-[10px] tracking-[0.15em] uppercase text-[#625e57] md:flex-row"><p>© {new Date().getFullYear()} The Scene Studio</p><p>{settings.address || "Da Nang · Vietnam"}</p></div>
             </div>
         </footer>
     );
