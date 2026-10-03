@@ -12,7 +12,7 @@ type SitePage = { slug: string; title: string };
 function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function list(value: unknown) { return Array.isArray(value) ? value.map(item => item && typeof item === "object" ? item as Record<string, unknown> : {}) : []; }
 
-const BANNER_VARIANTS = ["banner-1", "banner-2", "banner-3", "banner-headline", "banner-media", "banner-slider-1"];
+const BANNER_VARIANTS = ["banner-1", "banner-2", "banner-3"];
 
 function mediaFromResponse(value: unknown): Media | null {
   if (!value || typeof value !== "object") return null;
@@ -83,13 +83,15 @@ function BannerBlockEditor({ block, onChange }: Props) {
   };
 
   const applyMedia = (ids: string[], records: Media[]) => {
+    const nextRecords = records.slice(0, maxImages);
     onChange({
       data: {
         ...data,
         variant,
         media_ids: ids.slice(0, maxImages),
+        image_url: nextRecords[0]?.path || "",
       },
-      media: records.slice(0, maxImages) as StoryBlock["media"],
+      media: nextRecords as StoryBlock["media"],
     });
   };
 
