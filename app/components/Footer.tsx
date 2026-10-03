@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 
+
+
+type FooterPage = { slug: string; title: string; homepage?: number; menu_visibility?: string; page_status?: string };
+
 type FooterSettings = {
     phone: string;
     email: string;
@@ -30,6 +34,19 @@ const EMPTY: FooterSettings = {
 
 export default function Footer() {
     const [settings, setSettings] = useState<FooterSettings>(EMPTY);
+    const [pages, setPages] = useState<FooterPage[]>([]);
+
+    useEffect(() => {
+        fetch("/api/admin/pages", { cache: "no-store" })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((data) => {
+                const loadedPages = data as { pages?: FooterPage[] } | null;
+                if (loadedPages?.pages) {
+                    setPages(loadedPages.pages.filter((page) => page.menu_visibility === "visible" && page.page_status !== "offline"));
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         fetch("/api/admin/site-settings", { cache: "no-store" })
@@ -60,7 +77,9 @@ export default function Footer() {
                         <p className="mt-8 font-sans text-xs tracking-[0.15em] uppercase text-[#77736b]">{settings.address || "Da Nang · Vietnam"}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-10 md:col-span-4 md:col-start-9">
-                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm"><a href="/stories">Stories</a><a href="/films">Films</a><a href="/destinations">Destinations</a><a href="/about">About</a><a href="/contact">Contact</a></nav></div>
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p>{pages.map((page) => (
+                            <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : `/${page.slug}`}>{page.title}</a>
+                        ))}</div>
                         <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
                             {instagram && <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>}
                             {facebook && <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>}
