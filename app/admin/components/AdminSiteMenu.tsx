@@ -242,6 +242,10 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         </div>}
 
         <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+            <div className="flex items-center gap-3 border-b border-[#e5e0d8] px-5 py-4">
+                {siteLogo ? <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="h-9 w-auto max-w-12 object-contain" /> : <div className="h-9 w-9 shrink-0" />}
+                <span className="hidden font-serif text-lg leading-none text-[#171717] lg:block">The Scene Studio</span>
+            </div>
             <nav aria-label="Site menu" className="px-3 py-4">
                 <div className="mb-3 flex items-center justify-between px-2"><p className="text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site Menu</p><button type="button" onClick={addPage} className="text-[9px] uppercase tracking-[0.12em] text-[#77736c] hover:text-[#171717]">+ Add Page</button></div>
                 {loadingPages ? <p className="px-2 py-4 text-[10px] text-[#aaa49a]">Loading…</p> : <>
