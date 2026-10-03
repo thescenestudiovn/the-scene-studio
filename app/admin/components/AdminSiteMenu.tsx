@@ -20,7 +20,8 @@ function labelForBlock(block: { type: string; variant?: string | null; data?: Re
 
 export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const { editor } = useAdminEditor();
-    const pages = [
+
+    const siteMenuPages = [
         { slug: "home", label: "Home", icon: "⌂", href: "/admin/pages/home" },
         { slug: "about", label: "About", icon: "▯", href: "/admin/pages/about" },
         { slug: "stories", label: "Stories", icon: "▤", href: "/admin/stories" },
@@ -28,6 +29,8 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         { slug: "films", label: "Film", icon: "▶", href: "/films" },
         { slug: "contact", label: "Contact", icon: "✉", href: "/admin/pages/contact" },
     ];
+
+    const notInMenuPages: Array<{ slug: string; label: string; icon: string; href: string }> = [];
 
     const editorType = editor?.block.type ?? "";
     const editorIsText = editorType === "text" || editorType.startsWith("text-");
@@ -54,17 +57,11 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                         {isBanner && <section className="border border-[#d8d3ca] bg-white p-3">
                             <p className="mb-3 text-[9px] uppercase tracking-[0.16em] text-[#8a857d]">Banner style</p>
                             <div className="grid grid-cols-2 gap-2">
-                                {bannerVariants.map(([id, label]) => <button key={id} type="button" onClick={() => editor.onUpdate(editor.block, { variant: id })} className={`min-h-10 border px-2 py-2 text-left text-[9px] uppercase tracking-[0.1em] transition ${variant === id ? "border-[#171717] bg-[#171717] text-white" : "border-[#d8d3ca] bg-[#fbfaf7] text-[#625e57] hover:border-[#99938b] hover:bg-white"}`}>{label}</button>)}
+                                {bannerVariants.map(([id, label]) => <button key={id} type="button" onClick={() => editor.onUpdate(editor.block, { variant: id })} className={variant === id ? "min-h-10 border border-[#171717] bg-[#171717] px-2 py-2 text-left text-[9px] uppercase tracking-[0.1em] text-white transition" : "min-h-10 border border-[#d8d3ca] bg-[#fbfaf7] px-2 py-2 text-left text-[9px] uppercase tracking-[0.1em] text-[#625e57] transition hover:border-[#99938b] hover:bg-white"}>{label}</button>)}
                             </div>
                         </section>}
                         <div className="overflow-hidden border border-[#d8d3ca] bg-white">
-                            <BlockEditor
-                                storyId={editor.storyId}
-                                block={editor.block}
-                                blocks={editor.blocks}
-                                onBlocksChange={editor.onBlocksChange}
-                                onUpdate={editor.onUpdate}
-                            />
+                            <BlockEditor storyId={editor.storyId} block={editor.block} blocks={editor.blocks} onBlocksChange={editor.onBlocksChange} onUpdate={editor.onUpdate} />
                         </div>
                     </div>;
                 })()}
@@ -73,17 +70,27 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     }
 
     return <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div className="border-b border-[#e5e0d8] px-5 py-5"><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Website</p><h2 className="mt-1 font-serif text-2xl">Pages</h2></div>
-        <nav aria-label="Site pages" className="border-b border-[#e5e0d8] px-3 py-4">
-            <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site menu</p>
-            {pages.map(item => <Link key={item.slug} href={item.href} aria-current={activeSlug === item.slug ? "page" : undefined} className={`flex items-center gap-3 px-3 py-2.5 text-xs transition-colors ${activeSlug === item.slug ? "bg-[#eeece6] text-[#171717]" : "text-[#6f6a61] hover:bg-[#f2f0eb]"}`}><span className="w-4 text-center text-[#8a857d]">{item.icon}</span>{item.label}</Link>)}
-            <span title="Testimonials management is not configured yet" aria-disabled="true" className="flex items-center gap-3 px-3 py-2.5 text-xs text-[#aaa49a]"><span className="w-4 text-center">☆</span>Testimonials</span>
+        <div className="border-b border-[#e5e0d8] px-5 py-5">
+            <p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Website</p>
+            <h2 className="mt-1 font-serif text-2xl">Pages</h2>
+        </div>
+        <nav aria-label="Site menu" className="border-b border-[#e5e0d8] px-3 py-4">
+            <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site Menu</p>
+            {siteMenuPages.map(item => (
+                <Link key={item.slug} href={item.href} aria-current={activeSlug === item.slug ? "page" : undefined}
+                    className={activeSlug === item.slug ? "flex items-center gap-3 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex items-center gap-3 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
+                    <span className="w-4 text-center text-[#8a857d]">{item.icon}</span>{item.label}
+                </Link>
+            ))}
         </nav>
-        <nav aria-label="System settings" className="px-3 py-4">
-            <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">System</p>
-            <Link href="/admin/settings" aria-current={activeSlug === "settings" ? "page" : undefined} className={`flex items-center gap-3 px-3 py-2.5 text-xs transition-colors ${activeSlug === "settings" ? "bg-[#eeece6] text-[#171717]" : "text-[#6f6a61] hover:bg-[#f2f0eb]"}`}>
-                <span className="w-4 text-center text-[#8a857d]">⚙</span>Settings
-            </Link>
+        <nav aria-label="Pages not in site menu" className="px-3 py-4">
+            <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Not in menu</p>
+            {notInMenuPages.length > 0 ? notInMenuPages.map(item => (
+                <Link key={item.slug} href={item.href} aria-current={activeSlug === item.slug ? "page" : undefined}
+                    className={activeSlug === item.slug ? "flex items-center gap-3 bg-[#eeece6] px-3 py-2.5 text-xs text-[#171717]" : "flex items-center gap-3 px-3 py-2.5 text-xs text-[#6f6a61] transition-colors hover:bg-[#f2f0eb]"}>
+                    <span className="w-4 text-center text-[#8a857d]">{item.icon}</span>{item.label}
+                </Link>
+            )) : <p className="px-3 py-2 text-[10px] leading-5 text-[#aaa49a]">No pages yet.</p>}
         </nav>
     </aside>;
 }
