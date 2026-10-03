@@ -72,7 +72,7 @@ export default function Footer() {
             <div className="mx-auto max-w-7xl">
                 <div className="grid gap-16 md:grid-cols-12">
                     <div className="md:col-span-6">
-                        {settings.logo || settings.logo_white ? <img src={settings.logo_white || settings.logo} alt="The Scene Studio" className="max-h-10 max-w-[220px] object-contain object-left" /> : <p className="font-sans text-xs tracking-[0.2em] uppercase">The Scene Studio</p>}
+                        {settings.logo ? <img src={settings.logo} alt="The Scene Studio" className="max-h-10 max-w-[220px] object-contain object-left" /> : <p className="font-sans text-xs tracking-[0.2em] uppercase">The Scene Studio</p>}
                         <p className="mt-8 max-w-md font-serif text-4xl leading-[0.95] tracking-[-0.03em] md:text-6xl">{settings.footer_text || "Stories worth remembering."}</p>
                         <p className="mt-8 font-sans text-xs tracking-[0.15em] uppercase text-[#77736b]">{settings.address || "Da Nang · Vietnam"}</p>
                     </div>
