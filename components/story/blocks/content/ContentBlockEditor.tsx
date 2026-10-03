@@ -420,7 +420,22 @@ function InfoBlockEditor({ block, onChange }: Props) {
     <div className="grid gap-6 border border-[#d8d3ca] bg-[#fbfaf7] p-5">
       <div>
         <p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Info</p>
-        <p className="mt-1 text-xs text-[#77736c]">{variant.replace(/-/g, " ")}</p>
+        <p className="mt-1 text-xs text-[#77736c]">Choose a layout variant</p>
+        <div className="mt-3 grid grid-cols-3 border border-[#d8d3ca] bg-white">
+          {["info-1", "info-2", "info-3"].map(nextVariant => (
+            <button
+              key={nextVariant}
+              type="button"
+              onClick={() => onChange({
+                variant: nextVariant,
+                data: { ...data, variant: nextVariant },
+              })}
+              className={`px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] ${variant === nextVariant ? "bg-[#171717] text-white" : "text-[#77736c] hover:bg-[#f5f2ed]"}`}
+            >
+              {nextVariant.replace("info-", "Info ")}
+            </button>
+          ))}
+        </div>
       </div>
 
       <section>
