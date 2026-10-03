@@ -62,8 +62,7 @@ function SettingsPanel({ page, onClose, onSaved, onDelete, onDuplicate }: {
         finally { setSaving(false); }
     }
 
-    return <div className="absolute inset-0 z-[80] bg-[#fbfaf7]" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
-        <aside className="h-full w-full max-w-[272px] overflow-y-auto border-r border-[#d8d3ca] bg-[#fbfaf7] p-3">
+    return <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r p-3">
             <div className="flex items-start justify-between gap-3 border-b border-[#e5e0d8] pb-4">
                 <div><p className="text-[9px] uppercase tracking-[0.18em] text-[#aaa49a]">Page Settings</p><h2 className="mt-1 font-serif text-xl leading-tight">{page.title}</h2></div>
                 <button type="button" onClick={onClose} className="text-lg text-[#77736c]" aria-label="Close settings">×</button>
@@ -100,8 +99,7 @@ function SettingsPanel({ page, onClose, onSaved, onDelete, onDuplicate }: {
                 <button type="button" onClick={onDelete} disabled={saving || Number(page.homepage) === 1} className="border border-[#b8a7a0] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em] text-[#7a4d43] disabled:opacity-40">Delete Page</button>
                 <button type="button" onClick={save} disabled={saving} className="ml-auto bg-[#171717] px-4 py-2.5 text-[9px] uppercase tracking-[0.12em] text-white disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
             </div>
-        </aside>
-    </div>;
+        </aside>;
 }
 
 export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
@@ -176,6 +174,10 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         </aside>;
     }
 
+    if (settingsPage) {
+        return <SettingsPanel page={settingsPage} onClose={() => setSettingsPage(null)} onSaved={page => { setSettingsPage(page); void loadPages(); }} onDelete={() => void deletePage(settingsPage)} onDuplicate={() => void duplicatePage(settingsPage)} />;
+    }
+
     return <>
         <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
             <nav aria-label="Site menu" className="px-3 py-4">
@@ -206,6 +208,6 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                 </div>
             </nav>
         </aside>
-        {settingsPage && <SettingsPanel page={settingsPage} onClose={() => setSettingsPage(null)} onSaved={page => { setSettingsPage(page); void loadPages(); }} onDelete={() => void deletePage(settingsPage)} onDuplicate={() => void duplicatePage(settingsPage)} />}
+
     </>;
 }
