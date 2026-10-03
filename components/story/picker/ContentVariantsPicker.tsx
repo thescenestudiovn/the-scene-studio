@@ -79,6 +79,13 @@ function defaultData(variant: ContentBlockVariant): Record<string, unknown> {
       button_text: "Learn More",
       button_url: "#",
       media_ids: [],
+      ...(variant === "banner-slider-1" ? {
+        items: [
+          { title: "Slide One", text: "Add supporting text here." },
+          { title: "Slide Two", text: "Add supporting text here." },
+          { title: "Slide Three", text: "Add supporting text here." },
+        ],
+      } : {}),
     };
   }
   if (variant.startsWith("info")) {
