@@ -47,7 +47,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const variant = block.variant ?? text(data.variant) ?? "banner-1";
   const media = block.media ?? [];
   const selectedIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
-  const maxImages = variant === "banner-slider-1" ? 3 : 1;
+  const maxImages = 1;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -177,7 +177,6 @@ function BannerBlockEditor({ block, onChange }: Props) {
                 </div>}
                 <input ref={inputRef} hidden type="file" multiple={maxImages > 1} accept="image/jpeg,image/png,image/webp" onChange={event => void upload(event.target.files ?? [])} />
               </div>
-              {variant === "banner-slider-1" && <p className="text-[10px] text-[#99938b]">Select up to 3 images for this slider.</p>}
             </div> : <div className="grid gap-2">
               <p className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Video URL</p>
               <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="YouTube URL" value={text(data.video_url)} onChange={e => update("video_url", e.target.value)} />
