@@ -23,9 +23,9 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const pages = [
         { slug: "home", label: "Home", icon: "⌂", href: "/admin/pages/home" },
         { slug: "about", label: "About", icon: "▯", href: "/admin/pages/about" },
-        { slug: "contact", label: "Contact", icon: "✉", href: "/admin/pages/contact" },
+        { slug: "stories", label: "Stories", icon: "▤", href: "/admin/stories" },
         { slug: "gallery", label: "Gallery", icon: "▧", href: "/admin/gallery" },
-        { slug: "stories", label: "Stories (Blog)", icon: "▤", href: "/admin/stories" },
+        { slug: "contact", label: "Contact", icon: "✉", href: "/admin/pages/contact" },
     ];
 
     const editorType = editor?.block.type ?? "";
