@@ -65,7 +65,7 @@ export default function BlockPreview({ block }: { block: StoryBlock }) {
       return <section className="px-6 py-12 md:px-10 md:py-16"><div className="mx-auto max-w-5xl overflow-hidden bg-black">{id ? <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt="" className="aspect-video h-full w-full object-cover" /> : <div className="flex aspect-video items-center justify-center text-xs uppercase tracking-[0.16em] text-white/50">YouTube Video</div>}</div></section>;
     }
     const thumbnail = text(data.thumbnail_url);
-    const bannerVariants = ["banner-1", "banner-2", "banner-3", "banner-headline", "banner-media", "banner-slider-1"];
+    const bannerVariants = ["banner-1", "banner-2", "banner-3"];
     const hasRealMedia = Boolean(block.media?.length);
     if (bannerVariants.includes(variant) && thumbnail && !hasRealMedia) {
       return <div className="overflow-hidden bg-[#e8e4dc]">
