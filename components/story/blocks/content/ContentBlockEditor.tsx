@@ -316,13 +316,12 @@ function BannerBlockEditor({ block, onChange }: Props) {
 
 
 function InfoBlockEditor({ block, onChange }: Props) {
+  const data = block.data ?? {};
   const [eyebrowDraft, setEyebrowDraft] = useState(() => text(data.eyebrow));
 
   useEffect(() => {
     setEyebrowDraft(text(data.eyebrow));
   }, [block.id]);
-
-  const data = block.data ?? {};
   const variant = block.variant ?? text(data.variant) ?? "info-1";
   const media = block.media ?? [];
   const selectedIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
