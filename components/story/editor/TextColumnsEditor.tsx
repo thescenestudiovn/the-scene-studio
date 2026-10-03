@@ -146,5 +146,6 @@ export default function TextColumnsEditor({ block, onChange }: Props) {
       {editingIndex === index && <ColumnToolbar editorRef={{ current: refs.current[index] }} selectionRef={{ current: selections.current[index] }} onChange={() => updateColumn(index)} />}
       <div ref={element => { refs.current[index] = element; }} contentEditable suppressContentEditableWarning spellCheck className="min-h-20 whitespace-pre-wrap px-2 py-2 text-base leading-7 outline-none" onFocus={() => { setEditingIndex(index); saveSelection(index); }} onKeyUp={() => saveSelection(index)} onMouseUp={() => saveSelection(index)} onInput={() => updateColumn(index)} />
     </div>)}
+    </div>
   </div>;
 }
