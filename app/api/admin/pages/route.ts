@@ -87,14 +87,29 @@ export async function POST(request: Request) {
       slug = `${baseSlug}-${suffix++}`;
     }
 
-    const maxOrder = await db.prepare("SELECT COALESCE(MAX(menu_order), -1) AS max_order FROM pages WHERE menu_visibility != 'hidden'").first<{ max_order: number }>();
-    const menuOrder = Number(maxOrder?.max_order ?? -1) + 1;
+    let menuOrder = 0;
+    let menuVisibility: "visible" | "hidden" | "footer" = "visible";
+
+    if (body.duplicate_from_id) {
+      const source = await db.prepare("SELECT id,menu_order,menu_visibility FROM pages WHERE id = ?").bind(body.duplicate_from_id).first<{ id: string; menu_order: number; menu_visibility: "visible" | "hidden" | "footer" }>();
+      if (source) {
+        menuOrder = Number(source.menu_order ?? 0) + 1;
+        menuVisibility = source.menu_visibility ?? "visible";
+
+        await db.prepare("UPDATE pages SET menu_order = menu_order + 1 WHERE menu_visibility = ? AND menu_order > ?")
+          .bind(menuVisibility, Number(source.menu_order ?? 0)).run();
+      }
+    } else {
+      const maxOrder = await db.prepare("SELECT COALESCE(MAX(menu_order), -1) AS max_order FROM pages WHERE menu_visibility = 'visible'").first<{ max_order: number }>();
+      menuOrder = Number(maxOrder?.max_order ?? -1) + 1;
+    }
+
     const id = crypto.randomUUID();
 
     await db.prepare(`
       INSERT INTO pages (id,slug,title,page_type,seo_title,seo_description,published,homepage,menu_order,menu_visibility,page_status,show_header_footer,noindex)
-      VALUES (?, ?, ?, 'page', NULL, NULL, 1, 0, ?, 'visible', 'online', 1, 0)
-    `).bind(id, slug, title, menuOrder).run();
+      VALUES (?, ?, ?, 'page', NULL, NULL, 1, 0, ?, ?, 'online', 1, 0)
+    `).bind(id, slug, title, menuOrder, menuVisibility).run();
 
     if (body.duplicate_from_id) {
       const source = await db.prepare("SELECT id FROM pages WHERE id = ?").bind(body.duplicate_from_id).first<{ id: string }>();
