@@ -47,6 +47,9 @@ async function ensureSchema(db: ReturnType<typeof getDB>) {
   await db.batch([
     db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published,homepage,menu_order,menu_visibility,page_status) VALUES ('page-home','home','Home','home',1,1,0,'visible','online')`),
     db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published,homepage,menu_order,menu_visibility,page_status) VALUES ('page-about','about','About','about',1,0,1,'visible','online')`),
+    db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published,homepage,menu_order,menu_visibility,page_status) VALUES ('page-stories','stories','Stories','page',1,0,2,'visible','online')`),
+    db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published,homepage,menu_order,menu_visibility,page_status) VALUES ('page-gallery','gallery','Gallery','page',1,0,3,'visible','online')`),
+    db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,published,homepage,menu_order,menu_visibility,page_status) VALUES ('page-film','film','Film','page',1,0,4,'visible','online')`),
     db.prepare(`INSERT OR IGNORE INTO pages (id,slug,title,page_type,seo_title,seo_description,published,homepage,menu_order,menu_visibility,page_status) VALUES ('page-contact','contact','Contact','contact','Contact — The Scene Studio','Contact The Scene Studio for destination wedding photography and films in Vietnam and beyond.',1,0,5,'visible','online')`),
   ]);
 
