@@ -6,49 +6,25 @@ type Props = { onSelect: (selection: ContentBlockSelection) => void };
 
 const base = "https://assets-pw.pixieset.com/classic-themes/theme-images/thumbnail-photos/blocks/theme_4/";
 
-const blocks: Array<{ variant: TextBlockVariant; label: string; description: string; preview: string }> = [
-  { variant: "heading-1", label: "Heading 1", description: "Large editorial heading", preview: "text-heading-1.jpg" },
-  { variant: "heading-2", label: "Heading 2", description: "Medium editorial heading", preview: "text-heading-2.jpg" },
-  { variant: "heading-3", label: "Heading 3", description: "Small editorial heading", preview: "text-heading-3.jpg" },
-  { variant: "wide", label: "Wide Text", description: "Wide editorial paragraph", preview: "text-wide.jpg" },
-  { variant: "regular", label: "Regular Text", description: "Regular reading width", preview: "text-regular.jpg" },
-  { variant: "narrow", label: "Narrow Text", description: "Narrow editorial column", preview: "text-narrow.jpg" },
-  { variant: "columns-2", label: "Text Columns 2", description: "Two text columns", preview: "text-columns-2.jpg" },
-  { variant: "columns-3", label: "Text Columns 3", description: "Three text columns", preview: "text-columns-3.jpg" },
-  { variant: "columns-4", label: "Text Columns 4", description: "Four text columns", preview: "text-columns-4.jpg" },
+const blocks: Array<{ variant: TextBlockVariant; label: string; description: string; preview: string; layout: string }> = [
+  { variant: "heading", label: "Heading 1", description: "Large editorial heading", preview: "text-heading-1.jpg", layout: "heading-1" },
+  { variant: "heading", label: "Heading 2", description: "Medium editorial heading", preview: "text-heading-2.jpg", layout: "heading-2" },
+  { variant: "heading", label: "Heading 3", description: "Small editorial heading", preview: "text-heading-3.jpg", layout: "heading-3" },
+  { variant: "paragraph", label: "Wide Text", description: "Wide editorial paragraph", preview: "text-wide.jpg", layout: "wide" },
+  { variant: "paragraph", label: "Regular Text", description: "Regular reading width", preview: "text-regular.jpg", layout: "regular" },
+  { variant: "paragraph", label: "Narrow Text", description: "Narrow editorial column", preview: "text-narrow.jpg", layout: "narrow" },
+  { variant: "columns", label: "Text Columns 2", description: "Two text columns", preview: "text-columns-2.jpg", layout: "columns-2" },
+  { variant: "columns", label: "Text Columns 3", description: "Three text columns", preview: "text-columns-3.jpg", layout: "columns-3" },
+  { variant: "columns", label: "Text Columns 4", description: "Four text columns", preview: "text-columns-4.jpg", layout: "columns-4" },
 ];
 
-function defaultData(variant: TextBlockVariant): Record<string, unknown> {
-  if (variant === "heading-1") return { variant, body: "Enter a Heading" };
-  if (variant === "heading-2") return { variant, body: "Enter a Heading" };
-  if (variant === "heading-3") return { variant, body: "Enter a Heading" };
-  if (variant === "wide") return { variant, body: "This is a sample wide text. Replace this copy with your own story." };
-  if (variant === "narrow") return { variant, body: "This is a sample narrow text. Replace this copy with your own story." };
-  if (variant === "columns-2") return {
-    variant,
-    columns: [
-      { content: "This is the first column. Add your story, a meaningful detail, or a short reflection here." },
-      { content: "This is the second column. Continue the story with another detail, memory, or thought here." },
-    ],
-  };
-  if (variant === "columns-3") return {
-    variant,
-    columns: [
-      { content: "First column sample text. Add a short story or detail here." },
-      { content: "Second column sample text. Add another meaningful moment here." },
-      { content: "Third column sample text. Finish this section with another thought here." },
-    ],
-  };
-  if (variant === "columns-4") return {
-    variant,
-    columns: [
-      { content: "First column sample text." },
-      { content: "Second column sample text." },
-      { content: "Third column sample text." },
-      { content: "Fourth column sample text." },
-    ],
-  };
-  return { variant, body: "This is a sample regular text. Replace this copy with your own story." };
+function defaultData(variant: TextBlockVariant, layout: string): Record<string, unknown> {
+  if (variant === "heading") return { variant, layout, body: "Enter a Heading" };
+  if (variant === "columns") {
+    const count = Number(layout.replace("columns-", ""));
+    return { variant, layout, columns: Array.from({ length: count }, (_, index) => ({ content: `Column ${index + 1} text.` })) };
+  }
+  return { variant, layout, body: "This is a sample text. Replace this copy with your own story." };
 }
 
 export default function TextBlockPicker({ onSelect }: Props) {
@@ -56,7 +32,7 @@ export default function TextBlockPicker({ onSelect }: Props) {
     {blocks.map(block => <button
       key={block.variant}
       type="button"
-      onClick={() => onSelect({ category: "text", variant: block.variant, data: defaultData(block.variant) })}
+      onClick={() => onSelect({ category: "text", variant: block.variant, data: defaultData(block.variant, block.layout) })}
       className="group overflow-hidden rounded-xl border border-[#ddd9d0] bg-white text-left transition hover:-translate-y-0.5 hover:border-[#aaa49b] hover:shadow-[0_12px_35px_rgba(0,0,0,.06)]"
     >
       <div className="aspect-[16/10] overflow-hidden bg-[#e8e4dc]">
