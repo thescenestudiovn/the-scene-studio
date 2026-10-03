@@ -109,6 +109,10 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const [settingsPage, setSettingsPage] = useState<Page | null>(null);
     const [actionPageId, setActionPageId] = useState<string | null>(null);
     const [loadingPages, setLoadingPages] = useState(true);
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [createTitle, setCreateTitle] = useState("New Page");
+    const [deleteTarget, setDeleteTarget] = useState<Page | null>(null);
+    const [modalSaving, setModalSaving] = useState(false);
 
     const loadPages = useCallback(async () => {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
@@ -127,15 +131,15 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         return () => document.removeEventListener("mousedown", handlePointerDown);
     }, [actionPageId]);
 
-    async function addPage() {
-        const title = window.prompt("Page Name", "New Page");
-        if (!title?.trim()) return;
-        const response = await fetch("/api/admin/pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim() }) });
-        if (response.ok) {
-            const data = await response.json() as { page?: Page };
-            await loadPages();
-            if (data.page) window.location.href = "/admin/pages/" + data.page.slug;
-        }
+    async function addPage() { setCreateTitle("New Page"); setCreateModalOpen(true); }
+    async function createPage() {
+        const title = createTitle.trim();
+        if (!title || modalSaving) return;
+        setModalSaving(true);
+        try {
+            const response = await fetch("/api/admin/pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }) });
+            if (response.ok) { const data = await response.json() as { page?: Page }; setCreateModalOpen(false); await loadPages(); if (data.page) window.location.href = "/admin/pages/" + data.page.slug; }
+        } finally { setModalSaving(false); }
     }
     async function renamePage(page: Page) {
         const title = window.prompt("Page Name", page.title);
@@ -152,16 +156,14 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
             if (data.page) window.location.href = "/admin/pages/" + data.page.slug;
         }
     }
-    async function deletePage(page: Page) {
-        if (Number(page.homepage) === 1) return;
-        if (!window.confirm('Delete "' + page.title + '"? This cannot be undone.')) return;
-        const response = await fetch("/api/admin/pages", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id }) });
-        if (response.ok) {
-            setActionPageId(null); setSettingsPage(null); await loadPages();
-            if (activeSlug === page.slug) window.location.href = "/admin/pages/home";
-        } else {
-            const data = await response.json() as { error?: string }; window.alert(data.error || "Could not delete page");
-        }
+    async function deletePage(page: Page) { if (Number(page.homepage) === 1) return; setDeleteTarget(page); }
+    async function confirmDeletePage() {
+        if (!deleteTarget || modalSaving) return;
+        const page = deleteTarget; setModalSaving(true);
+        try {
+            const response = await fetch("/api/admin/pages", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id }) });
+            if (response.ok) { setDeleteTarget(null); setActionPageId(null); setSettingsPage(null); await loadPages(); if (activeSlug === page.slug) window.location.href = "/admin/pages/home"; }
+        } finally { setModalSaving(false); }
     }
     async function movePage(draggedId: string, targetId: string | null, targetVisibility: "visible" | "hidden") {
         const current = [...pages];
@@ -200,6 +202,20 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     }
 
     return <>
+        {(createModalOpen || deleteTarget) && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#171717]/35 px-4 backdrop-blur-[2px]" onMouseDown={event => { if (event.target === event.currentTarget && !modalSaving) { setCreateModalOpen(false); setDeleteTarget(null); } }}>
+            <div className="w-full max-w-[420px] border border-[#d8d3ca] bg-[#fbfaf7] shadow-[0_24px_80px_rgba(23,23,23,0.18)]">
+                {createModalOpen ? <>
+                    <div className="border-b border-[#e5e0d8] px-6 py-5"><p className="text-[9px] uppercase tracking-[0.2em] text-[#aaa49a]">Site Menu</p><h2 className="mt-1 font-serif text-2xl">Create New Page</h2></div>
+                    <div className="px-6 py-6"><label className="grid gap-2 text-[9px] uppercase tracking-[0.16em] text-[#77736c]">Page Name<input autoFocus value={createTitle} onChange={event => setCreateTitle(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void createPage(); }} className="border border-[#d8d3ca] bg-white px-3 py-3 text-sm normal-case tracking-normal outline-none focus:border-[#8a857d]" /></label><p className="mt-3 text-xs leading-5 text-[#8a857d]">The new page will be added to the Site Menu.</p></div>
+                    <div className="flex justify-end gap-2 border-t border-[#e5e0d8] px-6 py-4"><button type="button" onClick={() => setCreateModalOpen(false)} disabled={modalSaving} className="border border-[#d8d3ca] px-4 py-2.5 text-[9px] uppercase tracking-[0.14em] hover:bg-white">Cancel</button><button type="button" onClick={() => void createPage()} disabled={modalSaving || !createTitle.trim()} className="bg-[#171717] px-5 py-2.5 text-[9px] uppercase tracking-[0.14em] text-white disabled:opacity-40">{modalSaving ? "Creating…" : "Create Page"}</button></div>
+                </> : <>
+                    <div className="border-b border-[#e5e0d8] px-6 py-5"><p className="text-[9px] uppercase tracking-[0.2em] text-[#9a7770]">Delete Page</p><h2 className="mt-1 font-serif text-2xl">Delete this page?</h2></div>
+                    <div className="px-6 py-6"><p className="text-sm leading-6 text-[#4f4b45]">You are about to delete <strong className="font-medium text-[#171717]">“{deleteTarget?.title}”</strong>.</p><p className="mt-2 text-xs leading-5 text-[#8a857d]">This action cannot be undone. All content on this page will be removed.</p></div>
+                    <div className="flex justify-end gap-2 border-t border-[#e5e0d8] px-6 py-4"><button type="button" onClick={() => setDeleteTarget(null)} disabled={modalSaving} className="border border-[#d8d3ca] px-4 py-2.5 text-[9px] uppercase tracking-[0.14em] hover:bg-white">Cancel</button><button type="button" onClick={() => void confirmDeletePage()} disabled={modalSaving} className="bg-[#7a4d43] px-5 py-2.5 text-[9px] uppercase tracking-[0.14em] text-white disabled:opacity-40">{modalSaving ? "Deleting…" : "Delete Page"}</button></div>
+                </>}
+            </div>
+        </div>}
+
         <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
             <nav aria-label="Site menu" className="px-3 py-4">
                 <div className="mb-3 flex items-center justify-between px-2"><p className="text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site Menu</p><button type="button" onClick={addPage} className="text-[9px] uppercase tracking-[0.12em] text-[#77736c] hover:text-[#171717]">+ Add Page</button></div>
