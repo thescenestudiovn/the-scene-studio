@@ -145,7 +145,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const wrapperRef=useRef<HTMLDivElement|null>(null);
   const selectionRef=useRef<SavedSelection|null>(null);
   const linesKey=JSON.stringify(storedLines??legacyContent);
-  useEffect(()=>{if(editingLine!==null)return;const initial=makeInitialLines();setLines(initial.length?initial:[{content:"",textSize:defaultSize}]);},[linesKey,block.id]);
+  useEffect(()=>{const initial=makeInitialLines();const next=initial.length?initial:[{content:"",textSize:defaultSize}];setLines(current=>{const sameContent=current.length===next.length&&current.every((line,index)=>line.content===next[index].content);const sameSizes=current.length===next.length&&current.every((line,index)=>line.textSize===next[index].textSize);return sameContent&&!sameSizes?next:sameContent&&sameSizes?current:next;});},[linesKey,block.id]);
   const saveSelection=(index:number)=>{const editor=lineRefs.current[index],s=window.getSelection();if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor};};
   const persist=(next:TextLine[])=>onChange({body:next.map(line=>line.content).join("<br />"),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
   const updateLineContent=(index:number)=>{const editor=lineRefs.current[index];if(!editor)return;const next=linesRef.current.map((line,i)=>i===index?{...line,content:editor.innerHTML}:line);linesRef.current=next;setLines(next);saveSelection(index);persist(next);};
