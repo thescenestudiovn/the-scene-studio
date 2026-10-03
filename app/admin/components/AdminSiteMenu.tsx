@@ -70,10 +70,6 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     }
 
     return <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[272px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div className="border-b border-[#e5e0d8] px-5 py-5">
-            <p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Website</p>
-            <h2 className="mt-1 font-serif text-2xl">Pages</h2>
-        </div>
         <nav aria-label="Site menu" className="border-b border-[#e5e0d8] px-3 py-4">
             <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Site Menu</p>
             {siteMenuPages.map(item => (
