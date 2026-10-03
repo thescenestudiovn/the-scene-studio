@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminEditor } from "./AdminEditorContext";
 import { BlockEditor } from "../../../components/story/editor/StoryContent";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
+import { mediaUrl } from "../../../lib/media";
 
 type Page = {
     id: string; slug: string; title: string; homepage?: number; menu_order?: number;
