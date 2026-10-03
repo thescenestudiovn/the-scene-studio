@@ -81,7 +81,13 @@ export default function Footer() {
                         <p className="mt-8 font-sans text-xs tracking-[0.15em] uppercase text-[#77736b]">{settings.address || "Da Nang · Vietnam"}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-10 md:col-span-6 md:col-start-7 lg:grid-cols-3">
-                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">{pages.map((page) => (\n                            <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : `/${page.slug}`}>{page.title}</a>\n                        ))}</nav></div>\n                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Locations</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">{locations.map(([slug, name]) => (\n                            <a key={slug} href={`/stories?location=${encodeURIComponent(slug)}`}>{name}</a>\n                        ))}</nav></div>\n                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Explore</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">{pages.map((page) => (
+                            <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : `/${page.slug}`}>{page.title}</a>
+                        ))}</nav></div>
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Locations</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">{locations.map(([slug, name]) => (
+                            <a key={slug} href={`/stories?location=${encodeURIComponent(slug)}`}>{name}</a>
+                        ))}</nav></div>
+                        <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
                             {instagram && <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>}
                             {facebook && <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>}
                             {tiktok && <a href={tiktok} target="_blank" rel="noreferrer">TikTok</a>}
