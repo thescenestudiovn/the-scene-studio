@@ -81,7 +81,7 @@ function ImageBlock({ data, media }: { data: Record<string, unknown>; media: Med
 }
 
 function TextBlock({ data }: { data: Record<string, unknown> }) {
-    const variant = text(data.variant) || "regular";
+    const variant = text(data.layout) || text(data.variant) || "regular";
     const title = text(data.title);
     const count = imageCount(variant);
     const columns = Array.isArray(data.columns) ? data.columns.map(item => typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
