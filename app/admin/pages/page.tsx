@@ -34,7 +34,7 @@ function imageCount(variant: string) { return variant === "columns-2" || variant
 
 const PAGE_LAYOUTS: Record<string, string[]> = {
     image: ["medium", "large", "full-width", "columns-2", "columns-3", "columns-4", "grid-vertical", "grid-horizontal", "grid-square", "grid-stacked", "slideshow", "carousel", "text-overlay-large", "text-overlay-medium", "text-overlay-full", "text-columns-2", "text-columns-3", "text-columns-4", "text-below-large", "text-below-medium", "text-left-regular", "text-right-regular", "text-left-large", "text-right-large"],
-    text: ["heading", "paragraph", "columns"],
+    text: ["heading", "paragraph", "columns"], // Text is grouped; layout lives in data.layout
     content: ["banner-1","banner-2","banner-3","banner-headline","banner-media","banner-slider-1","info-1","info-2","info-3","testimonial-1","testimonial-2","testimonial-3","pricing-1","pricing-2","pricing-3","faq-1","faq-2","faq-3","quote-1","quote-2","quote-3","banner-video"],
 };
 
