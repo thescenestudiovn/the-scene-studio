@@ -2,7 +2,7 @@ export type TextBlockVariant = "heading-1" | "heading-2" | "heading-3" | "wide" 
 export type ImageBlockVariant = "large" | "medium" | "full-width" | "columns-2" | "columns-3" | "columns-4" | "grid-vertical" | "grid-horizontal" | "grid-square" | "grid-stacked" | "slideshow" | "carousel" | "text-overlay-large" | "text-overlay-medium" | "text-overlay-full" | "text-columns-2" | "text-columns-3" | "text-columns-4" | "text-below-large" | "text-below-medium" | "text-left-regular" | "text-right-regular" | "text-left-large" | "text-right-large";
 export type VideoBlockVariant = "banner-video";
 export type ContentBlockVariant =
-  | "banner-1" | "banner-2" | "banner-3" | "banner-headline" | "banner-media" | "banner-slider-1"
+  | "banner-1" | "banner-2" | "banner-3"
   | "info-1" | "info-2" | "info-3"
   | "testimonial-1" | "testimonial-2" | "testimonial-3"
   | "pricing-1" | "pricing-2" | "pricing-3"
