@@ -315,6 +315,200 @@ function BannerBlockEditor({ block, onChange }: Props) {
   </div>;
 }
 
+
+function InfoBlockEditor({ block, onChange }: Props) {
+  const data = block.data ?? {};
+  const variant = block.variant ?? text(data.variant) ?? "info-1";
+  const media = block.media ?? [];
+  const selectedIds = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [focalOpen, setFocalOpen] = useState(false);
+  const [altOpen, setAltOpen] = useState(false);
+  const focalPoint = text(data.focal_point) || "50% 50%";
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selectedMedia = useMemo(() => selectedIds
+    .map(id => media.find(item => item.id === id))
+    .filter((item): item is Media => Boolean(item))
+    .slice(0, 1), [media, selectedIds]);
+
+  const update = (key: string, value: unknown) => {
+    onChange({
+      data: { ...data, [key]: value, variant },
+      ...(key === "title" ? { title: text(value) } : {}),
+      ...(key === "body" ? { body: text(value) } : {}),
+    });
+  };
+
+  const applyMedia = (ids: string[], records: Media[]) => {
+    onChange({
+      data: { ...data, variant, media_ids: ids.slice(0, 1) },
+      media: records.slice(0, 1) as StoryBlock["media"],
+    });
+  };
+
+  const updateFocal = (value: string) => {
+    onChange({ data: { ...data, variant, focal_point: value } });
+    setFocalOpen(false);
+  };
+
+  const updateAltText = async (value: string) => {
+    const current = selectedMedia[0];
+    if (!current) return;
+    const updated = { ...current, alt: value || null };
+    onChange({
+      data: { ...data, variant, image_alt: value },
+      media: [updated],
+    });
+    try {
+      await fetch("/api/admin/media", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: updated.id,
+          collection_id: updated.collection_id ?? null,
+          type: updated.type ?? "image",
+          path: updated.path,
+          filename: updated.filename,
+          alt: updated.alt ?? null,
+          width: updated.width ?? null,
+          height: updated.height ?? null,
+          sort_order: updated.sort_order ?? 0,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to update info image alt text:", error);
+    }
+    setAltOpen(false);
+  };
+
+  async function upload(files: FileList | File[]) {
+    const incoming = Array.from(files).slice(0, Math.max(0, 1 - selectedMedia.length));
+    if (!incoming.length) return;
+    setUploading(true);
+    try {
+      const uploaded: Media[] = [];
+      for (const file of incoming) {
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error(\`${file.name}: JPEG, PNG or WebP only\`);
+        if (file.size > 5 * 1024 * 1024) throw new Error(\`${file.name}: maximum 5 MB\`);
+        const { width, height } = await imageDimensions(file);
+        const form = new FormData();
+        form.append("file", file);
+        form.append("alt", file.name.replace(/\\.[^/.]+$/, ""));
+        form.append("width", String(width));
+        form.append("height", String(height));
+        const response = await fetch("/api/admin/media/upload", { method: "POST", body: form });
+        const result = await response.json() as { success?: boolean; error?: string; media?: unknown };
+        if (!response.ok || !result.success) throw new Error(result.error || \`Failed to upload ${file.name}\`);
+        const record = mediaFromResponse(result.media);
+        if (record) uploaded.push(record);
+      }
+      const records = [...selectedMedia, ...uploaded].slice(0, 1);
+      applyMedia(records.map(item => item.id), records);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return <div className="grid gap-5">
+    <ContentBlockView variant={variant} data={data} media={media} />
+    <div className="grid gap-6 border border-[#d8d3ca] bg-[#fbfaf7] p-5">
+      <div>
+        <p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Info</p>
+        <p className="mt-1 text-xs text-[#77736c]">{variant.replace(/-/g, " ")}</p>
+      </div>
+
+      <section>
+        <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-[#5f5a52]">Content</div>
+        <div className="grid gap-4">
+          <div className="grid gap-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Image</p>
+            <div
+              className={\`relative overflow-hidden border border-dashed bg-white transition ${dragOver ? "border-[#171717] bg-[#f5f2ed]" : "border-[#cfc8bf]"}\`}
+              onDragOver={event => { event.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={event => { event.preventDefault(); setDragOver(false); void upload(event.dataTransfer.files); }}
+            >
+              {selectedMedia[0] ? (
+                <div className="group relative aspect-[16/7] overflow-hidden bg-[#e9e5de]">
+                  <img
+                    src={mediaUrl(selectedMedia[0].path)}
+                    alt={selectedMedia[0].alt || selectedMedia[0].filename}
+                    className="h-full w-full object-cover"
+                    style={{ objectPosition: focalPoint }}
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-black/65 px-3 py-2 text-white opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+                    <div className="mb-1 text-[8px] uppercase tracking-[0.16em] text-white/60">Image</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                      <button type="button" onClick={() => setPickerOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Change Image</button>
+                      <button type="button" onClick={() => setFocalOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Set Focal</button>
+                      <button type="button" onClick={() => setAltOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Alt Text</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-h-[180px] flex-col items-center justify-center px-5 text-center">
+                  <p className="text-sm text-[#77736c]">Drag photo here</p>
+                  <p className="mt-1 text-[11px] text-[#aaa49a]">Or upload photo from:</p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <button type="button" onClick={() => setPickerOpen(true)} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.13em] hover:border-[#171717]">Gallery</button>
+                    <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.13em] hover:border-[#171717] disabled:opacity-50">My Computer</button>
+                  </div>
+                </div>
+              )}
+              <input ref={inputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={event => void upload(event.target.files ?? [])} />
+            </div>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Eyebrow</span>
+            <input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.eyebrow)} onChange={e => update("eyebrow", e.target.value)} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Title</span>
+            <input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.title)} onChange={e => update("title", e.target.value)} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Subtitle</span>
+            <input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.subtitle)} onChange={e => update("subtitle", e.target.value)} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Description</span>
+            <textarea className="min-h-24 border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.body)} onChange={e => update("body", e.target.value)} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Button text</span>
+            <input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.button_text)} onChange={e => update("button_text", e.target.value)} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Button URL</span>
+            <input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.button_url)} onChange={e => update("button_url", e.target.value)} />
+          </label>
+        </div>
+      </section>
+    </div>
+
+    {focalOpen && selectedMedia[0] && <FocalPointDialog media={selectedMedia[0]} value={focalPoint} onClose={() => setFocalOpen(false)} onSave={updateFocal} />}
+    {altOpen && selectedMedia[0] && <AltTextDialog media={selectedMedia[0]} onClose={() => setAltOpen(false)} onSave={updateAltText} />}
+    <MediaPickerModal
+      open={pickerOpen}
+      required={1}
+      selectedIds={selectedIds.slice(0, 1)}
+      collectionId=""
+      onClose={() => setPickerOpen(false)}
+      onDone={(_collectionId, ids, selectedMedia) => {
+        applyMedia(ids, selectedMedia as unknown as Media[]);
+        setPickerOpen(false);
+      }}
+    />
+  </div>;
+}
+
 export default function ContentBlockEditor({ block, onChange }: Props) {
   const data = block.data ?? {};
   const variant = block.variant ?? text(data.variant) ?? "banner-1";
@@ -328,6 +522,7 @@ export default function ContentBlockEditor({ block, onChange }: Props) {
   const needsButton = variant.startsWith("banner");
 
   if (BANNER_VARIANTS.includes(variant)) return <BannerBlockEditor block={block} onChange={onChange} />;
+  if (variant.startsWith("info")) return <InfoBlockEditor block={block} onChange={onChange} />;
 
   return <div className="grid gap-5">
     <ContentBlockView variant={variant} data={data} media={media} />
