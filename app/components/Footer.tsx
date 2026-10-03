@@ -64,12 +64,11 @@ export default function Footer() {
             .catch(() => {});
     }, []);
 
-    const instagram = settings.instagram;
-    const facebook = settings.facebook;
-    const tiktok = settings.tiktok;
+    const instagram = settings.instagram || "https://www.instagram.com/thescenestudiovn/";
+    const facebook = settings.facebook || "https://www.facebook.com/profile.php?id=61593566064412";
     const email = settings.email || "thescenestudiovn@gmail.com";
-    const phone = settings.phone;
-    const whatsapp = settings.whatsapp;
+    const phone = settings.phone || "+84905942274";
+    const whatsapp = settings.whatsapp || "84905942274";
 
     return (
         <footer className="bg-[#e9e4da] px-6 py-16 text-[#171717] md:px-10 md:py-20">
@@ -88,11 +87,10 @@ export default function Footer() {
                             <a key={slug} href={`/stories?location=${encodeURIComponent(slug)}`}>{name}</a>
                         ))}</nav></div>
                         <div><p className="font-sans text-xs tracking-[0.15em] uppercase text-[#625e57]">Connect</p><nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
-                            {instagram && <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>}
-                            {facebook && <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>}
-                            {tiktok && <a href={tiktok} target="_blank" rel="noreferrer">TikTok</a>}
-                            {whatsapp && <a href={whatsapp.startsWith("http") ? whatsapp : `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a>}
-                            {phone && <a href={`tel:${phone.replace(/\s+/g, "")}`}>Phone</a>}
+                            <a href={instagram} target="_blank" rel="noreferrer">Instagram</a>
+                            <a href={facebook} target="_blank" rel="noreferrer">Facebook</a>
+                            <a href={whatsapp.startsWith("http") ? whatsapp : `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a>
+                            <a href={`tel:${phone.replace(/\s+/g, "")}`}>Phone</a>
                             <a href={`mailto:${email}`}>Email</a>
                         </nav></div>
                     </div>
