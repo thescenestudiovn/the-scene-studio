@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Footer from "../../components/Footer";
 import { useCallback, useEffect, useState } from "react";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
@@ -371,6 +372,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                                 onAddBlock={openBlockPicker}
                             />
                         </div>
+                        <Footer />
                     </div>
                 </div> : <div className="grid min-h-[60vh] place-items-center px-6 text-center"><div><p className="font-serif text-3xl">Your pages will appear here</p><p className="mt-3 text-sm text-[#77736c]">Select a page from the left panel to edit its content.</p></div></div>}
             </section>
