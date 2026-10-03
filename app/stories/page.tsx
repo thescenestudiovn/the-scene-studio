@@ -10,6 +10,8 @@ import { destinations } from "../../data/destinations";
 
 import { mediaUrl } from "../../lib/media";
 
+function locationSlug(value: string) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+
 const baseUrl =
     "https://thescenestudio.asia";
 
@@ -53,7 +55,7 @@ export const metadata: Metadata = {
     },
 };
 
-export default function StoriesPage() {
+export default async function StoriesPage({ searchParams }: { searchParams: Promise<{ location?: string }> }) {\n    const { location } = await searchParams;\n    const selectedLocation = location?.trim().toLowerCase() || "";\n    const filteredStories = selectedLocation ? stories.filter((story) => locationSlug(story.location) === selectedLocation) : stories;\n    const locations = Array.from(new Map(stories.map((story) => [locationSlug(story.location), story.location])).entries());
     const collectionJsonLd = {
         "@context": "https://schema.org",
 
@@ -79,7 +81,7 @@ export default function StoriesPage() {
         mainEntity: {
             "@type": "ItemList",
 
-            itemListElement: stories.map(
+            itemListElement: filteredStories.map(
                 (story, index) => ({
                     "@type": "ListItem",
 
@@ -145,7 +147,7 @@ export default function StoriesPage() {
 
                 <div className="mx-auto max-w-7xl">
 
-                    {stories.map((story, index) => {
+                    <div className="mb-16 flex flex-wrap gap-x-8 gap-y-4 border-y border-[#d8d3ca] py-6 font-sans text-xs tracking-[0.15em] uppercase">\n                        <Link href="/stories" className={selectedLocation ? "text-[#77736c] transition-opacity hover:opacity-50" : "transition-opacity hover:opacity-50"}>All</Link>\n                        {locations.map(([slug, name]) => (\n                            <Link key={slug} href={"/stories?location=" + encodeURIComponent(slug)} className={selectedLocation === slug ? "transition-opacity hover:opacity-50" : "text-[#77736c] transition-opacity hover:opacity-50"}>{name}</Link>\n                        ))}\n                    </div>\n\n                    {filteredStories.map((story, index) => {
 
                         const destination = destinations.find(
                             (item) =>
