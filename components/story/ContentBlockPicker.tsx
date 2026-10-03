@@ -3,12 +3,12 @@
 import { useState } from "react";
 import TextBlockPicker from "./picker/TextBlockPicker";
 import ImageBlockPicker from "./picker/ImageBlockPicker";
-import VideoBlockPicker from "./picker/VideoBlockPicker";
+import ContentVariantsPicker from "./picker/ContentVariantsPicker";
 import ContactBlockPicker from "./picker/ContactBlockPicker";
 import MapBlockPicker from "./picker/MapBlockPicker";
 import { BLOCK_CATEGORIES, type ContentBlockSelection } from "./picker/blockTypes";
 
-export type { ContactBlockVariant, ContentBlockSelection, ImageBlockVariant, MapBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
+export type { ContactBlockVariant, ContentBlockSelection, ContentBlockVariant, ImageBlockVariant, MapBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
 
 type Props = { open: boolean; onClose: () => void; onSelect: (selection: ContentBlockSelection) => void };
 type Category = (typeof BLOCK_CATEGORIES)[number][0];
@@ -28,10 +28,10 @@ export default function ContentBlockPicker({ open, onClose, onSelect }: Props) {
       <div className="mx-auto max-w-6xl px-10 py-10 max-md:px-4 max-md:py-6">
         {category === "text" && <TextBlockPicker onSelect={onSelect} />}
         {category === "image" && <ImageBlockPicker onSelect={onSelect} />}
-        {category === "video" && <VideoBlockPicker onSelect={onSelect} />}
+        {category === "content" && <ContentVariantsPicker onSelect={onSelect} />}
         {category === "contact" && <ContactBlockPicker onSelect={onSelect} />}
         {category === "map" && <MapBlockPicker onSelect={onSelect} />}
-        {!(["text", "image", "video", "contact", "map"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
+        {!(["text", "image", "content", "contact", "map"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
       </div>
     </main>
   </div>;
