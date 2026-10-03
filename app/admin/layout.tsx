@@ -52,10 +52,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
       </header>
       <AdminEditorProvider>
-        <div className="flex min-h-[calc(100dvh-64px)] flex-col lg:flex-row">
-          <AdminSiteMenu activeSlug={activeSlug} />
-          <div className="min-w-0 flex-1">{children}</div>
-        </div>
+        {pathname.startsWith("/admin/stories") ? (
+          <div className="min-h-[calc(100dvh-64px)]">{children}</div>
+        ) : (
+          <div className="flex min-h-[calc(100dvh-64px)] flex-col lg:flex-row">
+            <AdminSiteMenu activeSlug={activeSlug} />
+            <div className="min-w-0 flex-1">{children}</div>
+          </div>
+        )}
       </AdminEditorProvider>
     </div>
   );
