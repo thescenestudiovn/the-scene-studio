@@ -32,13 +32,13 @@ export default function Header({ light = false }: { light?: boolean }) {
                         {logo ? <img src={logo} alt="The Scene Studio" className="h-auto max-h-10 w-auto max-w-[180px] object-contain" /> : <span className="font-sans text-xs tracking-[0.2em] uppercase">The Scene Studio</span>}
                     </a>
                     <div className="hidden items-center gap-8 font-sans text-xs tracking-[0.15em] uppercase md:flex">
-                        <a href="/" className="transition-opacity hover:opacity-50">Home</a><a href="/about" className="transition-opacity hover:opacity-50">About</a><a href="/stories" className="transition-opacity hover:opacity-50">Stories</a><a href="/gallery" className="transition-opacity hover:opacity-50">Gallery</a><a href="/contact" className="transition-opacity hover:opacity-50">Contact</a>
+                        <a href="/" className="transition-opacity hover:opacity-50">Home</a><a href="/about" className="transition-opacity hover:opacity-50">About</a><a href="/stories" className="transition-opacity hover:opacity-50">Stories</a><a href="/gallery" className="transition-opacity hover:opacity-50">Gallery</a><a href="/films" className="transition-opacity hover:opacity-50">Film</a><a href="/contact" className="transition-opacity hover:opacity-50">Contact</a>
                     </div>
                     <button onClick={() => setMenuOpen(!menuOpen)} className="font-sans text-xs tracking-[0.2em] uppercase md:hidden">{menuOpen ? "Close" : "Menu"}</button>
                 </nav>
             </header>
             <div className={`fixed right-0 top-[58px] z-40 w-[260px] rounded-b-sm bg-[#f7f5f0] p-8 text-[#171717] shadow-xl transition-all duration-300 md:hidden ${menuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0"}`}>
-                <nav className="flex flex-col gap-6"><a href="/" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Home</a><a href="/about" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">About</a><a href="/stories" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Stories</a><a href="/gallery" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Gallery</a><a href="/contact" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Contact</a></nav>
+                <nav className="flex flex-col gap-6"><a href="/" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Home</a><a href="/about" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">About</a><a href="/stories" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Stories</a><a href="/gallery" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Gallery</a><a href="/films" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Film</a><a href="/contact" onClick={closeMenu} className="font-serif text-3xl tracking-[-0.03em]">Contact</a></nav>
             </div>
         </>
     );
