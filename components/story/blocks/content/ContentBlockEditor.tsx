@@ -287,7 +287,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
             <div>
               <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Banner ratio</p>
               <div className="grid grid-cols-3 border border-[#d8d3ca] bg-white">
-                {["2:3", "16:9", "21:9"].map(ratio => <button key={ratio} type="button" onClick={() => update("banner_ratio", ratio)} className={`px-3 py-2.5 text-[10px] uppercase tracking-[0.14em] ${bannerRatio === ratio ? "bg-[#171717] text-white" : "text-[#77736c] hover:bg-[#f5f2ed]"}`}>{ratio}</button>)}
+                {["3:2", "16:9", "21:9"].map(ratio => <button key={ratio} type="button" onClick={() => update("banner_ratio", ratio)} className={`px-3 py-2.5 text-[10px] uppercase tracking-[0.14em] ${bannerRatio === ratio ? "bg-[#171717] text-white" : "text-[#77736c] hover:bg-[#f5f2ed]"}`}>{ratio}</button>)}
               </div>
             </div>
             <label className="grid gap-2">
