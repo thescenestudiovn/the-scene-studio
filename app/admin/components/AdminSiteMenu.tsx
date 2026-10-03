@@ -31,11 +31,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const editorType = editor?.block.type ?? "";
     const editorIsText = editorType === "text" || editorType.startsWith("text-");
 
-    if (editor && editorIsText) {
-        return null;
-    }
-
-    if (editor) {
+    if (editor && !editorIsText) {
         return <aside className="relative z-40 flex w-full shrink-0 flex-col border-b border-[#d8d3ca] bg-[#fbfaf7] lg:sticky lg:top-16 lg:h-[calc(100dvh-64px)] lg:w-[340px] lg:overflow-hidden lg:border-b-0 lg:border-r">
             <div className="shrink-0 border-b border-[#e5e0d8] px-5 py-4">
                 <div className="flex items-center justify-between gap-3">
