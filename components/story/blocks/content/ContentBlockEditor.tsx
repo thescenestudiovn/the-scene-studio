@@ -317,7 +317,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
 
 function InfoBlockEditor({ block, onChange }: Props) {
   const data = block.data ?? {};
-  const [eyebrowDraft, setEyebrowDraft] = useState(() => text(data.eyebrow));
+  const [eyebrowDraft, setEyebrowDraft] = useState("");
 
   useEffect(() => {
     setEyebrowDraft(text(data.eyebrow));
