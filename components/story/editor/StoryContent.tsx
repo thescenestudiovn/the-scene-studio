@@ -260,7 +260,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const closeOnOutsideClick=(event:MouseEvent)=>{
       const target=event.target as Node|null;
       if(wrapperRef.current?.contains(target))return;
-      if(target&&(target as Element).closest?.("[data-rich-text-toolbar]"))return;
+      if(target&&(target as Element).closest?.("[data-rich-text-toolbar]") || (target as Element).closest?.("[data-admin-block-editor]"))return;
       setEditing(false);
       selectionRef.current=null;
       onBlur();
