@@ -34,7 +34,6 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
             <div className="shrink-0 border-b border-[#e5e0d8] px-5 py-4">
                 <div className="flex items-center justify-between gap-3">
                     <button type="button" onClick={editor.onClose} className="text-[9px] uppercase tracking-[0.16em] text-[#77736c] hover:text-[#171717]">← Pages</button>
-                    <button type="button" onClick={() => { editor.onDelete(editor.block.id); editor.onClose(); }} className="text-[9px] uppercase tracking-[0.14em] text-[#9a4d42] hover:text-red-700">Delete</button>
                 </div>
                 <p className="mt-5 text-[9px] uppercase tracking-[0.18em] text-[#aaa49a]">Edit block</p>
                 <h2 className="mt-1 font-serif text-2xl leading-tight">{labelForBlock(editor.block)}</h2>
@@ -69,9 +68,6 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                         </div>
                     </div>;
                 })()}
-            </div>
-            <div className="shrink-0 border-t border-[#e5e0d8] bg-[#fbfaf7] p-3">
-                <button type="button" onClick={() => { editor.onDelete(editor.block.id); editor.onClose(); }} className="w-full border border-[#c9a9a4] bg-white px-3 py-2.5 text-[9px] uppercase tracking-[0.14em] text-[#9a4d42] hover:border-[#9a4d42] hover:bg-[#fdf7f6]">Delete block</button>
             </div>
         </aside>;
     }
