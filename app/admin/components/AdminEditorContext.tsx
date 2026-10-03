@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { StoryBlock } from "../../../components/story/editor/types";
 
 export type AdminBlockEditorController = {
@@ -14,21 +14,33 @@ export type AdminBlockEditorController = {
   onClose: () => void;
 };
 
-type ContextValue = {
-  editor: AdminBlockEditorController | null;
-  registerEditor: (editor: AdminBlockEditorController | null) => void;
-};
+type EditorStateContextValue = { editor: AdminBlockEditorController | null };
+type EditorActionsContextValue = { registerEditor: (editor: AdminBlockEditorController | null) => void };
 
-const AdminEditorContext = createContext<ContextValue | null>(null);
+const AdminEditorStateContext = createContext<EditorStateContextValue | null>(null);
+const AdminEditorActionsContext = createContext<EditorActionsContextValue | null>(null);
 
 export function AdminEditorProvider({ children }: { children: React.ReactNode }) {
   const [editor, setEditor] = useState<AdminBlockEditorController | null>(null);
-  const value = useMemo(() => ({ editor, registerEditor: setEditor }), [editor]);
-  return <AdminEditorContext.Provider value={value}>{children}</AdminEditorContext.Provider>;
+  const registerEditor = useCallback((next: AdminBlockEditorController | null) => setEditor(next), []);
+  const actions = useMemo(() => ({ registerEditor }), [registerEditor]);
+  return (
+    <AdminEditorActionsContext.Provider value={actions}>
+      <AdminEditorStateContext.Provider value={{ editor }}>
+        {children}
+      </AdminEditorStateContext.Provider>
+    </AdminEditorActionsContext.Provider>
+  );
 }
 
 export function useAdminEditor() {
-  const context = useContext(AdminEditorContext);
+  const context = useContext(AdminEditorStateContext);
   if (!context) throw new Error("useAdminEditor must be used inside AdminEditorProvider");
+  return context;
+}
+
+export function useAdminEditorActions() {
+  const context = useContext(AdminEditorActionsContext);
+  if (!context) throw new Error("useAdminEditorActions must be used inside AdminEditorProvider");
   return context;
 }
