@@ -30,7 +30,7 @@ function defaultData(variant: TextBlockVariant, layout: string): Record<string, 
 export default function TextBlockPicker({ onSelect }: Props) {
   return <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
     {blocks.map(block => <button
-      key={block.variant}
+      key={block.layout}
       type="button"
       onClick={() => onSelect({ category: "text", variant: block.variant, data: defaultData(block.variant, block.layout) })}
       className="group overflow-hidden rounded-xl border border-[#ddd9d0] bg-white text-left transition hover:-translate-y-0.5 hover:border-[#aaa49b] hover:shadow-[0_12px_35px_rgba(0,0,0,.06)]"
