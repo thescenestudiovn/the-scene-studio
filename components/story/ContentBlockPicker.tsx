@@ -4,6 +4,7 @@ import { useState } from "react";
 import TextBlockPicker from "./picker/TextBlockPicker";
 import ImageBlockPicker from "./picker/ImageBlockPicker";
 import ContentVariantsPicker from "./picker/ContentVariantsPicker";
+import VideoBlockPicker from "./picker/VideoBlockPicker";
 import ContactBlockPicker from "./picker/ContactBlockPicker";
 import MapBlockPicker from "./picker/MapBlockPicker";
 import { BLOCK_CATEGORIES, type ContentBlockSelection } from "./picker/blockTypes";
@@ -29,9 +30,10 @@ export default function ContentBlockPicker({ open, onClose, onSelect }: Props) {
         {category === "text" && <TextBlockPicker onSelect={onSelect} />}
         {category === "image" && <ImageBlockPicker onSelect={onSelect} />}
         {category === "content" && <ContentVariantsPicker onSelect={onSelect} />}
+        {category === "video" && <VideoBlockPicker onSelect={onSelect} />}
         {category === "contact" && <ContactBlockPicker onSelect={onSelect} />}
         {category === "map" && <MapBlockPicker onSelect={onSelect} />}
-        {!(["text", "image", "content", "contact", "map"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
+        {!(["text", "image", "content", "video", "contact", "map"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
       </div>
     </main>
   </div>;
