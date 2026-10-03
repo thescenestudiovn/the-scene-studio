@@ -191,6 +191,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
+    const [sitePages, setSitePages] = useState<Page[]>([]);
     const [blockPickerOpen, setBlockPickerOpen] = useState(false);
     const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | undefined>(undefined);
 
@@ -218,6 +219,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             return;
         }
         const loadedPages = data.pages ?? [];
+        setSitePages(loadedPages.filter(item => item.menu_visibility === "visible" && item.page_status !== "offline"));
         const initialPage =
             loadedPages.find(item => item.slug === initialSlug) ??
             (initialSlug === "home" ? loadedPages.find(item => item.page_type === "home") : undefined);
@@ -355,7 +357,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                         <div className="flex min-h-16 items-center justify-between gap-4 border-b border-[#eeeae3] px-5 sm:px-8">
                             <Link href="/" target="_blank" className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em]">The Scene Studio</Link>
                             <nav className="flex min-w-0 items-center gap-3 overflow-x-auto text-[9px] text-[#77736c] sm:gap-6 sm:text-[10px]">
-                                <Link href="/" target="_blank">Home</Link><Link href="/about" target="_blank">About</Link><Link href="/stories" target="_blank">Stories</Link><Link href="/gallery" target="_blank">Gallery</Link><Link href="/contact" target="_blank">Contact</Link>
+                                {sitePages.map(item => <Link key={item.id} href={item.homepage === 1 ? "/" : "/" + item.slug} target="_blank">{item.title}</Link>)}
                             </nav>
                         </div>
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
