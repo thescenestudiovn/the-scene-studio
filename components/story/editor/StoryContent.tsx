@@ -282,10 +282,17 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
 
   const firstSize=lines[0]?.textSize||defaultSize;
-  return <div ref={wrapperRef} className="relative w-full" onMouseDown={e=>e.stopPropagation()}>
-    {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize}/>}
-    <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} />
-  </div>;
+  const isHeadingLayout=layout==="heading-1"||layout==="heading-2"||layout==="heading-3";
+  const textWidthClass=layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
+  const html=lines.map(line=>"<div class=\\"w-full outline-none whitespace-pre-wrap "+(isHeadingLayout?"text-center ":"")+(TEXT_STYLES[line.textSize]??"text-base leading-7")+"\\">"+(line.content||"")+"</div>").join("");
+  return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
+    <div ref={wrapperRef} className={`relative mx-auto ${textWidthClass}`}>
+      {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize}/>}
+      <div className="mt-5 text-[#77736c]">
+        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className={`w-full cursor-text outline-none whitespace-pre-wrap ${isHeadingLayout?"text-center":""}`} onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} dangerouslySetInnerHTML={{__html:html}} />
+      </div>
+    </div>
+  </section>;
 }
 
 function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){
