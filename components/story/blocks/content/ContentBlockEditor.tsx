@@ -83,15 +83,13 @@ function BannerBlockEditor({ block, onChange }: Props) {
   };
 
   const applyMedia = (ids: string[], records: Media[]) => {
-    const nextRecords = records.slice(0, maxImages);
     onChange({
       data: {
         ...data,
         variant,
         media_ids: ids.slice(0, maxImages),
-        image_url: nextRecords[0]?.path || "",
       },
-      media: nextRecords as StoryBlock["media"],
+      media: records.slice(0, maxImages) as StoryBlock["media"],
     });
   };
 
@@ -134,7 +132,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const pageMode = selectedPage ? selectedPage : buttonUrl ? "__custom__" : "";
 
   return <div className="grid gap-5">
-    <ContentBlockView variant={variant} data={data} media={media} useThumbnailPreview={BANNER_VARIANTS.includes(variant)} />
+    <ContentBlockView variant={variant} data={data} media={media} />
 
     <div className="grid gap-6 border border-[#d8d3ca] bg-[#fbfaf7] p-5">
       <div className="grid gap-4">
