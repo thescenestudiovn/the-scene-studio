@@ -10,6 +10,8 @@ import ImageBlockEditor from "../../../components/story/blocks/image/ImageBlockE
 import ImageWithTextEditor from "../../../components/story/blocks/image/ImageWithTextEditor";
 import GridGalleryEditor from "../../../components/story/blocks/gallery/GridGalleryEditor";
 import VideoBlockEditor from "../../../components/story/blocks/video/VideoBlockEditor";
+import ContentBlockEditor from "../../../components/story/blocks/content/ContentBlockEditor";
+import ContentBlockView from "../../../components/story/blocks/content/ContentBlockView";
 import type { StoryBlock } from "../../../components/story/editor/types";
 import StoryContent from "../../../components/story/editor/StoryContent";
 import sanitizeHtml from "sanitize-html";
@@ -129,7 +131,10 @@ function PageBlockEditor({ block, onChange }: { block: Block; onChange: (patch: 
         if (isColumns) return <TextColumnsEditor block={storyBlock} onChange={updateFromStory} />;
         return <div className="space-y-3"><input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Eyebrow / label" value={text(data.eyebrow)} onChange={event => onChange({ data: { ...data, eyebrow: event.target.value } })} /><input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="Title" value={text(data.title)} onChange={event => onChange({ data: { ...data, title: event.target.value } })} /><div className="border border-transparent"><div className="px-2 pb-2 text-[9px] uppercase tracking-[0.14em] text-[#8a857d]">{pageLayoutLabel(variant)}</div><div className="border border-[#d8d3ca]"><textarea className="min-h-40 w-full resize-y p-4 text-sm leading-7 outline-none" placeholder="Text content" value={text(data.body)} onChange={event => onChange({ data: { ...data, body: event.target.value } })} /></div></div></div>;
     }
-    if (block.type === "content" && variant === "banner-video") return <VideoBlockEditor block={toStoryBlock(block)} onChange={updateFromStory} onSave={updateFromStory} />;
+    if (block.type === "content") {
+        if (variant === "banner-video") return <VideoBlockEditor block={toStoryBlock(block)} onChange={updateFromStory} onSave={updateFromStory} />;
+        return <ContentBlockEditor block={toStoryBlock(block)} onChange={updateFromStory} />;
+    }
     return <div className="grid gap-3"><input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder={block.type === "content" ? "Video title" : "Title"} value={text(data.title)} onChange={event => onChange({ data: { ...data, title: event.target.value } })} /><textarea className="min-h-32 w-full border border-[#d8d3ca] p-3 text-sm leading-6" placeholder="Description" value={text(data.body)} onChange={event => onChange({ data: { ...data, body: event.target.value } })} />{block.type === "content" && <input className="w-full border border-[#d8d3ca] p-3 text-sm" placeholder="YouTube URL" value={text(data.youtube_url)} onChange={event => onChange({ data: { ...data, youtube_url: event.target.value } })} />}</div>;
 }
 
@@ -157,7 +162,7 @@ function PageBlockPreview({ block }: { block: Block }) {
         const count = variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1;
         return <div className="mx-auto max-w-5xl px-6 py-8 md:px-10">{eyebrow && <p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow}</p>}{title && <h2 className="mt-3 font-serif text-4xl">{title}</h2>}{count > 1 ? <div className={`mt-5 grid gap-6 ${count === 2 ? "md:grid-cols-2" : count === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>{Array.from({ length: count }, (_, index) => <div key={index} className="min-w-0 text-sm leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(columns[index] ?? "") }} />)}</div> : body && <div className="mt-5 text-sm leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: safeBody }} />}</div>;
     }
-    if (block.type === "content") return <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 md:grid-cols-2 md:px-10"><div><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow || "Content"}</p><h2 className="mt-3 font-serif text-4xl">{title || "Video title"}</h2></div><div className="text-sm leading-7 text-[#77736c]">{body || text(data.youtube_url) || "Add content details"}</div></div>;
+    if (block.type === "content" && variant !== "banner-video") return <ContentBlockView variant={variant} data={data} media={media} />;
     if (block.type === "links") return <div className="mx-auto max-w-6xl border-t border-[#d8d3ca] px-6 py-8 md:px-10"><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{eyebrow || "Links"}</p><h2 className="mt-2 font-serif text-3xl">{title || "Link collection"}</h2></div>;
     return <div className="mx-auto max-w-6xl px-6 py-8 md:px-10"><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{BLOCK_LABELS[block.type] ?? block.type} · {variant}</p>{title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}{body && <p className="mt-3 text-sm leading-7 text-[#77736c]">{body}</p>}</div>;
 }
