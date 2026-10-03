@@ -113,6 +113,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
     const [createTitle, setCreateTitle] = useState("New Page");
     const [deleteTarget, setDeleteTarget] = useState<Page | null>(null);
     const [modalSaving, setModalSaving] = useState(false);
+    const [siteLogo, setSiteLogo] = useState("");
 
     const loadPages = useCallback(async () => {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
@@ -121,6 +122,15 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         setLoadingPages(false);
     }, []);
     useEffect(() => { void loadPages(); }, [loadPages]);
+    useEffect(() => {
+        fetch("/api/admin/site-settings", { cache: "no-store" })
+            .then(response => response.ok ? response.json() : null)
+            .then(data => {
+                const settings = data as { settings?: { logo?: string } } | null;
+                if (settings?.settings?.logo) setSiteLogo(settings.settings.logo);
+            })
+            .catch(() => {});
+    }, []);
     useEffect(() => {
         if (!actionPageId) return;
         const handlePointerDown = (event: MouseEvent) => {
@@ -176,7 +186,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         else if (targetVisibility === "visible") current.push(moved);
         else current.push(moved);
         setPages(current);
-        await Promise.all(current.map((page, index) => fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, menu_order: index, menu_visibility: page.menu_visibility === "footer" ? "footer" : page.menu_visibility === "hidden" ? "hidden" : "visible" }) })));
+        await Promise.all(current.map((page, index) => fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, menu_order: index, menu_visibility: page.menu_visibility === "footer" ? "footer" : page.menu_visibility === "hidden" ? "hidden" : "visible" }) }));
     }
 
     const editorType = editor?.block.type ?? "";
