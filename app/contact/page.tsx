@@ -20,7 +20,7 @@ export default async function ContactPage() {
 
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
-            <Header />
+            <Header light />
             <PageRenderer blocks={page?.blocks ?? []} />
             <Footer />
         </main>
