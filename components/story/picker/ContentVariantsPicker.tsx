@@ -18,9 +18,6 @@ const groups: Array<{
       ["banner-1", "Banner 1", "cta-banner-1.jpg"],
       ["banner-2", "Banner 2", "cta-banner-2.jpg"],
       ["banner-3", "Banner 3", "cta-banner-3.jpg"],
-      ["banner-headline", "Banner · Headline", "cta-banner-headline.jpg"],
-      ["banner-media", "Banner · Media", "cta-banner-media.jpg"],
-      ["banner-slider-1", "Banner · Slider", "cta-slider-banner-1.jpg"],
     ],
   },
   {
@@ -79,13 +76,6 @@ function defaultData(variant: ContentBlockVariant): Record<string, unknown> {
       button_text: "Learn More",
       button_url: "#",
       media_ids: [],
-      ...(variant === "banner-slider-1" ? {
-        items: [
-          { title: "Slide One", text: "Add supporting text here." },
-          { title: "Slide Two", text: "Add supporting text here." },
-          { title: "Slide Three", text: "Add supporting text here." },
-        ],
-      } : {}),
     };
   }
   if (variant.startsWith("info")) {
