@@ -186,7 +186,22 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         else if (targetVisibility === "visible") current.push(moved);
         else current.push(moved);
         setPages(current);
-        await Promise.all(current.map((page, index) => fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, menu_order: index, menu_visibility: page.menu_visibility === "footer" ? "footer" : page.menu_visibility === "hidden" ? "hidden" : "visible" }) }));
+        await Promise.all(current.map((page, index) => {
+            const menuVisibility = page.menu_visibility === "footer"
+                ? "footer"
+                : page.menu_visibility === "hidden"
+                    ? "hidden"
+                    : "visible";
+            return fetch("/api/admin/pages", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: page.id,
+                    menu_order: index,
+                    menu_visibility: menuVisibility,
+                }),
+            });
+        }));
     }
 
     const editorType = editor?.block.type ?? "";
