@@ -130,99 +130,163 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize}));
     const holder=document.createElement("div");
     holder.innerHTML=legacyContent;
-    const lineNodes=Array.from(holder.querySelectorAll("p,div,h1,h2,h3,h4,h5,h6,blockquote,li"));
+    const lineNodes=Array.from(holder.children);
     if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize}));
     const text=holder.innerHTML.replace(/<br\s*\/?>(?=.)/gi,"\n");
     return text.split(/\n+/).map(content=>({content,textSize:defaultSize}));
-  }
+  };
   const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
-  const [editingLine,setEditingLine]=useState<number|null>(null);
+  const [editing,setEditing]=useState(false);
   const [toolbarPosition,setToolbarPosition]=useState<{top:number;left:number;visible:boolean}>({top:0,left:0,visible:false});
   const [toolbarHeight,setToolbarHeight]=useState(0);
-  const lineRefs=useRef<Array<HTMLDivElement|null>>([]);
-  const linesRef=useRef<TextLine[]>(lines);
-  useEffect(()=>{linesRef.current=lines;},[lines]);
+  const editorRef=useRef<HTMLDivElement|null>(null);
   const wrapperRef=useRef<HTMLDivElement|null>(null);
   const selectionRef=useRef<SavedSelection|null>(null);
+  const linesRef=useRef<TextLine[]>(lines);
+  useEffect(()=>{linesRef.current=lines;},[lines]);
   const linesKey=JSON.stringify(storedLines??legacyContent);
-  useEffect(()=>{const initial=makeInitialLines();const next=initial.length?initial:[{content:"",textSize:defaultSize}];setLines(current=>{const sameContent=current.length===next.length&&current.every((line,index)=>line.content===next[index].content);const sameSizes=current.length===next.length&&current.every((line,index)=>line.textSize===next[index].textSize);return sameContent&&!sameSizes?next:sameContent&&sameSizes?current:next;});},[linesKey,block.id]);
-  const saveSelection=(index:number)=>{const editor=lineRefs.current[index],s=window.getSelection();if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor};};
-  const persist=(next:TextLine[])=>onChange({body:next.map(line=>line.content).join("<br />"),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
-  const updateLineContent=(index:number)=>{const editor=lineRefs.current[index];if(!editor)return;const next=linesRef.current.map((line,i)=>i===index?{...line,content:editor.innerHTML}:line);linesRef.current=next;setLines(next);saveSelection(index);persist(next);};
-  const updateLineSize=(index:number,nextSize:string)=>{const next=linesRef.current.map((line,i)=>i===index?{...line,textSize:nextSize}:line);linesRef.current=next;setLines(next);persist(next);};
-  const splitLine=(index:number,caretOffset:number)=>{const editor=lineRefs.current[index];if(!editor)return;const html=editor.innerHTML;const text=editor.innerText;const beforeText=text.slice(0,caretOffset);const afterText=text.slice(caretOffset);const beforeHtml=beforeText?beforeText.replace(/\\n/g,"<br />"):"";const afterHtml=afterText?afterText.replace(/\\n/g,"<br />"):"";const next=[...lines.slice(0,index),{...lines[index],content:beforeHtml},{...lines[index],content:afterHtml},...lines.slice(index+1)];setLines(next);persist(next);requestAnimationFrame(()=>{setEditingLine(index+1);const nextEditor=lineRefs.current[index+1];if(nextEditor){nextEditor.focus();const range=document.createRange();range.selectNodeContents(nextEditor);range.collapse(true);const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(range);selectionRef.current={range:range.cloneRange(),editor:nextEditor};}});};
-  const mergeWithPrevious=(index:number)=>{if(index<=0)return;const current=lineRefs.current[index];const previous=lineRefs.current[index-1];if(!current||!previous)return;const next=[...lines.slice(0,index-1),{...lines[index-1],content:lines[index-1].content+lines[index].content},...lines.slice(index+1)];setLines(next);persist(next);requestAnimationFrame(()=>{setEditingLine(index-1);const editor=lineRefs.current[index-1];if(editor){editor.focus();const range=document.createRange();range.selectNodeContents(editor);range.collapse(false);const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(range);selectionRef.current={range:range.cloneRange(),editor};}});};
-  useEffect(()=>{
-    if(editingLine===null){setToolbarPosition(p=>p.visible?{...p,visible:false}:p);return;}
-    const updatePosition=()=>{
-      const firstLine=lineRefs.current[0];
-      if(!firstLine)return;
-      const rect=firstLine.getBoundingClientRect();
-      const gap=8;
-      const height=toolbarHeight||44;
-      const top=rect.top-height-gap;
-      const toolbarLeft=Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-360));
-      setToolbarPosition({top:Math.max(8,top),left:toolbarLeft,visible:true});
-    };
-    updatePosition();
-    window.addEventListener("resize",updatePosition);
-    window.addEventListener("scroll",updatePosition,true);
-    return()=>{window.removeEventListener("resize",updatePosition);window.removeEventListener("scroll",updatePosition,true);};
-  },[editingLine,toolbarHeight]);
-  useEffect(()=>{
-    lines.forEach((line,index)=>{
-      const editor=lineRefs.current[index];
-      if(!editor||index===editingLine)return;
-      if(editor.innerHTML!==line.content)editor.innerHTML=line.content;
+
+  const persist=(next:TextLine[])=>{
+    linesRef.current=next;
+    setLines(next);
+    onChange({body:next.map(line=>line.content).join("<br />"),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
+  };
+
+  const getSizeFromElement=(element:Element)=>Array.from(element.classList).find(name=>TEXT_STYLES[name])??defaultSize;
+  const getDirectLineElements=()=>{
+    const editor=editorRef.current;
+    if(!editor)return [];
+    return Array.from(editor.children).filter(node=>node.nodeType===1) as HTMLElement[];
+  };
+
+  const syncLinesFromDom=()=>{
+    const editor=editorRef.current;
+    if(!editor)return;
+    const children=getDirectLineElements();
+    if(!children.length){
+      const next=[{content:editor.innerHTML,textSize:defaultSize}];
+      persist(next);
+      return;
+    }
+    const next=children.map((child,index)=>({content:child.innerHTML,textSize:getSizeFromElement(child)||linesRef.current[index]?.textSize||defaultSize}));
+    persist(next);
+  };
+
+  const saveSelection=()=>{
+    const editor=editorRef.current;
+    const selection=window.getSelection();
+    if(editor&&selection&&selection.rangeCount&&editor.contains(selection.anchorNode)){
+      selectionRef.current={range:selection.getRangeAt(0).cloneRange(),editor};
+    }
+  };
+
+  const restoreSelection=()=>{
+    const saved=selectionRef.current;
+    const editor=editorRef.current;
+    if(!saved||!editor||saved.editor!==editor)return false;
+    editor.focus();
+    const selection=window.getSelection();
+    if(!selection)return false;
+    selection.removeAllRanges();
+    selection.addRange(saved.range);
+    return true;
+  };
+
+  const getSelectedLineIndexes=()=>{
+    const editor=editorRef.current;
+    const saved=selectionRef.current;
+    if(!editor||!saved)return [];
+    const children=getDirectLineElements();
+    const range=saved.range;
+    return children.map((child,index)=>{
+      try{return range.intersectsNode(child)?index:-1}catch{return -1;}
+    }).filter(index=>index>=0);
+  };
+
+  const updateSelectedSize=(nextSize:string)=>{
+    if(!restoreSelection())return;
+    const indexes=getSelectedLineIndexes();
+    if(!indexes.length)return;
+    const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,textSize:nextSize}:line);
+    const children=getDirectLineElements();
+    indexes.forEach(index=>{
+      const child=children[index];
+      if(child){
+        child.className="w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[nextSize]??"text-base leading-7");
+      }
     });
-  },[lines,editingLine]);
+    persist(next);
+    saveSelection();
+  };
+
+  const updateToolbarPosition=()=>{
+    const editor=editorRef.current;
+    if(!editor)return;
+    const rect=editor.getBoundingClientRect();
+    const gap=8;
+    const height=toolbarHeight||44;
+    const top=rect.top-height-gap;
+    const left=Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-360));
+    setToolbarPosition({top:Math.max(8,top),left,visible:editing});
+  };
+
   useEffect(()=>{
-    const frame=requestAnimationFrame(()=>{
-      const editor=lineRefs.current[0];
-      if(!editor)return;
-      setEditingLine(current=>current===null?0:current);
-      editor.focus();
-      const selection=window.getSelection();
-      if(!selection)return;
-      const range=document.createRange();
-      range.selectNodeContents(editor);
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      selectionRef.current={range:range.cloneRange(),editor};
+    if(!editing){setToolbarPosition(p=>p.visible?{...p,visible:false}:p);return;}
+    updateToolbarPosition();
+    window.addEventListener("resize",updateToolbarPosition);
+    window.addEventListener("scroll",updateToolbarPosition,true);
+    return()=>{window.removeEventListener("resize",updateToolbarPosition);window.removeEventListener("scroll",updateToolbarPosition,true);};
+  },[editing,toolbarHeight]);
+
+  useEffect(()=>{
+    const initial=makeInitialLines();
+    const next=initial.length?initial:[{content:"",textSize:defaultSize}];
+    setLines(current=>{
+      const sameContent=current.length===next.length&&current.every((line,index)=>line.content===next[index].content);
+      const sameSizes=current.length===next.length&&current.every((line,index)=>line.textSize===next[index].textSize);
+      return sameContent&&sameSizes?current:next;
     });
-    return()=>cancelAnimationFrame(frame);
-  },[]);
+  },[linesKey,block.id]);
+
   useEffect(()=>{
-    if(editingLine===null)return;
+    const editor=editorRef.current;
+    if(!editor||editing)return;
+    const html=lines.map(line=>"<div class=\"w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[line.textSize]??"text-base leading-7")+"\">"+(line.content||"")+"</div>").join("");
+    if(editor.innerHTML!==html)editor.innerHTML=html;
+  },[lines,editing]);
+
+  useEffect(()=>{
+    if(!editing)return;
     const closeOnOutsideClick=(event:MouseEvent)=>{
       const target=event.target as Node|null;
       if(wrapperRef.current?.contains(target))return;
-      if(target && (target as Element).closest?.("[data-rich-text-toolbar]"))return;
-      setEditingLine(null);
+      if(target&&(target as Element).closest?.("[data-rich-text-toolbar]"))return;
+      setEditing(false);
       selectionRef.current=null;
       onBlur();
     };
     document.addEventListener("mousedown",closeOnOutsideClick);
     return()=>document.removeEventListener("mousedown",closeOnOutsideClick);
-  },[editingLine,onBlur]);
-  const handleBlur=(e:React.FocusEvent<HTMLDivElement>)=>{
-    const related=e.relatedTarget as Element|null;
-    if(related?.closest?.("[data-rich-text-toolbar]"))return;
-    if(!wrapperRef.current?.contains(related as Node|null)){setEditingLine(null);selectionRef.current=null;onBlur();}
+  },[editing,onBlur]);
+
+  const handleFocus=()=>{
+    setEditing(true);
+    saveSelection();
   };
+
+  const handleInput=()=>{
+    saveSelection();
+    syncLinesFromDom();
+  };
+
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
-  const textWidthClass=layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
-  return <div ref={wrapperRef} className={`relative ${textWidthClass}`} onBlurCapture={handleBlur}>
-    {lines.map((line,index)=>{const size=line.textSize||defaultSize;const isActive=editingLine===index;return <div key={index} className="relative w-full" onMouseDown={e=>e.stopPropagation()}>
-      {isActive&&toolbarPosition.visible&&index===editingLine&&<div><TextToolbar editorRef={{current:lineRefs.current[index]}} selectionRef={selectionRef} onChange={()=>updateLineContent(index)} currentSize={size} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={next=>updateLineSize(index,next)}/></div>}
-      <div className={isActive?"w-full border border-[#d9d3ca]":"w-full border border-transparent hover:border-[#e5e0d8]"}>
-        <div ref={el=>{lineRefs.current[index]=el}} contentEditable suppressContentEditableWarning spellCheck className={`min-h-10 w-full cursor-text whitespace-pre-wrap px-2 py-2 outline-none ${TEXT_STYLES[size]??"text-base leading-7"}`} onFocus={()=>{setEditingLine(index);saveSelection(index)}} onMouseUp={()=>saveSelection(index)} onKeyUp={()=>saveSelection(index)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();const sel=window.getSelection();if(sel?.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);splitLine(index,pre.toString().length);}}else if(e.key==="Backspace"){const sel=window.getSelection();if(sel?.isCollapsed&&sel.rangeCount&&sel.anchorNode&&lineRefs.current[index]?.contains(sel.anchorNode)){const range=sel.getRangeAt(0);const pre=document.createRange();pre.selectNodeContents(lineRefs.current[index]!);pre.setEnd(range.startContainer,range.startOffset);if(pre.toString().length===0){e.preventDefault();mergeWithPrevious(index);}}}}} onInput={()=>updateLineContent(index)} />
-      </div>
-    </div>})}
+
+  const firstSize=lines[0]?.textSize||defaultSize;
+  return <div ref={wrapperRef} className="relative w-full" onMouseDown={e=>e.stopPropagation()}>
+    {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize}/>}
+    <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} />
   </div>;
 }
-
 
 function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){
   const data=block.data??{};
