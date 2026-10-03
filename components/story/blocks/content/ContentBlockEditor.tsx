@@ -11,7 +11,6 @@ type SitePage = { slug: string; title: string };
 function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function list(value: unknown) { return Array.isArray(value) ? value.map(item => item && typeof item === "object" ? item as Record<string, unknown> : {}) : []; }
 
-const BANNER_WITH_IMAGE_VARIANTS = ["banner-2", "banner-media", "banner-slider-1"];
 const BANNER_VARIANTS = ["banner-1", "banner-2", "banner-3", "banner-headline", "banner-media", "banner-slider-1"];
 
 function mediaFromResponse(value: unknown): Media | null {
@@ -185,7 +184,7 @@ function BannerBlockEditor({ block, onChange }: Props) {
 
             <div className="grid gap-3">
               <label className="grid gap-2"><span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Title</span><input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.title)} onChange={e => update("title", e.target.value)} /></label>
-              <label className="grid gap-2"><span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Subtitle</span><textarea className="min-h-24 border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.subtitle || data.body)} onChange={e => { update("subtitle", e.target.value); update("body", e.target.value); }} /></label>
+              <label className="grid gap-2"><span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Subtitle</span><textarea className="min-h-24 border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.subtitle || data.body)} onChange={e => onChange({ data: { ...data, variant, subtitle: e.target.value, body: e.target.value }, body: e.target.value })} /></label>
               <label className="grid gap-2"><span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Button text</span><input className="border border-[#d8d3ca] bg-white p-3 text-sm" value={text(data.button_text)} onChange={e => update("button_text", e.target.value)} /></label>
               <div className="grid gap-2">
                 <span className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Button URL</span>
