@@ -64,7 +64,7 @@ export default function BlockPreview({ block }: { block: StoryBlock }) {
       const id = youtubeId(text(data.youtube_url));
       return <section className="px-6 py-12 md:px-10 md:py-16"><div className="mx-auto max-w-5xl overflow-hidden bg-black">{id ? <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt="" className="aspect-video h-full w-full object-cover" /> : <div className="flex aspect-video items-center justify-center text-xs uppercase tracking-[0.16em] text-white/50">YouTube Video</div>}</div></section>;
     }
-    return <ContentBlockView variant={variant} data={data} media={block.media ?? []} useThumbnailPreview />;
+    const thumbnail = text(data.thumbnail_url);\n    const layoutUsesThumbnail = ["banner-2", "banner-media", "banner-slider-1", "testimonial-2"].includes(variant);\n    return <div>{thumbnail && !layoutUsesThumbnail && <div className="aspect-[16/5] overflow-hidden border-b border-[#e3ded6] bg-[#e8e4dc]"><img src={thumbnail} alt="" className="h-full w-full object-cover" /></div>}<ContentBlockView variant={variant} data={data} media={block.media ?? []} useThumbnailPreview /></div>;
   }
   if (block.type === "image") return <ImagePreview block={block} />;
   if (block.type === "text") return <TextPreview block={block} />;
