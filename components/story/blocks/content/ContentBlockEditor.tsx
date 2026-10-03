@@ -324,7 +324,7 @@ export default function ContentBlockEditor({ block, onChange }: Props) {
   const items = useMemo(() => list(data.items), [data.items]);
   const update = (key: string, value: unknown) => onChange({ data: { ...data, [key]: value }, ...(key === "title" ? { title: text(value) } : {}), ...(key === "body" ? { body: text(value) } : {}) });
   const updateItem = (index: number, patch: Record<string, unknown>) => update("items", items.map((item, i) => i === index ? { ...item, ...patch } : item));
-  const hasImage = ["info-1", "info-2", "testimonial-2"].includes(variant);
+  const hasImage = ["info-1", "info-2", "info-3", "testimonial-2"].includes(variant);
   const needsButton = variant.startsWith("banner");
 
   if (BANNER_VARIANTS.includes(variant)) return <BannerBlockEditor block={block} onChange={onChange} />;
@@ -336,9 +336,14 @@ export default function ContentBlockEditor({ block, onChange }: Props) {
       <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Eyebrow" value={text(data.eyebrow)} onChange={e=>update("eyebrow",e.target.value)} />
       <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Heading" value={text(data.title)} onChange={e=>update("title",e.target.value)} />
       <textarea className="min-h-24 border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Description" value={text(data.body)} onChange={e=>update("body",e.target.value)} />
+      {variant.startsWith("info") && <>
+        <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Subtitle / small label" value={text(data.subtitle)} onChange={e=>update("subtitle",e.target.value)} />
+        <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Button text" value={text(data.button_text)} onChange={e=>update("button_text",e.target.value)} />
+        <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Button URL" value={text(data.button_url)} onChange={e=>update("button_url",e.target.value)} />
+      </>}
       {variant.startsWith("testimonial") || variant.startsWith("quote") ? <><textarea className="min-h-28 border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Quote" value={text(data.quote)} onChange={e=>update("quote",e.target.value)} /><input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Author" value={text(data.author)} onChange={e=>update("author",e.target.value)} /><input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Role" value={text(data.role)} onChange={e=>update("role",e.target.value)} /></> : null}
       {hasImage && <button type="button" className="justify-self-start border border-[#171717] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]" onClick={()=>setPickerOpen(true)}>{selectedIds.length ? "Change image" : "Choose image"}</button>}
-      {(variant.startsWith("info") || variant.startsWith("pricing") || variant.startsWith("faq")) && <div className="grid gap-3">{items.map((item,index)=><div key={index} className="grid gap-2 border-t border-[#e3ded6] pt-3">
+      {(variant.startsWith("pricing") || variant.startsWith("faq")) && <div className="grid gap-3">{items.map((item,index)=><div key={index} className="grid gap-2 border-t border-[#e3ded6] pt-3">
         {variant.startsWith("faq") ? <><input className="border border-[#d8d3ca] bg-white p-2.5 text-sm" placeholder="Question" value={text(item.question)} onChange={e=>updateItem(index,{question:e.target.value})}/><textarea className="border border-[#d8d3ca] bg-white p-2.5 text-sm" placeholder="Answer" value={text(item.answer)} onChange={e=>updateItem(index,{answer:e.target.value})}/></> : <><input className="border border-[#d8d3ca] bg-white p-2.5 text-sm" placeholder="Title" value={text(item.title)} onChange={e=>updateItem(index,{title:e.target.value})}/>{variant.startsWith("pricing")&&<input className="border border-[#d8d3ca] bg-white p-2.5 text-sm" placeholder="Price" value={text(item.price)} onChange={e=>updateItem(index,{price:e.target.value})}/>}<textarea className="border border-[#d8d3ca] bg-white p-2.5 text-sm" placeholder={variant.startsWith("pricing") ? "Description" : "Text"} value={text(item.text)} onChange={e=>updateItem(index,{text:e.target.value})}/>{variant.startsWith("pricing")&&<input className="border border-[#d8d3ca] bg-white p-2.5 text-sm" placeholder="Features, separated by commas" value={text(item.features)} onChange={e=>updateItem(index,{features:e.target.value})}/>}</>}
       </div>)}</div>}
     </div>
