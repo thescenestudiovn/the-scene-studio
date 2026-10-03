@@ -25,6 +25,7 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
         { slug: "about", label: "About", icon: "▯", href: "/admin/pages/about" },
         { slug: "stories", label: "Stories", icon: "▤", href: "/admin/stories" },
         { slug: "gallery", label: "Gallery", icon: "▧", href: "/admin/gallery" },
+        { slug: "films", label: "Film", icon: "▶", href: "/films" },
         { slug: "contact", label: "Contact", icon: "✉", href: "/admin/pages/contact" },
     ];
 
