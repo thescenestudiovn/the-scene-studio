@@ -25,7 +25,9 @@ function FocalPointDialog({ media, value, onClose, onSave }: { media: StoryBlock
   const parts = point.split(" ").map(item => Number.parseFloat(item));
   const x = Number.isFinite(parts[0]) ? parts[0] : 50;
   const y = Number.isFinite(parts[1]) ? parts[1] : 50;
-  return <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6">
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6">
     <div className="w-full max-w-4xl bg-[#f7f4ee] p-5 shadow-2xl">
       <div className="mb-4 flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Set focal</p><p className="mt-1 text-sm">{media.filename}</p></div><button type="button" onClick={onClose} className="text-lg leading-none text-[#6f6a62]" aria-label="Close">×</button></div>
       <div className="relative mx-auto max-h-[68vh] w-full cursor-crosshair overflow-hidden bg-[#e9e5de]" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setPoint(`${clampPercent(((event.clientX - rect.left) / rect.width) * 100)}% ${clampPercent(((event.clientY - rect.top) / rect.height) * 100)}%`); }}>
@@ -34,18 +36,26 @@ function FocalPointDialog({ media, value, onClose, onSave }: { media: StoryBlock
       </div>
       <div className="mt-4 flex items-center justify-between"><button type="button" onClick={() => setPoint("50% 50%")} className="text-[9px] uppercase tracking-[0.14em] text-[#77736c] underline underline-offset-4">Reset</button><div className="flex gap-2"><button type="button" onClick={onClose} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Cancel</button><button type="button" onClick={() => onSave(point)} className="border border-[#171717] bg-[#171717] px-4 py-2 text-[9px] uppercase tracking-[0.14em] text-white">Set focal point</button></div></div>
     </div>
-  </div>;
+
+    </div>,
+    document.body,
+  );
 }
 
 function AltTextDialog({ media, onClose, onSave }: { media: StoryBlock["media"][number]; onClose: () => void; onSave: (value: string) => void }) {
   const [value, setValue] = useState(media.alt ?? "");
-  return <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6">
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6">
     <div className="w-full max-w-lg bg-[#f7f4ee] p-6 shadow-2xl">
       <div className="flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Alt text</p><p className="mt-1 text-sm">{media.filename}</p></div><button type="button" onClick={onClose} className="text-lg leading-none text-[#6f6a62]" aria-label="Close">×</button></div>
       <textarea value={value} onChange={event => setValue(event.target.value)} autoFocus className="mt-5 min-h-28 w-full resize-y border border-[#d8d3ca] bg-white p-3 text-sm outline-none focus:border-[#171717]" placeholder="Describe this image for accessibility" />
       <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onClose} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Cancel</button><button type="button" onClick={() => onSave(value.trim())} className="border border-[#171717] bg-[#171717] px-4 py-2 text-[9px] uppercase tracking-[0.14em] text-white">Save alt text</button></div>
     </div>
-  </div>;
+
+    </div>,
+    document.body,
+  );
 }
 
 export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
