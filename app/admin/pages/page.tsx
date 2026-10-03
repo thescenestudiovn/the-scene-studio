@@ -35,7 +35,7 @@ function imageCount(variant: string) { return variant === "columns-2" || variant
 const PAGE_LAYOUTS: Record<string, string[]> = {
     image: ["medium", "large", "full-width", "columns-2", "columns-3", "columns-4", "grid-vertical", "grid-horizontal", "grid-square", "grid-stacked", "slideshow", "carousel", "text-overlay-large", "text-overlay-medium", "text-overlay-full", "text-columns-2", "text-columns-3", "text-columns-4", "text-below-large", "text-below-medium", "text-left-regular", "text-right-regular", "text-left-large", "text-right-large"],
     text: ["heading-1", "heading-2", "heading-3", "wide", "regular", "narrow", "columns-2", "columns-3", "text-columns-4"],
-    content: ["regular", "banner-video"],
+    content: ["banner-1","banner-2","banner-3","banner-headline","banner-media","banner-slider-1","info-1","info-2","info-3","testimonial-1","testimonial-2","testimonial-3","pricing-1","pricing-2","pricing-3","faq-1","faq-2","faq-3","quote-1","quote-2","quote-3","banner-video"],
 };
 
 
@@ -67,6 +67,9 @@ function pageLayoutLabel(variant: string) {
         "text-left-large": "Image with Text · Left Large", "text-right-large": "Image with Text · Right Large",
         "heading-1": "Heading 1", "heading-2": "Heading 2", "heading-3": "Heading 3",
         wide: "Wide Text", regular: "Regular Text", narrow: "Narrow Text", "banner-video": "YouTube Video",
+        "banner-1":"Banner 1","banner-2":"Banner 2","banner-3":"Banner 3","banner-headline":"Banner · Headline","banner-media":"Banner · Media","banner-slider-1":"Banner · Slider",
+        "info-1":"Info 1","info-2":"Info 2","info-3":"Info 3","testimonial-1":"Testimonial 1","testimonial-2":"Testimonial 2","testimonial-3":"Testimonial 3",
+        "pricing-1":"Pricing 1","pricing-2":"Pricing 2","pricing-3":"Pricing 3","faq-1":"FAQ 1","faq-2":"FAQ 2","faq-3":"FAQ 3","quote-1":"Quote 1","quote-2":"Quote 2","quote-3":"Quote 3",
     };
     return labels[variant] ?? variant;
 }
