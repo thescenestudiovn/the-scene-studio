@@ -141,10 +141,12 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(!editor||!wrapper||!s||!s.rangeCount||!editor.contains(s.anchorNode))return;
     const range=s.getRangeAt(0).cloneRange();
     if(!range.collapsed)range.collapse(true);
-    let rect=range.getClientRects()[0]??range.getBoundingClientRect();
+    const clientRect=range.getClientRects()[0];
+    let rect:DOMRect=clientRect??range.getBoundingClientRect();
     if(!rect||(!rect.width&&!rect.height)){
       const node=s.anchorNode instanceof Element?s.anchorNode:s.anchorNode?.parentElement;
-      rect=node?.getBoundingClientRect();
+      const nodeRect=node?.getBoundingClientRect();
+      if(nodeRect)rect=nodeRect;
     }
     if(!rect)return;
     const wrapperRect=wrapper.getBoundingClientRect();
