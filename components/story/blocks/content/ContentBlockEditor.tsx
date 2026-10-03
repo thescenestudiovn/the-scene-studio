@@ -37,6 +37,37 @@ async function imageDimensions(file: File) {
   }
 }
 
+
+function clampPercent(value: number) { return Math.max(0, Math.min(100, Math.round(value))); }
+
+function FocalPointDialog({ media, value, onClose, onSave }: { media: Media; value: string; onClose: () => void; onSave: (value: string) => void }) {
+  const [point, setPoint] = useState(value || "50% 50%");
+  const parts = point.split(" ").map(item => Number.parseFloat(item));
+  const x = Number.isFinite(parts[0]) ? parts[0] : 50;
+  const y = Number.isFinite(parts[1]) ? parts[1] : 50;
+  return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-6">
+    <div className="w-full max-w-4xl bg-[#f7f4ee] p-5 shadow-2xl">
+      <div className="mb-4 flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Set focal</p><p className="mt-1 text-sm">{media.filename}</p></div><button type="button" onClick={onClose} className="text-lg leading-none text-[#6f6a62]" aria-label="Close">×</button></div>
+      <div className="relative mx-auto max-h-[68vh] w-full cursor-crosshair overflow-hidden bg-[#e9e5de]" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setPoint(`${clampPercent(((event.clientX - rect.left) / rect.width) * 100)}% ${clampPercent(((event.clientY - rect.top) / rect.height) * 100)}%`); }}>
+        <img src={mediaUrl(media.path)} alt={media.alt ?? ""} className="block max-h-[68vh] w-full object-contain" />
+        <span className="pointer-events-none absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-black/30 shadow-[0_0_0_1px_rgba(0,0,0,.35)]" style={{ left: `${x}%`, top: `${y}%` }} />
+      </div>
+      <div className="mt-4 flex items-center justify-between"><button type="button" onClick={() => setPoint("50% 50%")} className="text-[9px] uppercase tracking-[0.14em] text-[#77736c] underline underline-offset-4">Reset</button><div className="flex gap-2"><button type="button" onClick={onClose} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Cancel</button><button type="button" onClick={() => onSave(point)} className="border border-[#171717] bg-[#171717] px-4 py-2 text-[9px] uppercase tracking-[0.14em] text-white">Set focal point</button></div></div>
+    </div>
+  </div>;
+}
+
+function AltTextDialog({ media, onClose, onSave }: { media: Media; onClose: () => void; onSave: (value: string) => void }) {
+  const [value, setValue] = useState(media.alt ?? "");
+  return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-6">
+    <div className="w-full max-w-lg bg-[#f7f4ee] p-6 shadow-2xl">
+      <div className="flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Alt text</p><p className="mt-1 text-sm">{media.filename}</p></div><button type="button" onClick={onClose} className="text-lg leading-none text-[#6f6a62]" aria-label="Close">×</button></div>
+      <textarea value={value} onChange={event => setValue(event.target.value)} autoFocus className="mt-5 min-h-28 w-full resize-y border border-[#d8d3ca] bg-white p-3 text-sm outline-none focus:border-[#171717]" placeholder="Describe this image for accessibility" />
+      <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onClose} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Cancel</button><button type="button" onClick={() => onSave(value.trim())} className="border border-[#171717] bg-[#171717] px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Save alt text</button></div>
+    </div>
+  </div>;
+}
+
 function bannerTintValue(value: unknown) {
   const raw = Number(value);
   return Number.isFinite(raw) ? Math.max(0, Math.min(0.7, raw)) : 0.25;
@@ -52,6 +83,9 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [pages, setPages] = useState<SitePage[]>([]);
+  const [focalOpen, setFocalOpen] = useState(false);
+  const [altOpen, setAltOpen] = useState(false);
+  const focalPoint = text(data.focal_point) || "50% 50%";
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -91,6 +125,38 @@ function BannerBlockEditor({ block, onChange }: Props) {
       },
       media: records.slice(0, maxImages) as StoryBlock["media"],
     });
+  };
+
+  const updateFocal = (value: string) => {
+    onChange({ data: { ...data, variant, focal_point: value } });
+    setFocalOpen(false);
+  };
+
+  const updateAltText = async (value: string) => {
+    const current = selectedMedia[0];
+    if (!current) return;
+    const updated = { ...current, alt: value || null };
+    onChange({ media: [updated] });
+    try {
+      await fetch("/api/admin/media", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: updated.id,
+          collection_id: updated.collection_id ?? null,
+          type: updated.type ?? "image",
+          path: updated.path,
+          filename: updated.filename,
+          alt: updated.alt ?? null,
+          width: updated.width ?? null,
+          height: updated.height ?? null,
+          sort_order: updated.sort_order ?? 0,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to update banner image alt text:", error);
+    }
+    setAltOpen(false);
   };
 
   async function upload(files: FileList | File[]) {
@@ -158,11 +224,15 @@ function BannerBlockEditor({ block, onChange }: Props) {
                 onDrop={event => { event.preventDefault(); setDragOver(false); void upload(event.dataTransfer.files); }}
               >
                 {selectedMedia[0] ? (
-                  <div className="relative aspect-[16/7]">
-                    <img src={`https://media.thescenestudio.asia/${selectedMedia[0].path}`} alt={selectedMedia[0].alt || selectedMedia[0].filename} className="h-full w-full object-cover" />
-                    <div className="absolute inset-x-0 bottom-0 flex justify-between gap-2 bg-black/55 p-3">
-                      <span className="truncate text-[10px] text-white">{selectedMedia[0].filename}</span>
-                      <button type="button" onClick={() => setPickerOpen(true)} className="shrink-0 bg-white px-3 py-1.5 text-[9px] uppercase tracking-[0.12em] text-[#171717]">Replace</button>
+                  <div className="group relative aspect-[16/7] overflow-hidden bg-[#e9e5de]">
+                    <img src={mediaUrl(selectedMedia[0].path)} alt={selectedMedia[0].alt || selectedMedia[0].filename} className="h-full w-full object-cover" style={{ objectPosition: focalPoint }} />
+                    <div className="absolute inset-x-0 bottom-0 bg-black/65 px-3 py-2 text-white opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+                      <div className="mb-1 text-[8px] uppercase tracking-[0.16em] text-white/60">Image</div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                        <button type="button" onClick={() => setPickerOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Change Image</button>
+                        <button type="button" onClick={() => setFocalOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Set Focal</button>
+                        <button type="button" onClick={() => setAltOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Alt Text</button>
+                      </div>
                     </div>
                   </div>
                 ) : <div className="flex min-h-[180px] flex-col items-center justify-center px-5 text-center">
@@ -218,6 +288,8 @@ function BannerBlockEditor({ block, onChange }: Props) {
       </div>
     </div>
 
+    {focalOpen && selectedMedia[0] && <FocalPointDialog media={selectedMedia[0]} value={focalPoint} onClose={() => setFocalOpen(false)} onSave={updateFocal} />}
+    {altOpen && selectedMedia[0] && <AltTextDialog media={selectedMedia[0]} onClose={() => setAltOpen(false)} onSave={updateAltText} />}
     <MediaPickerModal
       open={pickerOpen}
       required={maxImages}
