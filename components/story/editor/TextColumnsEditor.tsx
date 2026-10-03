@@ -136,12 +136,7 @@ export default function TextColumnsEditor({ block, onChange }: Props) {
   };
 
   const gridClass = columns.length === 1 ? "grid-cols-1" : columns.length === 2 ? "md:grid-cols-2" : columns.length === 3 ? "md:grid-cols-3" : "md:grid-cols-4";
-  const switchVariant = (next: string) => onChange({ variant: next, data: { ...(block.data ?? {}), variant: next } });
-  return <div className="grid gap-4">
-    <div className="grid grid-cols-3 gap-1 border border-[#d8d3ca] bg-white p-1">
-      {["columns-2", "columns-3", "columns-4"].map(next => <button key={next} type="button" onClick={() => switchVariant(next)} className={`px-3 py-2 text-[9px] uppercase tracking-[0.12em] ${block.variant === next ? "bg-[#171717] text-white" : "text-[#77736c] hover:bg-[#f5f2ed]"}`}>{next.replace("columns-", "Columns ")}</button>)}
-    </div>
-    <div className={`grid gap-8 border border-transparent px-2 py-2 focus-within:border-[#d9d3ca] ${gridClass}`}>
+  return <div className={`grid gap-8 border border-transparent px-2 py-2 focus-within:border-[#d9d3ca] ${gridClass}`}>
     {columns.map((column, index) => <div key={index} className="min-w-0">
       {editingIndex === index && <ColumnToolbar editorRef={{ current: refs.current[index] }} selectionRef={{ current: selections.current[index] }} onChange={() => updateColumn(index)} />}
       <div ref={element => { refs.current[index] = element; }} contentEditable suppressContentEditableWarning spellCheck className="min-h-20 whitespace-pre-wrap px-2 py-2 text-base leading-7 outline-none" onFocus={() => { setEditingIndex(index); saveSelection(index); }} onKeyUp={() => saveSelection(index)} onMouseUp={() => saveSelection(index)} onInput={() => updateColumn(index)} />
