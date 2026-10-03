@@ -235,6 +235,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
 
     function addBlock(selection: ContentBlockSelection) { const afterBlockId = insertAfterBlockId; setBlockPickerOpen(false);
         const variant = selection.variant;
+        const layout = selection.category === "text" && typeof selection.data?.layout === "string" ? selection.data.layout : variant;
         const textDefaults: Record<string, string> = {
             "heading-1": "Heading 1",
             "heading-2": "Heading 2",
@@ -260,7 +261,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                 "Fourth column sample text.",
             ],
         };
-        const columns = selection.category === "text" ? columnDefaults[variant] : undefined;
+        const columns = selection.category === "text" && variant === "columns" ? columnDefaults[layout] : undefined;
         const data = selection.category === "image"
             ? { ...selection.data, variant }
             : selection.category === "content"
@@ -277,9 +278,10 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                     ? { ...selection.data, variant }
                     : {
                         variant,
+                        ...(selection.category === "text" ? { layout } : {}),
                         ...(columns
                             ? { columns: columns.map(content => ({ content })) }
-                            : { body: textDefaults[variant] ?? "This is sample text. Replace this content with your story." }),
+                            : { body: textDefaults[layout] ?? "This is sample text. Replace this content with your story." }),
                     };
         const newBlock: Block = { id: crypto.randomUUID(), type: selection.category, data, media: [] };
         setBlocks(current => {
