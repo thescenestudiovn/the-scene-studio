@@ -33,8 +33,9 @@ export default function Header({ light = false }: { light?: boolean }) {
         <>
             <header className={`fixed left-0 top-0 z-50 w-full px-6 py-5 transition-all duration-500 md:px-10 md:py-6 ${darkHeader ? "bg-[#f7f5f0]/95 text-[#171717] backdrop-blur-md" : "bg-transparent text-white"}`}>
                 <nav className="flex items-center justify-between">
-                    <a href="/" onClick={closeMenu} className="flex items-center">
-                        {logo ? <img src={logo} alt="The Scene Studio" className="h-auto max-h-10 w-auto max-w-[180px] object-contain" /> : <span className="font-sans text-xs tracking-[0.2em] uppercase">The Scene Studio</span>}
+                    <a href="/" onClick={closeMenu} className="flex items-center gap-3">
+                        {logo ? <img src={logo} alt="The Scene Studio" className="h-auto max-h-10 w-auto max-w-[180px] object-contain" /> : null}
+                        <span className="hidden font-serif text-lg leading-none md:block">The Scene Studio</span>
                     </a>
                     <div className="hidden items-center gap-8 font-sans text-xs tracking-[0.15em] uppercase md:flex">
                         {pages.map(page => <a key={page.slug} href={Number(page.homepage) === 1 ? "/" : "/" + page.slug} className="transition-opacity hover:opacity-50">{page.title}</a>)}
