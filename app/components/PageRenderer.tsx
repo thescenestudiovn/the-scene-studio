@@ -12,7 +12,9 @@ type PageData = { title: string; seo_title: string | null; seo_description: stri
 
 export async function getPage(slug: string): Promise<PageData | null> {
     const db = getDB();
-    const page = await db.prepare(`SELECT title,seo_title,seo_description,id FROM pages WHERE slug=? AND published=1`).bind(slug).first<{ id: string; title: string; seo_title: string | null; seo_description: string | null }>();
+    const page = slug === "homepage"
+        ? await db.prepare(`SELECT title,seo_title,seo_description,id FROM pages WHERE homepage=1 AND published=1 LIMIT 1`).first<{ id: string; title: string; seo_title: string | null; seo_description: string | null }>()
+        : await db.prepare(`SELECT title,seo_title,seo_description,id FROM pages WHERE slug=? AND published=1`).bind(slug).first<{ id: string; title: string; seo_title: string | null; seo_description: string | null }>();
     if (!page) return null;
     const result = await db.prepare(`SELECT id,type,data FROM page_blocks WHERE page_id=? ORDER BY sort_order ASC`).bind(page.id).all<Block>();
     const media = await db.prepare(`SELECT id,path,filename,alt,width,height FROM media`).all<Media>();
