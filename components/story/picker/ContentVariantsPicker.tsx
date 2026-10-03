@@ -159,7 +159,7 @@ export default function ContentVariantsPicker({ onSelect }: Props) {
                   onSelect({
                     category: "content",
                     variant,
-                    data: defaultData(variant),
+                    data: { ...defaultData(variant), thumbnail_url: base + preview },
                   })
                 }
                 className="group overflow-hidden rounded-xl border border-[#ddd9d0] bg-white text-left hover:border-[#aaa49b] hover:shadow-[0_12px_35px_rgba(0,0,0,.06)]"
