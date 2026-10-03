@@ -328,10 +328,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             sort_order: block.sort_order,
             data: {
                 ...block.data,
-                variant: block.variant,
-                eyebrow: block.eyebrow,
-                title: block.title,
-                body: block.body,
+                ...(block.variant ? { variant: block.variant } : {}),
             },
             media: (block.media ?? []) as unknown as Media[],
         }));
