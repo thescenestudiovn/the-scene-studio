@@ -98,12 +98,6 @@ function BannerBlockEditor({ block, onChange }: Props) {
   const [altOpen, setAltOpen] = useState(false);
   const focalPoint = text(data.focal_point) || "50% 50%";
   const inputRef = useRef<HTMLInputElement>(null);
-  const [eyebrowDraft, setEyebrowDraft] = useState(() => text(data.eyebrow));
-
-  useEffect(() => {
-    setEyebrowDraft(text(data.eyebrow));
-  }, [block.id]);
-
   useEffect(() => {
     let active = true;
     fetch("/api/admin/pages", { cache: "no-store" })
@@ -322,6 +316,12 @@ function BannerBlockEditor({ block, onChange }: Props) {
 
 
 function InfoBlockEditor({ block, onChange }: Props) {
+  const [eyebrowDraft, setEyebrowDraft] = useState(() => text(data.eyebrow));
+
+  useEffect(() => {
+    setEyebrowDraft(text(data.eyebrow));
+  }, [block.id]);
+
   const data = block.data ?? {};
   const variant = block.variant ?? text(data.variant) ?? "info-1";
   const media = block.media ?? [];
