@@ -129,16 +129,31 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const legacyContent=block.body??block.title??"";
   const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
   const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";
+
   const makeInitialLines=():TextLine[]=>{
-    if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize,align:typeof item==="object"&&item!==null&&"align" in item&&["left","center","right","justify"].includes(String((item as {align?:unknown}).align))?(item as {align:TextAlign}).align:defaultAlign}));
+    if(storedLines?.length)return storedLines.map(item=>({
+      content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",
+      textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize,
+      align:typeof item==="object"&&item!==null&&"align" in item&&["left","center","right","justify"].includes(String((item as {align?:unknown}).align))?(item as {align:TextAlign}).align:defaultAlign
+    }));
+
     const holder=document.createElement("div");
     holder.innerHTML=legacyContent;
     const lineNodes=Array.from(holder.children);
-    if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize,align:((node as HTMLElement).style.textAlign as TextAlign)||defaultAlign}));
+    if(lineNodes.length)return lineNodes.map(node=>({
+      content:(node as HTMLElement).innerHTML,
+      textSize:defaultSize,
+      align:((node as HTMLElement).style.textAlign as TextAlign)||defaultAlign
+    }));
+
     const text=holder.innerHTML.replace(/<br\s*\/?>(?=.)/gi,"\n");
     return text.split(/\n+/).map(content=>({content,textSize:defaultSize,align:defaultAlign}));
   };
-  const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
+
+  const [lines,setLines]=useState<TextLine[]>(()=>{
+    const initial=makeInitialLines();
+    return initial.length?initial:[{content:"",textSize:defaultSize,align:defaultAlign}];
+  });
   const [editing,setEditing]=useState(false);
   const [toolbarPosition,setToolbarPosition]=useState<{top:number;left:number;visible:boolean}>({top:0,left:0,visible:false});
   const [toolbarHeight,setToolbarHeight]=useState(0);
@@ -146,33 +161,56 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const wrapperRef=useRef<HTMLDivElement|null>(null);
   const selectionRef=useRef<SavedSelection|null>(null);
   const linesRef=useRef<TextLine[]>(lines);
+  const dirtyRef=useRef(false);
+
   useEffect(()=>{linesRef.current=lines;},[lines]);
+
   const linesKey=JSON.stringify(storedLines??legacyContent);
 
-  const persist=(next:TextLine[], updateState=true)=>{
-    linesRef.current=next;
-    if(updateState)setLines(next);
-    onChange({body:next.map(line=>line.content).join("<br />"),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
-  };
-
-  const getSizeFromElement=(element:Element)=>Array.from(element.classList).find(name=>TEXT_STYLES[name])??defaultSize;
   const getDirectLineElements=()=>{
     const editor=editorRef.current;
     if(!editor)return [];
     return Array.from(editor.children).filter(node=>node.nodeType===1) as HTMLElement[];
   };
 
-  const syncLinesFromDom=(updateState=true)=>{
+  const getSizeFromElement=(element:Element,index:number)=>{
+    return Array.from(element.classList).find(name=>TEXT_STYLES[name])??linesRef.current[index]?.textSize??defaultSize;
+  };
+
+  const readDomLines=():TextLine[]=>{
     const editor=editorRef.current;
-    if(!editor)return;
+    if(!editor)return linesRef.current;
     const children=getDirectLineElements();
+
     if(!children.length){
-      const next=[{content:editor.innerHTML,textSize:defaultSize,align:defaultAlign}];
-      persist(next,updateState);
-      return;
+      return [{
+        content:editor.innerHTML,
+        textSize:linesRef.current[0]?.textSize??defaultSize,
+        align:((editor.style.textAlign as TextAlign)||linesRef.current[0]?.align||defaultAlign)
+      }];
     }
-    const next=children.map((child,index)=>({content:child.innerHTML,textSize:getSizeFromElement(child)||linesRef.current[index]?.textSize||defaultSize,align:((child.style.textAlign as TextAlign)||linesRef.current[index]?.align||defaultAlign)}));
-    persist(next,updateState);
+
+    return children.map((child,index)=>({
+      content:child.innerHTML,
+      textSize:getSizeFromElement(child,index),
+      align:((child.style.textAlign as TextAlign)||linesRef.current[index]?.align||defaultAlign)
+    }));
+  };
+
+  const persist=(next:TextLine[],updateState=true)=>{
+    linesRef.current=next;
+    if(updateState)setLines(next);
+    onChange({
+      body:next.map(line=>line.content).join("<br />"),
+      data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}
+    });
+  };
+
+  const commitDom=()=>{
+    const next=readDomLines();
+    dirtyRef.current=false;
+    persist(next,true);
+    return next;
   };
 
   const saveSelection=()=>{
@@ -202,6 +240,14 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(!selection||!selection.rangeCount||!editor.contains(selection.anchorNode))return [];
     const children=getDirectLineElements();
     const range=selection.getRangeAt(0);
+
+    if(range.collapsed){
+      const node=range.startContainer.nodeType===1?range.startContainer:(range.startContainer.parentElement);
+      const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
+      const index=line?children.indexOf(line):-1;
+      return index>=0?[index]:[];
+    }
+
     return children.map((child,index)=>{
       try{return range.intersectsNode(child)?index:-1}catch{return -1;}
     }).filter(index=>index>=0);
@@ -211,18 +257,20 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(!restoreSelection())return;
     const indexes=getSelectedLineIndexes();
     if(!indexes.length)return;
-    const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,align:nextAlign}:line);
     const children=getDirectLineElements();
-    indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});
-    linesRef.current=next;
-    selectionRef.current={range:window.getSelection()?.getRangeAt(0)?.cloneRange() ?? selectionRef.current!.range,editor:editorRef.current!};
+    indexes.forEach(index=>{
+      const child=children[index];
+      if(child)child.style.textAlign=nextAlign;
+    });
+    linesRef.current=readDomLines();
+    dirtyRef.current=true;
+    saveSelection();
   };
 
   const updateSelectedSize=(nextSize:string)=>{
     if(!restoreSelection())return;
     const indexes=getSelectedLineIndexes();
     if(!indexes.length)return;
-    const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,textSize:nextSize}:line);
     const children=getDirectLineElements();
     indexes.forEach(index=>{
       const child=children[index];
@@ -230,7 +278,8 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
         child.className="w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[nextSize]??"text-base leading-7");
       }
     });
-    linesRef.current=next;
+    linesRef.current=readDomLines();
+    dirtyRef.current=true;
     saveSelection();
   };
 
@@ -246,29 +295,38 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   };
 
   useEffect(()=>{
-    if(!editing){setToolbarPosition(p=>p.visible?{...p,visible:false}:p);return;}
+    if(!editing){
+      setToolbarPosition(p=>p.visible?{...p,visible:false}:p);
+      return;
+    }
     updateToolbarPosition();
     window.addEventListener("resize",updateToolbarPosition);
     window.addEventListener("scroll",updateToolbarPosition,true);
-    return()=>{window.removeEventListener("resize",updateToolbarPosition);window.removeEventListener("scroll",updateToolbarPosition,true);};
+    return()=>{
+      window.removeEventListener("resize",updateToolbarPosition);
+      window.removeEventListener("scroll",updateToolbarPosition,true);
+    };
   },[editing,toolbarHeight]);
 
   useEffect(()=>{
     if(editing)return;
     const initial=makeInitialLines();
-    const next=initial.length?initial:[{content:"",textSize:defaultSize}];
+    const next=initial.length?initial:[{content:"",textSize:defaultSize,align:defaultAlign}];
     setLines(current=>{
-      const sameContent=current.length===next.length&&current.every((line,index)=>line.content===next[index].content);
-      const sameSizes=current.length===next.length&&current.every((line,index)=>line.textSize===next[index].textSize);
-      const sameAlign=current.length===next.length&&current.every((line,index)=>line.align===next[index].align);
-      return sameContent&&sameSizes&&sameAlign?current:next;
+      const same=current.length===next.length&&current.every((line,index)=>line.content===next[index].content&&line.textSize===next[index].textSize&&line.align===next[index].align);
+      return same?current:next;
     });
+    linesRef.current=next;
   },[linesKey,block.id,editing]);
 
   useEffect(()=>{
     const editor=editorRef.current;
     if(!editor||editing)return;
-    const html=lines.map(line=>"<div class=\"w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[line.textSize]??"text-base leading-7")+"\" style=\"text-align:"+(line.align||defaultAlign)+"\">"+(line.content||"")+"</div>").join("");
+    const html=lines.map((line,index)=>{
+      const size=TEXT_STYLES[line.textSize]??"text-base leading-7";
+      const align=line.align||defaultAlign;
+      return `<div data-text-line="true" class="w-full min-h-10 outline-none whitespace-pre-wrap ${size}" style="text-align:${align}">${line.content||""}</div>`;
+    }).join("");
     if(editor.innerHTML!==html)editor.innerHTML=html;
   },[lines,editing]);
 
@@ -277,8 +335,13 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const closeOnOutsideClick=(event:MouseEvent)=>{
       const target=event.target as Node|null;
       if(wrapperRef.current?.contains(target))return;
-      if(target&&(target as Element).closest?.("[data-rich-text-toolbar]") || (target as Element).closest?.("[data-admin-block-editor]"))return;
-      syncLinesFromDom(true);
+      if(target&&(target as Element).closest?.("[data-rich-text-toolbar]")||(target as Element).closest?.("[data-admin-block-editor]"))return;
+
+      // The editor stays mounted until the DOM has been committed.
+      // Never depend on a React state update that may unmount the editor first.
+      if(dirtyRef.current)commitDom();
+      else if(editorRef.current)linesRef.current=readDomLines();
+
       setEditing(false);
       selectionRef.current=null;
       onBlur();
@@ -293,20 +356,38 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   };
 
   const handleInput=()=>{
+    // Keep an always-current snapshot without updating React or the parent.
+    // This prevents caret jumps while still guaranteeing that blur has data.
+    linesRef.current=readDomLines();
+    dirtyRef.current=true;
     saveSelection();
   };
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
 
-  const firstSize=lines[0]?.textSize||defaultSize;
+  const firstSelectedIndex=getSelectedLineIndexes()[0]??0;
+  const firstSize=linesRef.current[firstSelectedIndex]?.textSize||lines[0]?.textSize||defaultSize;
   const isHeadingLayout=layout==="heading-1"||layout==="heading-2"||layout==="heading-3";
   const textWidthClass=isHeadingLayout?"w-full":layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
-  const html=lines.map(line=>`<div class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[line.textSize]??"text-base leading-7"}" style="text-align:${line.align||defaultAlign}">${line.content||""}</div>`).join("");
+  const html=lines.map(line=>`<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[line.textSize]??"text-base leading-7"}" style="text-align:${line.align||defaultAlign}">${line.content||""}</div>`).join("");
+
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
     <div ref={wrapperRef} className={`relative mx-auto ${textWidthClass}`}>
-      {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize} onAlignChange={updateSelectedAlign}/>}
+      {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={()=>{dirtyRef.current=true;saveSelection()}} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize} onAlignChange={updateSelectedAlign}/>}
       <div className="mt-5 text-[#77736c]">
-        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} dangerouslySetInnerHTML={{__html:html}} />
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          spellCheck
+          className="w-full cursor-text outline-none whitespace-pre-wrap"
+          onFocus={handleFocus}
+          onMouseUp={saveSelection}
+          onKeyUp={saveSelection}
+          onInput={handleInput}
+          onBlur={()=>{if(dirtyRef.current){commitDom();}onBlur();}}
+          dangerouslySetInnerHTML={{__html:html}}
+        />
       </div>
     </div>
   </section>;
