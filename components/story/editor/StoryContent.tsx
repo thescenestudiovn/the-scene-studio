@@ -152,7 +152,7 @@ function TextToolbar({editorRef,selectionRef,currentSize,onSizeChange,onAlignCha
   return typeof document!=="undefined" ? createPortal(toolbar,document.body) : null;
 }
 
-function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}){
+function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onCommit:(patch:Partial<StoryBlock>)=>void}){
   const rawVariant=block.variant??"paragraph";
   const variant=rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant.startsWith("columns-")?"columns":rawVariant;
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
@@ -199,7 +199,9 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const editor=editorRef.current;if(!editor)return;
     const lines=getLines();
     const body=lines.map(l=>l.content).join("<br />");
-    onChange({body,data:{...(block.data??{}),variant,layout,lines,textSize:lines[0]?.textSize??defaultSize}});
+    const patch:Partial<StoryBlock>={body,data:{...(block.data??{}),variant,layout,lines,textSize:lines[0]?.textSize??defaultSize}};
+    onChange(patch);
+    onCommit(patch);
   };
   const saveSelection=()=>{
     const sel=window.getSelection();
@@ -244,10 +246,19 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const close=(event:MouseEvent)=>{
       const target=event.target as Element|null;
       if(wrapperRef.current?.contains(target)||target?.closest("[data-rich-text-toolbar]"))return;
-      commit();setEditing(false);selectionRef.current=null;onBlur();
+      setEditing(false);selectionRef.current=null;
     };
     document.addEventListener("mousedown",close);
     return()=>document.removeEventListener("mousedown",close);
+  },[editing]);
+
+  useEffect(()=>{
+    if(!editing)return;
+    const editor=editorRef.current;
+    if(!editor)return;
+    const handleBlur=()=>commit();
+    editor.addEventListener("blur",handleBlur);
+    return()=>editor.removeEventListener("blur",handleBlur);
   },[editing]);
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
@@ -362,7 +373,7 @@ function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:P
     {imageLayout&&<MediaPickerModal open={pickerOpen} required={1} selectedIds={selectedIds.slice(0,1)} collectionId="" onClose={()=>setPickerOpen(false)} onDone={(_collectionId,ids,media)=>{onChange({data:{...data,media_ids:ids.slice(0,1),image_url:""},media:media as unknown as StoryBlock["media"]});setPickerOpen(false)}}/>}
   </div>
 }function MapBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){const data=block.data??{};const update=(key:string,value:string)=>onChange({data:{...data,[key]:value}});return <div className="grid gap-4 border border-[#d9d3ca] bg-[#fbfaf7] p-6"><p className="text-[10px] uppercase tracking-[0.16em] text-[#8a857d]">Map · {block.variant||"map-1-regular"}</p><input className="w-full border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Address" value={typeof data.address==="string"?data.address:""} onChange={e=>update("address",e.target.value)}/><input className="w-full border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Google Maps embed URL" value={typeof data.embed_url==="string"?data.embed_url:""} onChange={e=>update("embed_url",e.target.value)}/><div className="flex min-h-32 items-center justify-center bg-[#e8e4dc] text-xs uppercase tracking-[0.12em] text-[#8a857d]">{typeof data.address==="string"&&data.address?data.address:"Map preview"}</div></div>}
-export function BlockEditor({storyId,block,blocks,onBlocksChange,onUpdate}:{storyId:string;block:StoryBlock;blocks:StoryBlock[];onBlocksChange:Props["onBlocksChange"];onUpdate:Props["onUpdate"]}){const updateLocal=(patch:Partial<StoryBlock>)=>onBlocksChange(blocks.map(item=>item.id===block.id?{...item,...patch}:item));const variant=block.variant??"";const isText=block.type==="text"||block.type.startsWith("text-");const isTextColumns=isText&&TEXT_COLUMN_VARIANTS.includes(variant as (typeof TEXT_COLUMN_VARIANTS)[number]);const isGrid=block.type==="image"&&variant.startsWith("grid-");const isImageWithText=block.type==="image"&&variant.startsWith("text-");if(isTextColumns)return <TextColumnsEditor block={block} onChange={updateLocal}/>;if(isText)return <TextBlockEditor block={block} onChange={updateLocal} onBlur={()=>onUpdate(block,{body:block.body??undefined,title:block.title??undefined})}/>;if(isGrid)return <GridGalleryEditor storyId={storyId} block={block} onChange={updateLocal}/>;if(isImageWithText)return <ImageWithTextEditor storyId={storyId} block={block} onChange={updateLocal}/>;if(block.type==="image")return <ImageBlockEditor storyId={storyId} block={block} onChange={updateLocal}/>;if(block.type==="contact")return <ContactBlockEditor block={block} onChange={updateLocal}/>;if(block.type==="map")return <MapBlockEditor block={block} onChange={updateLocal}/>;if(block.type==="content"){if(variant==="banner-video")return <VideoBlockEditor block={block} onChange={updateLocal} onSave={patch=>onUpdate(block,patch)}/>;return <ContentBlockEditor block={block} onChange={updateLocal}/>;}return <div className="border border-dashed border-[#d9d3ca] bg-white p-7 lg:p-9"><p className="text-sm text-[#77736c]">This block type does not have an editor yet.</p></div>}
+export function BlockEditor({storyId,block,blocks,onBlocksChange,onUpdate}:{storyId:string;block:StoryBlock;blocks:StoryBlock[];onBlocksChange:Props["onBlocksChange"];onUpdate:Props["onUpdate"]}){const updateLocal=(patch:Partial<StoryBlock>)=>onBlocksChange(blocks.map(item=>item.id===block.id?{...item,...patch}:item));const variant=block.variant??"";const isText=block.type==="text"||block.type.startsWith("text-");const isTextColumns=isText&&TEXT_COLUMN_VARIANTS.includes(variant as (typeof TEXT_COLUMN_VARIANTS)[number]);const isGrid=block.type==="image"&&variant.startsWith("grid-");const isImageWithText=block.type==="image"&&variant.startsWith("text-");if(isTextColumns)return <TextColumnsEditor block={block} onChange={updateLocal}/>;if(isText)return <TextBlockEditor block={block} onChange={updateLocal} onCommit={patch=>onUpdate(block,patch)}/>;if(isGrid)return <GridGalleryEditor storyId={storyId} block={block} onChange={updateLocal}/>;if(isImageWithText)return <ImageWithTextEditor storyId={storyId} block={block} onChange={updateLocal}/>;if(block.type==="image")return <ImageBlockEditor storyId={storyId} block={block} onChange={updateLocal}/>;if(block.type==="contact")return <ContactBlockEditor block={block} onChange={updateLocal}/>;if(block.type==="map")return <MapBlockEditor block={block} onChange={updateLocal}/>;if(block.type==="content"){if(variant==="banner-video")return <VideoBlockEditor block={block} onChange={updateLocal} onSave={patch=>onUpdate(block,patch)}/>;return <ContentBlockEditor block={block} onChange={updateLocal}/>;}return <div className="border border-dashed border-[#d9d3ca] bg-white p-7 lg:p-9"><p className="text-sm text-[#77736c]">This block type does not have an editor yet.</p></div>}
 
 function DragHandle({id,onDragStart,onDragEnd}:{id:string;onDragStart:(id:string)=>void;onDragEnd:()=>void}){return <button type="button" draggable aria-label="Drag to reorder block" title="Drag to reorder" onDragStart={e=>{e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",id);onDragStart(id)}} onDragEnd={onDragEnd} className="flex h-7 w-7 cursor-grab items-center justify-center bg-[#f5f2ec] text-[#77736c] hover:bg-white active:cursor-grabbing" onMouseDown={e=>e.stopPropagation()}><svg aria-hidden="true" width="14" height="16" viewBox="0 0 14 16" fill="none"><circle cx="4" cy="3" r="1" fill="currentColor"/><circle cx="10" cy="3" r="1" fill="currentColor"/><circle cx="4" cy="8" r="1" fill="currentColor"/><circle cx="10" cy="8" r="1" fill="currentColor"/><circle cx="4" cy="13" r="1" fill="currentColor"/><circle cx="10" cy="13" r="1" fill="currentColor"/></svg></button>}
 
