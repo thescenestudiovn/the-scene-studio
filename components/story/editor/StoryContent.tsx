@@ -244,7 +244,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     return true;
   };
 
-  const selectedParagraphs=()=>{
+  const selectedParagraphs=():HTMLElement[]=>{
     const editor=editorRef.current;
     const selection=window.getSelection();
     if(!editor||!selection||!selection.rangeCount)return [];
@@ -253,7 +253,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(range.collapsed){
       const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
       const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-      return line?[line]:[];
+      return line instanceof HTMLElement?[line]:[];
     }
     return children.filter(child=>{
       try{return range.intersectsNode(child)}catch{return false}
