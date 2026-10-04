@@ -66,18 +66,62 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     const variant = text(data.layout) || text(data.variant) || "regular";
     const title = text(data.title);
     const count = imageCount(variant);
-    const columns = Array.isArray(data.columns) ? data.columns.map(item => typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
+    const columns = Array.isArray(data.columns) ? data.columns.map(item => item && typeof item === "object" && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
     const isColumns = variant === "columns-2" || variant === "columns-3" || variant === "columns-4";
-    const width = variant === "narrow" ? "max-w-2xl" : isColumns ? blockLayout.container.wide : blockLayout.container.medium;
-    const bodyStyle = variant === "heading-1" ? "font-serif text-5xl leading-[1.08]" : variant === "heading-2" ? "font-serif text-4xl leading-[1.12]" : variant === "heading-3" ? "font-serif text-3xl leading-[1.16]" : variant === "wide" ? "text-xl leading-8" : variant === "narrow" || variant === "regular" ? "text-base leading-7" : "text-sm leading-6";
+    const isHeadingLayout = variant === "heading-1" || variant === "heading-2" || variant === "heading-3";
+    const defaultSize =
+        variant === "heading-1" ? "heading-1" :
+        variant === "heading-2" ? "heading-2" :
+        variant === "heading-3" ? "heading-3" :
+        variant === "wide" ? "paragraph-1" :
+        variant === "narrow" ? "paragraph-3" :
+        "paragraph-2";
+    const textStyle = (size: string) =>
+        size === "banner-heading" ? "font-serif text-6xl leading-[1.05]" :
+        size === "banner-subtitle" ? "text-lg leading-7" :
+        size === "heading-1" ? "font-serif text-5xl leading-[1.08]" :
+        size === "heading-2" ? "font-serif text-4xl leading-[1.12]" :
+        size === "heading-3" ? "font-serif text-3xl leading-[1.16]" :
+        size === "heading-4" ? "font-serif text-2xl leading-[1.2]" :
+        size === "heading-5" ? "font-serif text-xl leading-[1.25]" :
+        size === "heading-6" ? "font-serif text-lg leading-[1.3]" :
+        size === "paragraph-1" ? "text-xl leading-8" :
+        size === "paragraph-3" ? "text-sm leading-6" :
+        "text-base leading-7";
+    const storedLines = Array.isArray(data.lines) ? data.lines as unknown[] : [];
+    const lines = storedLines.map(item => {
+        if (!item || typeof item !== "object") return null;
+        const value = item as { content?: unknown; textSize?: unknown; align?: unknown };
+        return {
+            content: typeof value.content === "string" ? value.content : "",
+            textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,
+            align: typeof value.align === "string" && ["left", "center", "right", "justify"].includes(value.align)
+                ? value.align
+                : (isHeadingLayout ? "center" : "left"),
+        };
+    }).filter((line): line is { content: string; textSize: string; align: "left" | "center" | "right" | "justify" } => line !== null);
+    const textWidthClass =
+        isHeadingLayout ? "w-full" :
+        variant === "wide" ? "w-full" :
+        variant === "narrow" ? "w-full md:w-1/2" :
+        "w-full md:w-[70%]";
     const body = sanitizeHtml(text(data.body));
-    return <section className={blockLayout.section.spacious}><div className={`mx-auto ${width}`}>
-        {text(data.eyebrow) && <p className={blockLayout.typography.eyebrow}>{text(data.eyebrow)}</p>}
-        {title && <h2 className={`mt-5 ${blockLayout.typography.heading}`}>{title}</h2>}
-        {isColumns ? <div className={`mt-7 grid gap-8 ${count === 2 ? "md:grid-cols-2" : count === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>{Array.from({ length: count }, (_, index) => <div key={index} className="min-w-0 text-base leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(columns[index] ?? "") }} />)}</div> : body && <div className={`mt-7 whitespace-pre-wrap text-[#77736c] ${bodyStyle}`} dangerouslySetInnerHTML={{ __html: body }} />}
+    return <section className="px-6 py-6 md:px-10 md:py-8"><div className={`mx-auto ${textWidthClass}`}>
+        {text(data.eyebrow) && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{text(data.eyebrow)}</p>}
+        {title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}
+        {isColumns ? (
+            <div className={`mt-5 grid gap-8 ${count === 2 ? "md:grid-cols-2" : count === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
+                {Array.from({ length: count }, (_, index) => <div key={index} className="min-w-0 text-base leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(columns[index] ?? "") }} />)}
+            </div>
+        ) : lines.length > 0 ? (
+            <div className="mt-5 text-[#77736c]">
+                {lines.map((line, index) => <div key={index} className={`whitespace-pre-wrap ${textStyle(line.textSize)}`} style={{ textAlign: line.align }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(line.content) }} />)}
+            </div>
+        ) : body ? (
+            <div className={`mt-5 whitespace-pre-wrap text-[#77736c] ${textStyle(defaultSize)}`} style={{ textAlign: isHeadingLayout ? "center" : "left" }} dangerouslySetInnerHTML={{ __html: body }} />
+        ) : null}
     </div></section>;
 }
-
 function ContactBlock({ data, media }: { data: Record<string, unknown>; media: Media[] }) {
     const title = text(data.title);
     const body = text(data.body);
