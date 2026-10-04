@@ -134,7 +134,7 @@ function TextToolbar({editorRef,selectionRef,currentSize,onSizeChange,onAlignCha
     document.execCommand(command,false,value);
     save();
   };
-  const toolbar=<div data-rich-text-toolbar className="fixed z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-lg" onMouseDown={e=>e.preventDefault()}>
+  const toolbar=<div data-rich-text-toolbar className="sticky top-0 z-[1000] flex w-full flex-wrap items-center gap-0.5 border-b border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" onMouseDown={e=>e.preventDefault()}>
     <select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>onSizeChange(e.target.value)} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none">
       {SIZE_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
@@ -246,6 +246,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
     const close=(event:MouseEvent)=>{
       const target=event.target as Element|null;
       if(wrapperRef.current?.contains(target)||target?.closest("[data-rich-text-toolbar]"))return;
+      commit();
       setEditing(false);selectionRef.current=null;
     };
     document.addEventListener("mousedown",close);
