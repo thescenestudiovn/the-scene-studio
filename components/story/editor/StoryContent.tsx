@@ -301,7 +301,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
         contentEditable
         suppressContentEditableWarning
         spellCheck
-        className="w-full min-h-12 cursor-text outline-none"
+        className="w-full min-h-12 cursor-text outline-none text-[#77736c]"
         onClick={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
         onFocus={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
         onMouseUp={saveSelection}
