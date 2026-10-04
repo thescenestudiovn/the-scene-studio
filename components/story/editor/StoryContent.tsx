@@ -265,13 +265,20 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
 
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
     <div ref={wrapperRef} className="relative mx-auto w-full">
-      {editing&&<TextToolbar editorRef={editorRef} selectionRef={{current:selectionRef.current?{range:selectionRef.current,editor:editorRef.current!}:null}} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[9px] uppercase tracking-[0.16em] text-[#8a857d]">{LABELS[rawVariant] ?? "Text"}</span>
+        {editing && <span className="text-[9px] uppercase tracking-[0.12em] text-[#aaa49a]">Editing</span>}
+      </div>
+      {editing && <div className="mb-3">
+        <TextToolbar editorRef={editorRef} selectionRef={{current:selectionRef.current?{range:selectionRef.current,editor:editorRef.current!}:null}} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>
+      </div>}
       <div
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
         spellCheck
-        className="mt-5 w-full cursor-text outline-none"
+        className={`w-full min-h-12 cursor-text outline-none ${editing ? "border border-[#d8d3ca] bg-white px-4 py-4" : "border border-transparent"}`}
+        onClick={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
         onFocus={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
         onMouseUp={saveSelection}
         onKeyUp={()=>{saveSelection();const sel=window.getSelection();if(sel?.rangeCount){const node=sel.getRangeAt(0).startContainer.parentElement;const line=node?.closest("[data-text-line]") as HTMLElement|null;if(line?.getAttribute("data-text-size"))setCurrentSize(line.getAttribute("data-text-size")!);}}}
