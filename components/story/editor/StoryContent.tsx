@@ -161,7 +161,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
   const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";
   const editorRef=useRef<HTMLDivElement|null>(null);
   const wrapperRef=useRef<HTMLDivElement|null>(null);
-  const selectionRef=useRef<Range|null>(null);
+  const selectionRef=useRef<SavedSelection|null>(null);
   const [editing,setEditing]=useState(false);
   const [currentSize,setCurrentSize]=useState(defaultSize);
 
@@ -230,12 +230,12 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
   const saveSelection=()=>{
     const sel=window.getSelection();
     const editor=editorRef.current;
-    if(sel&&sel.rangeCount&&editor&&editor.contains(sel.anchorNode))selectionRef.current=sel.getRangeAt(0).cloneRange();
+    if(sel&&sel.rangeCount&&editor&&editor.contains(sel.anchorNode))selectionRef.current={range:sel.getRangeAt(0).cloneRange(),editor};
   };
   const restoreSelection=()=>{
-    const range=selectionRef.current;if(!range||!editorRef.current)return false;
+    const saved=selectionRef.current;const editor=editorRef.current;if(!saved||!editor||saved.editor!==editor)return false;
     const sel=window.getSelection();if(!sel)return false;
-    editorRef.current.focus();sel.removeAllRanges();sel.addRange(range);return true;
+    editor.focus();sel.removeAllRanges();sel.addRange(saved.range);return true;
   };
   const selectedLines=()=>{
     const editor=editorRef.current;const sel=window.getSelection();
