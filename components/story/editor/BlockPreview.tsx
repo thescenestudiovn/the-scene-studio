@@ -22,6 +22,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
   const title = text(data.title || block.title);
   const eyebrow = text(data.eyebrow || block.eyebrow);
   const storedLines = Array.isArray(data.lines) ? data.lines as unknown[] : [];
+  const isHeadingLayout = variant === "heading-1" || variant === "heading-2" || variant === "heading-3";
   const defaultSize = text(data.textSize) || (
     variant === "heading-1" ? "heading-1" :
     variant === "heading-2" ? "heading-2" :
@@ -46,21 +47,20 @@ function TextPreview({ block }: { block: StoryBlock }) {
   const lines = storedLines
     .map(item => {
       if (typeof item !== "object" || item === null) return null;
-      const value = item as { content?: unknown; textSize?: unknown };
+      const value = item as { content?: unknown; textSize?: unknown; align?: unknown };
       return {
         content: typeof value.content === "string" ? value.content : "",
         textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,
         align: typeof value.align === "string" && ["left","center","right","justify"].includes(value.align) ? value.align : (isHeadingLayout ? "center" : "left"),
       };
     })
-    .filter((line): line is { content: string; textSize: string } => Boolean(line));
+    .filter((line): line is { content: string; textSize: string; align: "left"|"center"|"right"|"justify" } => line !== null);
 
   const textWidthClass =
     variant === "heading-1" || variant === "heading-2" || variant === "heading-3" ? "w-full" :
     variant === "wide" ? "w-full" :
     variant === "narrow" ? "w-full md:w-1/2" :
     "w-full md:w-[70%]";
-  const isHeadingLayout = variant === "heading-1" || variant === "heading-2" || variant === "heading-3";
 
   return <section className="px-6 py-12 md:px-10 md:py-16"><div className={`mx-auto ${textWidthClass}`}>
     {eyebrow && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{eyebrow}</p>}
