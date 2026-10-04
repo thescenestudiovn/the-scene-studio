@@ -305,7 +305,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
     </div>
   </section>;
 }
-k;onChange:(patch:Partial<StoryBlock>)=>void}){
+function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){
   const data=block.data??{};
   const [pickerOpen,setPickerOpen]=useState(false);
   const headingRef=useRef<HTMLHeadingElement|null>(null);
