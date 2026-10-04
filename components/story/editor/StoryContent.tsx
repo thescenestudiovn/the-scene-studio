@@ -191,7 +191,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
     const editor=editorRef.current;if(!editor)return;
     Array.from(editor.children).forEach((rawNode)=>{
       if(!(rawNode instanceof HTMLElement))return;
-      const node:HTMLElement=rawNode;
+      let node:HTMLElement=rawNode;
       if(!(node instanceof HTMLElement))return;
       if(!["P","DIV"].includes(node.tagName))return;
       const existingSize=node.getAttribute("data-text-size");
