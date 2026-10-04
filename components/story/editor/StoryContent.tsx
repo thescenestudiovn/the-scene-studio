@@ -173,7 +173,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
         const content=typeof v.content==="string"?v.content:"";
         const size=typeof v.textSize==="string"&&TEXT_STYLES[v.textSize]?v.textSize:defaultSize;
         const align=typeof v.align==="string"&&["left","center","right","justify"].includes(v.align)?v.align:defaultAlign;
-        return `<p data-text-line="true" data-text-size="${escape(size)}" style="text-align:${align}" class="${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${content||"<br>"}</p>`;
+        return `<div data-text-line="true" data-text-size="${escape(size)}" style="text-align:${align}" class="${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${content||"<br>"}</div>`;
       }).join("");
     }
     const body=typeof block.body==="string"?block.body:(typeof block.title==="string"?block.title:"");
@@ -181,9 +181,9 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
       const holder=document.createElement("div");holder.innerHTML=body;
       const nodes=Array.from(holder.childNodes);
       const html=nodes.length>1?nodes.map(node=>node.nodeType===1?(node as HTMLElement).outerHTML:escape(node.textContent??"")).join(""):body;
-      return html.split(/<br\s*\/?>/i).map((part,index)=>`<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${part||"<br>"}</p>`).join("");
+      return html.split(/<br\s*\/?>/i).map((part,index)=>`<div data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${part||"<br>"}</div>`).join("");
     }
-    return `<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap"><br></p>`;
+    return `<div data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap"><br></div>`;
   };
 
   const normalizeLines=()=>{
@@ -192,12 +192,12 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
       if(!(rawNode instanceof HTMLElement))return;
       let node:HTMLElement=rawNode;
       if(!(node instanceof HTMLElement))return;
-      if(!["P","DIV"].includes(node.tagName))return;
+      if(node.tagName!=="DIV")return;
       const existingSize=node.getAttribute("data-text-size");
       const size=existingSize&&TEXT_STYLES[existingSize]?existingSize:defaultSize;
       const align=(node.style.textAlign as TextAlign)||defaultAlign;
-      if(node.tagName!=="P"){
-        const p=document.createElement("p");
+      if(node.tagName!=="DIV"){
+        const p=document.createElement("div");
         p.innerHTML=node.innerHTML||"<br>";
         Array.from(node.attributes).forEach(attr=>{if(attr.name!=="class"&&attr.name!=="style")p.setAttribute(attr.name,attr.value);});
         node.replaceWith(p);
