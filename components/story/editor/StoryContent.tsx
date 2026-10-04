@@ -162,48 +162,66 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
   const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";
 
-  const makeInitialLines=():TextLine[]=>{
-    if(storedLines?.length)return storedLines.map(item=>({
-      content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",
-      textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize,
-      align:typeof item==="object"&&item!==null&&"align" in item&&["left","center","right","justify"].includes(String((item as {align?:unknown}).align))?(item as {align:TextAlign}).align:defaultAlign
-    }));
-
-    const holder=document.createElement("div");
-    holder.innerHTML=legacyContent;
-    const nodes=Array.from(holder.children);
-    if(nodes.length)return nodes.map(node=>({
-      content:(node as HTMLElement).innerHTML,
-      textSize:defaultSize,
-      align:((node as HTMLElement).style.textAlign as TextAlign)||defaultAlign
-    }));
-    return [{content:holder.innerHTML,textSize:defaultSize,align:defaultAlign}];
-  };
-
-  const [lines,setLines]=useState<TextLine[]>(()=>makeInitialLines());
-  const [editing,setEditing]=useState(false);
-  const [toolbarPosition,setToolbarPosition]=useState({top:0,left:0,visible:false});
-  const [currentSize,setCurrentSize]=useState(defaultSize);
   const editorRef=useRef<HTMLDivElement|null>(null);
   const wrapperRef=useRef<HTMLDivElement|null>(null);
   const selectionRef=useRef<SavedSelection|null>(null);
   const editingRef=useRef(false);
+  const [editing,setEditing]=useState(false);
+  const [toolbarPosition,setToolbarPosition]=useState({top:0,left:0,visible:false});
+  const [currentSize,setCurrentSize]=useState(defaultSize);
 
-  const renderHtml=(items:TextLine[])=>items.map(line=>{
-    const size=TEXT_STYLES[line.textSize]??"text-base leading-7";
-    return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${size}" style="text-align:${line.align||defaultAlign}">${line.content||""}</div>`;
-  }).join("");
+  const escapeHtml=(value:string)=>{
+    const div=document.createElement("div");
+    div.textContent=value;
+    return div.innerHTML;
+  };
 
-  const readDomLines=():TextLine[]=>{
+  const initialHtml=()=>{
+    if(storedLines?.length){
+      return storedLines.map(item=>{
+        const value=item as {content?:unknown;textSize?:unknown;align?:unknown};
+        const content=typeof value.content==="string"?value.content:"";
+        const size=typeof value.textSize==="string"&&TEXT_STYLES[value.textSize]?value.textSize:defaultSize;
+        const align=typeof value.align==="string"&&["left","center","right","justify"].includes(value.align)?value.align:defaultAlign;
+        return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(size)}" style="text-align:${align}">${content||"<br />"}</div>`;
+      }).join("");
+    }
+    if(legacyContent){
+      const holder=document.createElement("div");
+      holder.innerHTML=legacyContent;
+      if(holder.children.length){
+        return Array.from(holder.children).map((node,index)=>{
+          const element=node as HTMLElement;
+          const align=(element.style.textAlign as TextAlign)||defaultAlign;
+          return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(defaultSize)}" style="text-align:${align}">${element.innerHTML||"<br />"}</div>`;
+        }).join("");
+      }
+      return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(defaultSize)}" style="text-align:${defaultAlign}">${legacyContent}</div>`;
+    }
+    return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(defaultSize)}" style="text-align:${defaultAlign}"><br /></div>`;
+  };
+
+  const readLines=()=>{
     const editor=editorRef.current;
-    if(!editor)return lines;
-    const children=Array.from(editor.children).filter(node=>node.nodeType===1) as HTMLElement[];
-    if(!children.length)return [{content:editor.innerHTML,textSize:currentSize,align:(editor.style.textAlign as TextAlign)||defaultAlign}];
+    if(!editor)return [];
+    const children=Array.from(editor.children).filter(node=>node instanceof HTMLElement) as HTMLElement[];
     return children.map((child,index)=>{
-      const textSize=Array.from(child.classList).find(name=>TEXT_STYLES[name])??lines[index]?.textSize??defaultSize;
-      const align=(child.style.textAlign as TextAlign)||lines[index]?.align||defaultAlign;
-      return {content:child.innerHTML,textSize,align};
+      const textSize=child.dataset.textSize&&TEXT_STYLES[child.dataset.textSize]?child.dataset.textSize:(Array.from(child.classList).find(name=>TEXT_STYLES[name])??defaultSize);
+      const align=(child.style.textAlign as TextAlign)||defaultAlign;
+      return {content:child.innerHTML==="<br>"?"":child.innerHTML,textSize,align};
     });
+  };
+
+  const commit=()=>{
+    const editor=editorRef.current;
+    if(!editor)return;
+    const next=readLines();
+    const body=Array.from(editor.children).map(child=>child.innerHTML==="<br>"?"":(child as HTMLElement).innerHTML).join("<br />");
+    onChange({
+      body,
+      data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}
+    });
+    setCurrentSize(next[0]?.textSize??defaultSize);
   };
 
   const saveSelection=()=>{
@@ -226,48 +244,32 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     return true;
   };
 
-  const selectedLines=()=>{
+  const selectedParagraphs=()=>{
     const editor=editorRef.current;
     const selection=window.getSelection();
-    if(!editor||!selection||!selection.rangeCount||!editor.contains(selection.anchorNode))return [];
+    if(!editor||!selection||!selection.rangeCount)return [];
     const range=selection.getRangeAt(0);
-    const children=Array.from(editor.children) as HTMLElement[];
+    const children=Array.from(editor.children).filter(node=>node instanceof HTMLElement) as HTMLElement[];
     if(range.collapsed){
       const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
       const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-      const index=line?children.indexOf(line as HTMLElement):-1;
-      return index>=0?[index]:[];
+      return line?[line]:[];
     }
-    return children.map((child,index)=>{
-      try{return range.intersectsNode(child)?index:-1}catch{return -1}
-    }).filter(index=>index>=0);
-  };
-
-  const commit=()=>{
-    const next=readDomLines();
-    setLines(next);
-    setCurrentSize(next[0]?.textSize??defaultSize);
-    onChange({
-      body:next.map(line=>line.content).join("<br />"),
-      data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}
+    return children.filter(child=>{
+      try{return range.intersectsNode(child)}catch{return false}
     });
   };
 
   const applySize=(size:string)=>{
     if(!restoreSelection())return;
-    const editor=editorRef.current;
-    if(!editor)return;
-    const children=Array.from(editor.children) as HTMLElement[];
-    const indexes=selectedLines();
-    if(!indexes.length)return;
     const option=SIZE_OPTIONS.find(item=>item.value===size);
     if(!option)return;
-    indexes.forEach(index=>{
-      const child=children[index];
-      if(child){
-        child.className=`w-full outline-none whitespace-pre-wrap ${option.className}`;
-        child.setAttribute("data-text-line","true");
-      }
+    const paragraphs=selectedParagraphs();
+    if(!paragraphs.length)return;
+    paragraphs.forEach(paragraph=>{
+      paragraph.className=`w-full outline-none whitespace-pre-wrap ${option.className}`;
+      paragraph.dataset.textSize=size;
+      paragraph.setAttribute("data-text-line","true");
     });
     setCurrentSize(size);
     saveSelection();
@@ -275,12 +277,9 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
 
   const applyAlign=(align:TextAlign)=>{
     if(!restoreSelection())return;
-    const editor=editorRef.current;
-    if(!editor)return;
-    const children=Array.from(editor.children) as HTMLElement[];
-    const indexes=selectedLines();
-    if(!indexes.length)return;
-    indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=align});
+    const paragraphs=selectedParagraphs();
+    if(!paragraphs.length)return;
+    paragraphs.forEach(paragraph=>{paragraph.style.textAlign=align});
     saveSelection();
   };
 
@@ -288,23 +287,21 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const editor=editorRef.current;
     if(!editor)return;
     const rect=editor.getBoundingClientRect();
-    setToolbarPosition({top:Math.max(8,rect.top-52),left:Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-360)),visible:editingRef.current});
+    setToolbarPosition({
+      top:Math.max(8,rect.top-52),
+      left:Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-390)),
+      visible:editingRef.current
+    });
   };
 
   useEffect(()=>{
     if(isColumns)return;
     const editor=editorRef.current;
-    if(!editor)return;
-    if(!editingRef.current)editor.innerHTML=renderHtml(lines);
-  },[lines,isColumns]);
-
-  useEffect(()=>{
-    const key=JSON.stringify(storedLines??legacyContent);
-    if(editingRef.current)return;
-    const next=makeInitialLines();
-    setLines(next);
-    setCurrentSize(next[0]?.textSize??defaultSize);
-  },[JSON.stringify(storedLines??legacyContent),block.id]);
+    if(!editor||editingRef.current)return;
+    editor.innerHTML=initialHtml();
+    const first=editor.querySelector("[data-text-line]") as HTMLElement|null;
+    setCurrentSize(first?.dataset.textSize??defaultSize);
+  },[block.id]);
 
   useEffect(()=>{
     if(!editing)return;
@@ -316,8 +313,8 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
       if(wrapperRef.current?.contains(target))return;
       if(target?.closest("[data-rich-text-toolbar]")||target?.closest("[data-admin-block-editor]"))return;
       commit();
-      setEditing(false);
       editingRef.current=false;
+      setEditing(false);
       selectionRef.current=null;
       onBlur();
     };
@@ -329,50 +326,28 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     };
   },[editing]);
 
-  const handleFocus=()=>{
+  const beginEditing=()=>{
     editingRef.current=true;
     setEditing(true);
-    saveSelection();
+    requestAnimationFrame(()=>{
+      saveSelection();
+      updateToolbar();
+    });
   };
 
   const handleInput=()=>{
     saveSelection();
   };
 
-  const handleKeyDown=(event:React.KeyboardEvent<HTMLDivElement>)=>{
-    if(event.key!=="Enter"||event.shiftKey)return;
-    const editor=editorRef.current;
-    const selection=window.getSelection();
-    if(!editor||!selection||!selection.rangeCount||!editor.contains(selection.anchorNode))return;
-    const range=selection.getRangeAt(0);
-    const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
-    const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-    if(!line)return;
-    event.preventDefault();
-    if(!range.collapsed)range.deleteContents();
-    const splitRange=document.createRange();
-    splitRange.selectNodeContents(line);
-    splitRange.setStart(range.startContainer,range.startOffset);
-    const trailing=splitRange.extractContents();
-    const next=line.cloneNode(false) as HTMLElement;
-    next.innerHTML="";
-    next.appendChild(trailing);
-    line.parentElement?.insertBefore(next,line.nextSibling);
-    const caret=document.createRange();
-    caret.selectNodeContents(next);
-    caret.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(caret);
+  const handleKeyUp=()=>{
     saveSelection();
-  };
-
-  const handleBlur=()=>{
-    if(!editingRef.current)return;
-    commit();
-    editingRef.current=false;
-    setEditing(false);
-    selectionRef.current=null;
-    onBlur();
+    const selection=window.getSelection();
+    if(selection?.rangeCount){
+      const range=selection.getRangeAt(0);
+      const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
+      const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
+      if(line?.dataset.textSize)setCurrentSize(line.dataset.textSize);
+    }
   };
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
@@ -381,7 +356,17 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     <div ref={wrapperRef} className={`relative mx-auto ${layout==="heading-1"||layout==="heading-2"||layout==="heading-3"?"w-full":layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]"}`}>
       {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
       <div className="mt-5 text-[#77736c]">
-        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} onKeyDown={handleKeyDown} onBlur={handleBlur}/>
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          spellCheck
+          className="w-full cursor-text outline-none whitespace-pre-wrap"
+          onFocus={beginEditing}
+          onMouseUp={saveSelection}
+          onKeyUp={handleKeyUp}
+          onInput={handleInput}
+        />
       </div>
     </div>
   </section>;
