@@ -235,7 +235,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(range.collapsed){
       const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
       const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-      const index=line?children.indexOf(line):-1;
+      const index=line?children.indexOf(line as HTMLElement):-1;
       return index>=0?[index]:[];
     }
     return children.map((child,index)=>{
