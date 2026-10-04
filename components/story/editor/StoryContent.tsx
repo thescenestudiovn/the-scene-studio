@@ -189,7 +189,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
 
   const normalizeLines=()=>{
     const editor=editorRef.current;if(!editor)return;
-    Array.from(editor.children).forEach((node)=>{
+    Array.from(editor.children).forEach((rawNode)=>{\n      if(!(rawNode instanceof HTMLElement))return;\n      let node:HTMLElement=rawNode;
       if(!(node instanceof HTMLElement))return;
       if(!["P","DIV"].includes(node.tagName))return;
       const existingSize=node.getAttribute("data-text-size");
