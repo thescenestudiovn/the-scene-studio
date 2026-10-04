@@ -108,18 +108,18 @@ const SIZE_OPTIONS=[
 
 function AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
 
-function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,currentSize,top,left,onHeightChange}:{editorRef:React.RefObject<HTMLDivElement|null>;selectionRef:React.MutableRefObject<SavedSelection|null>;onChange:()=>void;onSizeChange:(layout:string)=>void;currentSize:string;top:number;left:number;onHeightChange:(height:number)=>void}){
+function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,onAlignChange,currentSize,top,left,onHeightChange}:{editorRef:React.RefObject<HTMLDivElement|null>;selectionRef:React.MutableRefObject<SavedSelection|null>;onChange:()=>void;onSizeChange:(layout:string)=>void;onAlignChange:(align:TextAlign)=>void;currentSize:string;top:number;left:number;onHeightChange:(height:number)=>void}){
   const restore=()=>{const saved=selectionRef.current,editor=editorRef.current;if(!saved||!editor||saved.editor!==editor)return false;editor.focus();const s=window.getSelection();if(!s)return false;s.removeAllRanges();s.addRange(saved.range);return true};
   const save=()=>{const editor=editorRef.current,s=window.getSelection();if(editor&&s&&s.rangeCount&&editor.contains(s.anchorNode))selectionRef.current={range:s.getRangeAt(0).cloneRange(),editor}};
   const run=(command:string,value?:string)=>{if(!restore())return;document.execCommand(command,false,value);save();onChange()};
   const setSize=(option:(typeof SIZE_OPTIONS)[number])=>{onSizeChange(option.value)};
   const align=[['justifyLeft','left','Align left'],['justifyCenter','center','Align center'],['justifyRight','right','Align right'],['justifyFull','justify','Justify']] as const;
-  const toolbar=<div ref={node=>{if(node)onHeightChange(node.getBoundingClientRect().height)}} data-rich-text-toolbar style={{position:"fixed",top,left}} className="z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-lg" onMouseDown={e=>e.stopPropagation()}><select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>{const o=SIZE_OPTIONS.find(x=>x.value===e.target.value);if(o)setSize(o)}} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none hover:border-[#aaa49a] focus:border-[#8f887e]">{SIZE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{[["bold","B"],["italic","I"],["underline","U"]].map(([cmd,label])=><button key={cmd} type="button" title={cmd} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className={`flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white ${cmd==='bold'?'font-bold':cmd==='italic'?'italic':'underline'}`}>{label}</button>)}<label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm hover:bg-white" onMouseDown={e=>{e.preventDefault();save()}}><span className="border-b-4 border-[#7d4f45] text-sm font-semibold">A</span><input type="color" defaultValue="#222222" className="absolute inset-0 opacity-0" onChange={e=>run("foreColor",e.target.value)}/></label><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{align.map(([cmd,val,title])=><button key={cmd} type="button" title={title} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><AlignIcon align={val}/></button>)}<span className="mx-1 h-5 w-px bg-[#d9d3ca]"/><button type="button" title="Remove formatting" onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button></div>;
+  const toolbar=<div ref={node=>{if(node)onHeightChange(node.getBoundingClientRect().height)}} data-rich-text-toolbar style={{position:"fixed",top,left}} className="z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-lg" onMouseDown={e=>e.stopPropagation()}><select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>{const o=SIZE_OPTIONS.find(x=>x.value===e.target.value);if(o)setSize(o)}} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none hover:border-[#aaa49a] focus:border-[#8f887e]">{SIZE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{[["bold","B"],["italic","I"],["underline","U"]].map(([cmd,label])=><button key={cmd} type="button" title={cmd} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run(cmd)} className={`flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white ${cmd==='bold'?'font-bold':cmd==='italic'?'italic':'underline'}`}>{label}</button>)}<label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm hover:bg-white" onMouseDown={e=>{e.preventDefault();save()}}><span className="border-b-4 border-[#7d4f45] text-sm font-semibold">A</span><input type="color" defaultValue="#222222" className="absolute inset-0 opacity-0" onChange={e=>run("foreColor",e.target.value)}/></label><span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>{align.map(([cmd,val,title])=><button key={cmd} type="button" title={title} onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>onAlignChange(val)} className="flex h-8 w-8 items-center justify-center rounded-sm text-[#403c36] hover:bg-white"><AlignIcon align={val}/></button>)}<span className="mx-1 h-5 w-px bg-[#d9d3ca]"/><button type="button" title="Remove formatting" onMouseDown={e=>{e.preventDefault();save()}} onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button></div>;
   return typeof document!=="undefined" ? createPortal(toolbar,document.body) : null;
 }
 
 function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}){
-  type TextLine={content:string;textSize:string};
+  type TextAlign="left"|"center"|"right"|"justify";\n  type TextLine={content:string;textSize:string;align?:TextAlign};
   const rawVariant=block.variant??"paragraph";
   const variant=rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant.startsWith("columns-")?"columns":rawVariant;
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
@@ -127,14 +127,14 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const defaultSize=typeof block.data?.textSize==="string"&&TEXT_STYLES[block.data.textSize]?block.data.textSize:(layout.startsWith("heading-")?layout:layout==="wide"?"paragraph-1":layout==="narrow"?"paragraph-3":"paragraph-2");
   const legacyContent=block.body??block.title??"";
   const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
-  const makeInitialLines=():TextLine[]=>{
-    if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize}));
+  const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";\n  const makeInitialLines=():TextLine[]=>{
+    if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize,align:typeof item==="object"&&item!==null&&"align" in item&&["left","center","right","justify"].includes(String((item as {align?:unknown}).align))?(item as {align:TextAlign}).align:defaultAlign}));
     const holder=document.createElement("div");
     holder.innerHTML=legacyContent;
     const lineNodes=Array.from(holder.children);
-    if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize}));
+    if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize,align:((node as HTMLElement).style.textAlign as TextAlign)||defaultAlign}));
     const text=holder.innerHTML.replace(/<br\s*\/?>(?=.)/gi,"\n");
-    return text.split(/\n+/).map(content=>({content,textSize:defaultSize}));
+    return text.split(/\n+/).map(content=>({content,textSize:defaultSize,align:defaultAlign}));
   };
   const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
   const [editing,setEditing]=useState(false);
@@ -165,11 +165,11 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     if(!editor)return;
     const children=getDirectLineElements();
     if(!children.length){
-      const next=[{content:editor.innerHTML,textSize:defaultSize}];
+      const next=[{content:editor.innerHTML,textSize:defaultSize,align:defaultAlign}];
       persist(next);
       return;
     }
-    const next=children.map((child,index)=>({content:child.innerHTML,textSize:getSizeFromElement(child)||linesRef.current[index]?.textSize||defaultSize}));
+    const next=children.map((child,index)=>({content:child.innerHTML,textSize:getSizeFromElement(child)||linesRef.current[index]?.textSize||defaultSize,align:((child.style.textAlign as TextAlign)||linesRef.current[index]?.align||defaultAlign)}));
     persist(next);
   };
 
@@ -204,7 +204,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     }).filter(index=>index>=0);
   };
 
-  const updateSelectedSize=(nextSize:string)=>{
+  const updateSelectedAlign=(nextAlign:TextAlign)=>{\n    if(!restoreSelection())return;\n    const indexes=getSelectedLineIndexes();\n    if(!indexes.length)return;\n    const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,align:nextAlign}:line);\n    const children=getDirectLineElements();\n    indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});\n    persist(next);\n    saveSelection();\n  };\n\n  const updateSelectedSize=(nextSize:string)=>{
     if(!restoreSelection())return;
     const indexes=getSelectedLineIndexes();
     if(!indexes.length)return;
@@ -284,11 +284,11 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
 
   const firstSize=lines[0]?.textSize||defaultSize;
   const isHeadingLayout=layout==="heading-1"||layout==="heading-2"||layout==="heading-3";
-  const textWidthClass=layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
-  const html=lines.map(line=>`<div class="w-full outline-none whitespace-pre-wrap ${isHeadingLayout?"text-center ":""}${TEXT_STYLES[line.textSize]??"text-base leading-7"}">${line.content||""}</div>`).join("");
+  const textWidthClass=isHeadingLayout?"w-full":layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
+  const html=lines.map(line=>`<div class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[line.textSize]??"text-base leading-7"}">${line.content||""}</div>`).join("");
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
     <div ref={wrapperRef} className={`relative mx-auto ${textWidthClass}`}>
-      {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize}/>}
+      {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize} onAlignChange={updateSelectedAlign}/>}
       <div className="mt-5 text-[#77736c]">
         <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className={`w-full cursor-text outline-none whitespace-pre-wrap ${isHeadingLayout?"text-center":""}`} onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} dangerouslySetInnerHTML={{__html:html}} />
       </div>
