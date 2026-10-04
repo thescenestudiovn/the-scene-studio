@@ -135,8 +135,10 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     holder.innerHTML=legacyContent;
     const lineNodes=Array.from(holder.children);
     if(lineNodes.length)return lineNodes.map(node=>({content:(node as HTMLElement).innerHTML,textSize:defaultSize,align:((node as HTMLElement).style.textAlign as TextAlign)||defaultAlign}));
-    const text=holder.innerHTML.replace(/<br\s*\/?>(?=.)/gi,"\n");
-    return text.split(/\n+/).map(content=>({content,textSize:defaultSize,align:defaultAlign}));
+    const text=holder.innerHTML.replace(/<br\s*\/?>(?=.)/gi,"
+");
+    return text.split(/
++/).map(content=>({content,textSize:defaultSize,align:defaultAlign}));
   };
   const [lines,setLines]=useState<TextLine[]>(()=>{const initial=makeInitialLines();return initial.length?initial:[{content:"",textSize:defaultSize}];});
   const [editing,setEditing]=useState(false);
@@ -206,7 +208,18 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     }).filter(index=>index>=0);
   };
 
-  const updateSelectedAlign=(nextAlign:TextAlign)=>{\n    if(!restoreSelection())return;\n    const indexes=getSelectedLineIndexes();\n    if(!indexes.length)return;\n    const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,align:nextAlign}:line);\n    const children=getDirectLineElements();\n    indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});\n    persist(next);\n    saveSelection();\n  };\n\n  const updateSelectedSize=(nextSize:string)=>{
+  const updateSelectedAlign=(nextAlign:TextAlign)=>{
+    if(!restoreSelection())return;
+    const indexes=getSelectedLineIndexes();
+    if(!indexes.length)return;
+    const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,align:nextAlign}:line);
+    const children=getDirectLineElements();
+    indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});
+    persist(next);
+    saveSelection();
+  };
+
+  const updateSelectedSize=(nextSize:string)=>{
     if(!restoreSelection())return;
     const indexes=getSelectedLineIndexes();
     if(!indexes.length)return;
