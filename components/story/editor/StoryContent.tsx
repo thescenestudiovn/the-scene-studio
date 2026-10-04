@@ -214,7 +214,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,align:nextAlign}:line);
     const children=getDirectLineElements();
     indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});
-    persist(next,false);
+    linesRef.current=next;
     selectionRef.current={range:window.getSelection()?.getRangeAt(0)?.cloneRange() ?? selectionRef.current!.range,editor:editorRef.current!};
   };
 
@@ -230,7 +230,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
         child.className="w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[nextSize]??"text-base leading-7");
       }
     });
-    persist(next,false);
+    linesRef.current=next;
     saveSelection();
   };
 
@@ -278,7 +278,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
       const target=event.target as Node|null;
       if(wrapperRef.current?.contains(target))return;
       if(target&&(target as Element).closest?.("[data-rich-text-toolbar]") || (target as Element).closest?.("[data-admin-block-editor]"))return;
-      setLines(linesRef.current);
+      syncLinesFromDom(true);
       setEditing(false);
       selectionRef.current=null;
       onBlur();
@@ -294,7 +294,6 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
 
   const handleInput=()=>{
     saveSelection();
-    syncLinesFromDom(false);
   };
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
