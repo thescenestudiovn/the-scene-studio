@@ -55,6 +55,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
     .filter((line): line is { content: string; textSize: string } => Boolean(line));
 
   const textWidthClass =
+    variant === "heading-1" || variant === "heading-2" || variant === "heading-3" ? "w-full" :
     variant === "wide" ? "w-full" :
     variant === "narrow" ? "w-full md:w-1/2" :
     "w-full md:w-[70%]";
