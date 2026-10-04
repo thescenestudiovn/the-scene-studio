@@ -339,6 +339,33 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     saveSelection();
   };
 
+  const handleKeyDown=(event:React.KeyboardEvent<HTMLDivElement>)=>{
+    if(event.key!=="Enter"||event.shiftKey)return;
+    const editor=editorRef.current;
+    const selection=window.getSelection();
+    if(!editor||!selection||!selection.rangeCount||!editor.contains(selection.anchorNode))return;
+    const range=selection.getRangeAt(0);
+    const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
+    const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
+    if(!line)return;
+    event.preventDefault();
+    if(!range.collapsed)range.deleteContents();
+    const splitRange=document.createRange();
+    splitRange.selectNodeContents(line);
+    splitRange.setStart(range.startContainer,range.startOffset);
+    const trailing=splitRange.extractContents();
+    const next=line.cloneNode(false) as HTMLElement;
+    next.innerHTML="";
+    next.appendChild(trailing);
+    line.parentElement?.insertBefore(next,line.nextSibling);
+    const caret=document.createRange();
+    caret.selectNodeContents(next);
+    caret.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(caret);
+    saveSelection();
+  };
+
   const handleBlur=()=>{
     if(!editingRef.current)return;
     commit();
@@ -354,7 +381,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     <div ref={wrapperRef} className={`relative mx-auto ${layout==="heading-1"||layout==="heading-2"||layout==="heading-3"?"w-full":layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]"}`}>
       {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
       <div className="mt-5 text-[#77736c]">
-        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} onBlur={handleBlur}/>
+        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} onKeyDown={handleKeyDown} onBlur={handleBlur}/>
       </div>
     </div>
   </section>;
