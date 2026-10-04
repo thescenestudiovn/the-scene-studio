@@ -197,10 +197,11 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
 
   const getSelectedLineIndexes=()=>{
     const editor=editorRef.current;
-    const saved=selectionRef.current;
-    if(!editor||!saved)return [];
+    if(!editor)return [];
+    const selection=window.getSelection();
+    if(!selection||!selection.rangeCount||!editor.contains(selection.anchorNode))return [];
     const children=getDirectLineElements();
-    const range=saved.range;
+    const range=selection.getRangeAt(0);
     return children.map((child,index)=>{
       try{return range.intersectsNode(child)?index:-1}catch{return -1;}
     }).filter(index=>index>=0);
@@ -214,7 +215,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const children=getDirectLineElements();
     indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});
     persist(next);
-    saveSelection();
+    selectionRef.current={range:window.getSelection()?.getRangeAt(0)?.cloneRange() ?? selectionRef.current!.range,editor:editorRef.current!};
   };
 
   const updateSelectedSize=(nextSize:string)=>{
