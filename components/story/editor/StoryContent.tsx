@@ -158,219 +158,114 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
   const isColumns=variant==="columns";
   const defaultSize=typeof block.data?.textSize==="string"&&TEXT_STYLES[block.data.textSize]?block.data.textSize:(layout.startsWith("heading-")?layout:layout==="wide"?"paragraph-1":layout==="narrow"?"paragraph-3":"paragraph-2");
-  const legacyContent=block.body??block.title??"";
-  const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
   const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";
-
   const editorRef=useRef<HTMLDivElement|null>(null);
   const wrapperRef=useRef<HTMLDivElement|null>(null);
-  const selectionRef=useRef<SavedSelection|null>(null);
-  const editingRef=useRef(false);
+  const selectionRef=useRef<Range|null>(null);
   const [editing,setEditing]=useState(false);
-  const [toolbarPosition,setToolbarPosition]=useState({top:0,left:0,visible:false});
   const [currentSize,setCurrentSize]=useState(defaultSize);
 
-  const escapeHtml=(value:string)=>{
-    const div=document.createElement("div");
-    div.textContent=value;
-    return div.innerHTML;
-  };
-
-  const initialHtml=()=>{
-    if(storedLines?.length){
-      return storedLines.map(item=>{
-        const value=item as {content?:unknown;textSize?:unknown;align?:unknown};
-        const content=typeof value.content==="string"?value.content:"";
-        const size=typeof value.textSize==="string"&&TEXT_STYLES[value.textSize]?value.textSize:defaultSize;
-        const align=typeof value.align==="string"&&["left","center","right","justify"].includes(value.align)?value.align:defaultAlign;
-        return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(size)}" style="text-align:${align}">${content||"<br />"}</div>`;
+  const escape=(value:string)=>{const el=document.createElement("div");el.textContent=value;return el.innerHTML;};
+  const buildHtml=()=>{
+    const lines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:[];
+    if(lines.length){
+      return lines.map(item=>{
+        const v=item as {content?:unknown;textSize?:unknown;align?:unknown};
+        const content=typeof v.content==="string"?v.content:"";
+        const size=typeof v.textSize==="string"&&TEXT_STYLES[v.textSize]?v.textSize:defaultSize;
+        const align=typeof v.align==="string"&&["left","center","right","justify"].includes(v.align)?v.align:defaultAlign;
+        return `<p data-text-line="true" data-text-size="${escape(size)}" style="text-align:${align}" class="${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${content||"<br>"}</p>`;
       }).join("");
     }
-    if(legacyContent){
-      const holder=document.createElement("div");
-      holder.innerHTML=legacyContent;
-      if(holder.children.length){
-        return Array.from(holder.children).map((node,index)=>{
-          const element=node as HTMLElement;
-          const align=(element.style.textAlign as TextAlign)||defaultAlign;
-          return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(defaultSize)}" style="text-align:${align}">${element.innerHTML||"<br />"}</div>`;
-        }).join("");
-      }
-      return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(defaultSize)}" style="text-align:${defaultAlign}">${legacyContent}</div>`;
+    const body=typeof block.body==="string"?block.body:(typeof block.title==="string"?block.title:"");
+    if(body){
+      const holder=document.createElement("div");holder.innerHTML=body;
+      const nodes=Array.from(holder.childNodes);
+      const html=nodes.length>1?nodes.map(node=>node.nodeType===1?(node as HTMLElement).outerHTML:escape(node.textContent??"")).join(""):body;
+      return html.split(/<br\\s*\\/?>(?:\\r?\\n)?/i).map((part,index)=>`<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${part||"<br>"}</p>`).join("");
     }
-    return `<div data-text-line="true" class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[defaultSize]}" data-text-size="${escapeHtml(defaultSize)}" style="text-align:${defaultAlign}"><br /></div>`;
+    return `<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap"><br></p>`;
   };
 
-  const readLines=()=>{
-    const editor=editorRef.current;
-    if(!editor)return [];
-    const children=Array.from(editor.children).filter(node=>node instanceof HTMLElement) as HTMLElement[];
-    return children.map((child,index)=>{
-      const textSize=child.dataset.textSize&&TEXT_STYLES[child.dataset.textSize]?child.dataset.textSize:(Array.from(child.classList).find(name=>TEXT_STYLES[name])??defaultSize);
-      const align=(child.style.textAlign as TextAlign)||defaultAlign;
-      return {content:child.innerHTML==="<br>"?"":child.innerHTML,textSize,align};
+  const getLines=()=>{
+    const editor=editorRef.current;if(!editor)return [];
+    return Array.from(editor.children).filter((n):n is HTMLElement=>n instanceof HTMLElement).map(el=>{
+      const size=el.getAttribute("data-text-size")&&TEXT_STYLES[el.getAttribute("data-text-size")!]?el.getAttribute("data-text-size")!:defaultSize;
+      const align=(el.style.textAlign as TextAlign)||defaultAlign;
+      return {content:el.innerHTML==="<br>"?"":el.innerHTML,textSize:size,align};
     });
   };
-
   const commit=()=>{
-    const editor=editorRef.current;
-    if(!editor)return;
-    const next=readLines();
-    const body=Array.from(editor.children).map(child=>child.innerHTML==="<br>"?"":(child as HTMLElement).innerHTML).join("<br />");
-    onChange({
-      body,
-      data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}
-    });
-    setCurrentSize(next[0]?.textSize??defaultSize);
+    const editor=editorRef.current;if(!editor)return;
+    const lines=getLines();
+    const body=lines.map(l=>l.content).join("<br />");
+    onChange({body,data:{...(block.data??{}),variant,layout,lines,textSize:lines[0]?.textSize??defaultSize}});
   };
-
   const saveSelection=()=>{
+    const sel=window.getSelection();
     const editor=editorRef.current;
-    const selection=window.getSelection();
-    if(editor&&selection&&selection.rangeCount&&editor.contains(selection.anchorNode)){
-      selectionRef.current={range:selection.getRangeAt(0).cloneRange(),editor};
-    }
+    if(sel&&sel.rangeCount&&editor&&editor.contains(sel.anchorNode))selectionRef.current=sel.getRangeAt(0).cloneRange();
   };
-
   const restoreSelection=()=>{
-    const saved=selectionRef.current;
-    const editor=editorRef.current;
-    if(!saved||!editor||saved.editor!==editor)return false;
-    editor.focus();
-    const selection=window.getSelection();
-    if(!selection)return false;
-    selection.removeAllRanges();
-    selection.addRange(saved.range);
-    return true;
+    const range=selectionRef.current;if(!range||!editorRef.current)return false;
+    const sel=window.getSelection();if(!sel)return false;
+    editorRef.current.focus();sel.removeAllRanges();sel.addRange(range);return true;
   };
-
-  const selectedParagraphs=():HTMLElement[]=>{
-    const editor=editorRef.current;
-    const selection=window.getSelection();
-    if(!editor||!selection||!selection.rangeCount)return [];
-    const range=selection.getRangeAt(0);
-    const children=Array.from(editor.children).filter(node=>node instanceof HTMLElement) as HTMLElement[];
-    if(range.collapsed){
-      const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
-      const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-      return line instanceof HTMLElement?[line]:[];
-    }
-    return children.filter(child=>{
-      try{return range.intersectsNode(child)}catch{return false}
+  const selectedLines=()=>{
+    const editor=editorRef.current;const sel=window.getSelection();
+    if(!editor||!sel||!sel.rangeCount)return [] as HTMLElement[];
+    const range=sel.getRangeAt(0);
+    return Array.from(editor.children).filter((n):n is HTMLElement=>n instanceof HTMLElement).filter(el=>{
+      try{return range.intersectsNode(el)}catch{return false;}
     });
   };
-
   const applySize=(size:string)=>{
-    if(!restoreSelection())return;
-    const option=SIZE_OPTIONS.find(item=>item.value===size);
-    if(!option)return;
-    const paragraphs=selectedParagraphs();
-    if(!paragraphs.length)return;
-    paragraphs.forEach(paragraph=>{
-      paragraph.className=`w-full outline-none whitespace-pre-wrap ${option.className}`;
-      paragraph.dataset.textSize=size;
-      paragraph.setAttribute("data-text-line","true");
-    });
-    setCurrentSize(size);
-    saveSelection();
+    const option=SIZE_OPTIONS.find(o=>o.value===size);if(!option||!restoreSelection())return;
+    const lines=selectedLines();if(!lines.length)return;
+    lines.forEach(line=>{line.className=`w-full outline-none whitespace-pre-wrap ${option.className}`;line.setAttribute("data-text-size",size);});
+    setCurrentSize(size);saveSelection();
   };
-
   const applyAlign=(align:TextAlign)=>{
     if(!restoreSelection())return;
-    const paragraphs=selectedParagraphs();
-    if(!paragraphs.length)return;
-    paragraphs.forEach(paragraph=>{paragraph.style.textAlign=align});
-    saveSelection();
-  };
-
-  const updateToolbar=()=>{
-    const editor=editorRef.current;
-    if(!editor)return;
-    const rect=editor.getBoundingClientRect();
-    setToolbarPosition({
-      top:Math.max(8,rect.top-52),
-      left:Math.min(Math.max(8,rect.left),Math.max(8,window.innerWidth-390)),
-      visible:editingRef.current
-    });
+    const lines=selectedLines();if(!lines.length)return;
+    lines.forEach(line=>line.style.textAlign=align);saveSelection();
   };
 
   useEffect(()=>{
     if(isColumns)return;
-    const editor=editorRef.current;
-    if(!editor||editingRef.current)return;
-    editor.innerHTML=initialHtml();
+    const editor=editorRef.current;if(!editor)return;
+    editor.innerHTML=buildHtml();
     const first=editor.querySelector("[data-text-line]") as HTMLElement|null;
-    setCurrentSize(first?.dataset.textSize??defaultSize);
+    setCurrentSize(first?.getAttribute("data-text-size")??defaultSize);
   },[block.id]);
 
   useEffect(()=>{
     if(!editing)return;
-    updateToolbar();
-    window.addEventListener("resize",updateToolbar);
-    window.addEventListener("scroll",updateToolbar,true);
     const close=(event:MouseEvent)=>{
       const target=event.target as Element|null;
-      if(wrapperRef.current?.contains(target))return;
-      if(target?.closest("[data-rich-text-toolbar]")||target?.closest("[data-admin-block-editor]"))return;
-      commit();
-      editingRef.current=false;
-      setEditing(false);
-      selectionRef.current=null;
-      onBlur();
+      if(wrapperRef.current?.contains(target)||target?.closest("[data-rich-text-toolbar]"))return;
+      commit();setEditing(false);selectionRef.current=null;onBlur();
     };
     document.addEventListener("mousedown",close);
-    return()=>{
-      window.removeEventListener("resize",updateToolbar);
-      window.removeEventListener("scroll",updateToolbar,true);
-      document.removeEventListener("mousedown",close);
-    };
+    return()=>document.removeEventListener("mousedown",close);
   },[editing]);
-
-  const beginEditing=()=>{
-    editingRef.current=true;
-    setEditing(true);
-    requestAnimationFrame(()=>{
-      saveSelection();
-      updateToolbar();
-    });
-  };
-
-  const handleInput=()=>{
-    saveSelection();
-  };
-
-  const handleKeyUp=()=>{
-    saveSelection();
-    const selection=window.getSelection();
-    if(selection?.rangeCount){
-      const range=selection.getRangeAt(0);
-      const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
-      const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-      if(line instanceof HTMLElement){
-        const size=line.getAttribute("data-text-size");
-        if(size)setCurrentSize(size);
-      }
-    }
-  };
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
 
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
-    <div ref={wrapperRef} className={`relative mx-auto ${layout==="heading-1"||layout==="heading-2"||layout==="heading-3"?"w-full":layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]"}`}>
-      {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
-      <div className="mt-5 text-[#77736c]">
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          spellCheck
-          className="w-full cursor-text outline-none whitespace-pre-wrap"
-          onFocus={beginEditing}
-          onMouseUp={saveSelection}
-          onKeyUp={handleKeyUp}
-          onInput={handleInput}
-        />
-      </div>
+    <div ref={wrapperRef} className="relative mx-auto w-full">
+      {editing&&<TextToolbar editorRef={editorRef} selectionRef={{current:selectionRef.current?{range:selectionRef.current,editor:editorRef.current!}:null}} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck
+        className="mt-5 w-full cursor-text outline-none"
+        onFocus={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
+        onMouseUp={saveSelection}
+        onKeyUp={()=>{saveSelection();const sel=window.getSelection();if(sel?.rangeCount){const node=sel.getRangeAt(0).startContainer.parentElement;const line=node?.closest("[data-text-line]") as HTMLElement|null;if(line?.getAttribute("data-text-size"))setCurrentSize(line.getAttribute("data-text-size")!);}}}
+        onInput={saveSelection}
+      />
     </div>
   </section>;
 }
