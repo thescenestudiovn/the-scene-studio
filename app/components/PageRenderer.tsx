@@ -1,5 +1,5 @@
 import Link from "next/link";
-import sanitizeHtml from "sanitize-html";
+import sanitizeHtml from "../../lib/sanitizeHtml";
 import { getDB } from "../../lib/db";
 import { mediaUrl } from "../../lib/media";
 import { blockLayout, blockGrid, imageBlockContainer } from "../../components/content/blockLayout";
@@ -32,26 +32,6 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function imageSrc(value: string) { return /^https?:\/\//i.test(value) || value.startsWith("/") ? value : mediaUrl(value); }
 function youtubeId(value: string) { try { const url = new URL(value); if (url.hostname === "youtu.be") return url.pathname.slice(1); if (url.hostname.includes("youtube.com")) return url.searchParams.get("v") || url.pathname.split("/").pop() || ""; } catch { } return ""; }
 function imageCount(variant: string) { return variant === "columns-2" || variant === "text-columns-2" ? 2 : variant === "columns-3" || variant === "text-columns-3" ? 3 : variant === "columns-4" || variant === "text-columns-4" ? 4 : 1; }
-
-const richTextOptions: sanitizeHtml.IOptions = {
-    allowedTags: ["a", "b", "blockquote", "br", "div", "em", "font", "h1", "h2", "h3", "i", "li", "ol", "p", "span", "strong", "u", "ul"],
-    allowedAttributes: { a: ["href", "target", "rel"], "*": ["class", "style", "align"], font: ["color"] },
-    allowedClasses: {
-        h1: ["text-5xl", "font-serif", "leading-[1.08]"],
-        h2: ["text-4xl", "font-serif", "leading-[1.12]"],
-        h3: ["text-3xl", "font-serif", "leading-[1.16]"],
-        p: ["text-xl", "text-base", "text-sm", "leading-8", "leading-7", "leading-6"],
-    },
-    allowedStyles: {
-        "*": {
-            color: [/^#[\da-f]{3,8}$/i],
-            "text-align": [/^(left|center|right|justify)$/],
-            "font-weight": [/^(normal|bold|[1-9]00)$/],
-            "font-style": [/^(normal|italic)$/],
-            "text-decoration": [/^(none|underline|line-through)$/],
-        },
-    },
-};
 
 function CoverBlock({ data, media }: { data: Record<string, unknown>; media: Media[] }) {
     const image = media[0];
@@ -90,11 +70,11 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     const isColumns = variant === "columns-2" || variant === "columns-3" || variant === "columns-4";
     const width = variant === "narrow" ? "max-w-2xl" : isColumns ? blockLayout.container.wide : blockLayout.container.medium;
     const bodyStyle = variant === "heading-1" ? "font-serif text-5xl leading-[1.08]" : variant === "heading-2" ? "font-serif text-4xl leading-[1.12]" : variant === "heading-3" ? "font-serif text-3xl leading-[1.16]" : variant === "wide" ? "text-xl leading-8" : variant === "narrow" || variant === "regular" ? "text-base leading-7" : "text-sm leading-6";
-    const body = sanitizeHtml(text(data.body), richTextOptions);
+    const body = sanitizeHtml(text(data.body));
     return <section className={blockLayout.section.spacious}><div className={`mx-auto ${width}`}>
         {text(data.eyebrow) && <p className={blockLayout.typography.eyebrow}>{text(data.eyebrow)}</p>}
         {title && <h2 className={`mt-5 ${blockLayout.typography.heading}`}>{title}</h2>}
-        {isColumns ? <div className={`mt-7 grid gap-8 ${count === 2 ? "md:grid-cols-2" : count === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>{Array.from({ length: count }, (_, index) => <div key={index} className="min-w-0 text-base leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(columns[index] ?? "", richTextOptions) }} />)}</div> : body && <div className={`mt-7 whitespace-pre-wrap text-[#77736c] ${bodyStyle}`} dangerouslySetInnerHTML={{ __html: body }} />}
+        {isColumns ? <div className={`mt-7 grid gap-8 ${count === 2 ? "md:grid-cols-2" : count === 3 ? "md:grid-cols-3" : "md:grid-cols-4"}`}>{Array.from({ length: count }, (_, index) => <div key={index} className="min-w-0 text-base leading-7 text-[#77736c]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(columns[index] ?? "") }} />)}</div> : body && <div className={`mt-7 whitespace-pre-wrap text-[#77736c] ${bodyStyle}`} dangerouslySetInnerHTML={{ __html: body }} />}
     </div></section>;
 }
 
