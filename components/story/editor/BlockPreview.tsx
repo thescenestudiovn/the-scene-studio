@@ -49,7 +49,8 @@ function TextPreview({ block }: { block: StoryBlock }) {
       const value = item as { content?: unknown; textSize?: unknown };
       return {
         content: typeof value.content === "string" ? value.content : "",
-        textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,\n        align: typeof value.align === "string" && ["left","center","right","justify"].includes(value.align) ? value.align : (isHeadingLayout ? "center" : "left"),
+        textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,
+        align: typeof value.align === "string" && ["left","center","right","justify"].includes(value.align) ? value.align : (isHeadingLayout ? "center" : "left"),
       };
     })
     .filter((line): line is { content: string; textSize: string } => Boolean(line));
