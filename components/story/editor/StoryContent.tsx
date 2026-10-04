@@ -149,7 +149,7 @@ function TextToolbar({editorRef,selectionRef,currentSize,onSizeChange,onAlignCha
     <span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>
     <button type="button" title="Remove formatting" onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button>
   </div>;
-  return typeof document!=="undefined" ? createPortal(toolbar,document.body) : null;
+  return toolbar;
 }
 
 function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onCommit:(patch:Partial<StoryBlock>)=>void}){
