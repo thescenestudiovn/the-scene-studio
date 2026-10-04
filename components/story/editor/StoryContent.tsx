@@ -107,7 +107,7 @@ const SIZE_OPTIONS=[
   {value:"paragraph-3",label:"Paragraph 3",tag:"p",className:"text-sm leading-6"},
 ] as const;
 
-function AlignIcon({align}:{align:"left"|"center"|"right"|"jufunction AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
+function AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
 
 function TextToolbar({editorRef,selectionRef,currentSize,onSizeChange,onAlignChange}:{editorRef:React.RefObject<HTMLDivElement|null>;selectionRef:React.MutableRefObject<SavedSelection|null>;currentSize:string;onSizeChange:(size:string)=>void;onAlignChange:(align:TextAlign)=>void}){
   const save=()=>{
