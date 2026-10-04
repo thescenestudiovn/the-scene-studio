@@ -119,7 +119,8 @@ function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,onAlignChange
 }
 
 function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}){
-  type TextAlign="left"|"center"|"right"|"justify";\n  type TextLine={content:string;textSize:string;align?:TextAlign};
+  type TextAlign="left"|"center"|"right"|"justify";
+  type TextLine={content:string;textSize:string;align?:TextAlign};
   const rawVariant=block.variant??"paragraph";
   const variant=rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant.startsWith("columns-")?"columns":rawVariant;
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
