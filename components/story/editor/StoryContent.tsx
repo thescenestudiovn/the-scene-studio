@@ -214,7 +214,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     const next=linesRef.current.map((line,index)=>indexes.includes(index)?{...line,align:nextAlign}:line);
     const children=getDirectLineElements();
     indexes.forEach(index=>{const child=children[index];if(child)child.style.textAlign=nextAlign;});
-    persist(next);
+    persist(next,false);
     selectionRef.current={range:window.getSelection()?.getRangeAt(0)?.cloneRange() ?? selectionRef.current!.range,editor:editorRef.current!};
   };
 
@@ -230,7 +230,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
         child.className="w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[nextSize]??"text-base leading-7");
       }
     });
-    persist(next);
+    persist(next,false);
     saveSelection();
   };
 
