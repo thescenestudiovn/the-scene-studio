@@ -229,7 +229,13 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
   const saveSelection=()=>{
     const sel=window.getSelection();
     const editor=editorRef.current;
-    if(sel&&sel.rangeCount&&editor&&editor.contains(sel.anchorNode))selectionRef.current={range:sel.getRangeAt(0).cloneRange(),editor};
+    if(sel&&sel.rangeCount&&editor&&editor.contains(sel.anchorNode)){
+      selectionRef.current={range:sel.getRangeAt(0).cloneRange(),editor};
+      const node=sel.getRangeAt(0).startContainer.parentElement;
+      const line=node?.closest("[data-text-line]") as HTMLElement|null;
+      const size=line?.getAttribute("data-text-size");
+      if(size&&TEXT_STYLES[size])setCurrentSize(size);
+    }
   };
   const restoreSelection=()=>{
     const saved=selectionRef.current;const editor=editorRef.current;if(!saved||!editor||saved.editor!==editor)return false;
