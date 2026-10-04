@@ -182,7 +182,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
       const holder=document.createElement("div");holder.innerHTML=body;
       const nodes=Array.from(holder.childNodes);
       const html=nodes.length>1?nodes.map(node=>node.nodeType===1?(node as HTMLElement).outerHTML:escape(node.textContent??"")).join(""):body;
-      return html.split(/<br\\s*\\/?>(?:\\r?\\n)?/i).map((part,index)=>`<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${part||"<br>"}</p>`).join("");
+      return html.split(/<br\s*\/?>/i).map((part,index)=>`<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${part||"<br>"}</p>`).join("");
     }
     return `<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap"><br></p>`;
   };
