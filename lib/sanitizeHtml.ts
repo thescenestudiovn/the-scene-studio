@@ -3,21 +3,22 @@ const SAFE_CLASSES = new Set(["text-6xl","text-5xl","text-4xl","text-3xl","text-
 const SAFE_STYLE = /^(color:\s*#[0-9a-f]{3,8}|text-align:\s*(left|center|right|justify)|font-weight:\s*(normal|bold|[1-9]00)|font-style:\s*(normal|italic)|text-decoration:\s*(none|underline|line-through))$/i;
 
 function sanitizeHtml(value: string): string {
-  let html = value.replace(/<!--[\\s\\S]*?-->/g, "");
-  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)[^>]*>[\\s\\S]*?<\/\\1>/gi, "");
-  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)(?:\\s[^>]*)?\\/?\\s*>/gi, "");
-  return html.replace(/<\/?([a-z0-9]+)(?:\s[^>]*)?\s*\/?>/gi, (full, rawTag) => {
+  let html = value;
+  html = html.replace(/<!--[\s\S]*?-->/g, "");
+  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)[^>]*>[\s\S]*?<\u002F\1>/gi, "");
+  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)(?:[\s][^>]*)?\/?[\s]*>/gi, "");
+  return html.replace(/<\/?([a-z0-9]+)(?:[\s][^>]*)?[\s]*\/?>/gi, (full, rawTag) => {
     const tag = String(rawTag).toLowerCase();
     if (!ALLOWED_TAGS.has(tag)) return "";
-    if (/^<\//.test(full)) return `</${tag}>`;
+    if (full.startsWith("</")) return `</${tag}>`;
     if (tag === "br") return "<br />";
-    const attrs = [...full.matchAll(/([a-zA-Z:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)];
+    const attrs = [...full.matchAll(/([a-zA-Z:-]+)[\s]*=[\s]*(?:"([^"]*)"|'([^']*)')/g)];
     const kept: string[] = [];
     for (const match of attrs) {
       const name = match[1].toLowerCase();
       const attrValue = match[2] ?? match[3] ?? "";
       if (name === "class") {
-        const classes = attrValue.split(/\s+/).filter(cls => SAFE_CLASSES.has(cls));
+        const classes = attrValue.split(/[\s]+/).filter(cls => SAFE_CLASSES.has(cls));
         if (classes.length) kept.push(`class="${classes.join(" ")}"`);
       } else if (name === "style") {
         const styles = attrValue.split(";").map(s => s.trim()).filter(Boolean).filter(s => SAFE_STYLE.test(s));
