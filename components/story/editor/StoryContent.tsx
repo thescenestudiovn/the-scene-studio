@@ -110,7 +110,14 @@ const SIZE_OPTIONS=[
 
 function AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
 
-function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onCommit:(patch:Partial<StoryBlock>)=>void}){\n  const rawVariant=block.variant??"paragraph";\n  const variant=rawVariant.startsWith("columns-")||rawVariant.startsWith("text-columns-")?"columns":rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant;\n  const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");\n  if(variant==="columns")return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;\n  return <TiptapTextBlockEditor block={block} onChange={onChange} onCommit={onCommit}/>;\n}\nfunction ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){
+function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onCommit:(patch:Partial<StoryBlock>)=>void}){
+  const rawVariant=block.variant??"paragraph";
+  const variant=rawVariant.startsWith("columns-")||rawVariant.startsWith("text-columns-")?"columns":rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant;
+  const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
+  if(variant==="columns")return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
+  return <TiptapTextBlockEditor block={block} onChange={onChange} onCommit={onCommit}/>;
+}
+function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){
   const data=block.data??{};
   const [pickerOpen,setPickerOpen]=useState(false);
   const headingRef=useRef<HTMLHeadingElement|null>(null);
