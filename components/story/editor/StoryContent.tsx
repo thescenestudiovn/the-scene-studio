@@ -290,7 +290,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
 
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
     <div ref={wrapperRef} className="relative mx-auto w-full">
-      {editing && <TextToolbar editorRef={editorRef} selectionRef={{current:selectionRef.current?{range:selectionRef.current,editor:editorRef.current!}:null}} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
+      {editing && <TextToolbar editorRef={editorRef} selectionRef={selectionRef} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
       <div
         ref={editorRef}
         contentEditable
