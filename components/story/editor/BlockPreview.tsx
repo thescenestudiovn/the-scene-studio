@@ -72,7 +72,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
         ))}
       </div>
     ) : body ? (
-      <div className={`mt-5 whitespace-pre-wrap text-[#77736c] ${textStyle(defaultSize)}`} dangerouslySetInnerHTML={{ __html: body }} />
+      <div className={`mt-5 whitespace-pre-wrap text-[#77736c] ${textStyle(defaultSize)}`} style={{ textAlign: isHeadingLayout ? "center" : "left" }} dangerouslySetInnerHTML={{ __html: body }} />
     ) : null}
   </div></section>;
 }
