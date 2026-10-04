@@ -49,7 +49,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
       const value = item as { content?: unknown; textSize?: unknown };
       return {
         content: typeof value.content === "string" ? value.content : "",
-        textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,
+        textSize: typeof value.textSize === "string" ? value.textSize : defaultSize,\n        align: typeof value.align === "string" && ["left","center","right","justify"].includes(value.align) ? value.align : (isHeadingLayout ? "center" : "left"),
       };
     })
     .filter((line): line is { content: string; textSize: string } => Boolean(line));
@@ -67,7 +67,7 @@ function TextPreview({ block }: { block: StoryBlock }) {
     {lines.length > 0 ? (
       <div className="mt-5 text-[#77736c]">
         {lines.map((line, index) => (
-          <div key={index} className={`whitespace-pre-wrap ${isHeadingLayout ? "text-center " : ""}${textStyle(line.textSize)}`} dangerouslySetInnerHTML={{ __html: line.content }} />
+          <div key={index} className={`whitespace-pre-wrap ${textStyle(line.textSize)}`} style={{ textAlign: line.align as "left"|"center"|"right"|"justify" }} dangerouslySetInnerHTML={{ __html: line.content }} />
         ))}
       </div>
     ) : body ? (
