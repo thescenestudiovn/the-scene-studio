@@ -19,6 +19,8 @@ import type { StoryBlock } from "./types";
 type Props={storyId:string;blocks:StoryBlock[];onBlocksChange:(blocks:StoryBlock[])=>void;onDelete:(blockId:string)=>void;onUpdate:(block:StoryBlock,patch:Partial<StoryBlock>)=>void;onAddBlock?:(afterBlockId?:string)=>void};
 type DropPosition={targetId:string;side:"before"|"after"};
 type SavedSelection={range:Range;editor:HTMLDivElement};
+type TextAlign="left"|"center"|"right"|"justify";
+type TextLine={content:string;textSize:string;align?:TextAlign};
 
 const TEXT_STYLES:Record<string,string>={"banner-heading":"text-6xl font-serif leading-[1.05]","banner-subtitle":"text-lg leading-7","heading-1":"text-5xl font-serif leading-[1.08]","heading-2":"text-4xl font-serif leading-[1.12]","heading-3":"text-3xl font-serif leading-[1.16]","heading-4":"text-2xl font-serif leading-[1.2]","heading-5":"text-xl font-serif leading-[1.25]","heading-6":"text-lg font-serif leading-[1.3]",wide:"text-xl leading-8",regular:"text-base leading-7",narrow:"text-sm leading-6","text-h1":"text-5xl font-serif leading-[1.08]","text-h2":"text-4xl font-serif leading-[1.12]","text-h3":"text-3xl font-serif leading-[1.16]","text-wide":"text-xl leading-8","text-regular":"text-base leading-7","text-narrow":"text-sm leading-6","paragraph-1":"text-xl leading-8","paragraph-2":"text-base leading-7","paragraph-3":"text-sm leading-6"};
 const LABELS:Record<string,string>={"heading-1":"Heading 1","heading-2":"Heading 2","heading-3":"Heading 3",wide:"Wide Text",regular:"Regular Text",narrow:"Narrow Text","text-h1":"Heading 1","text-h2":"Heading 2","text-h3":"Heading 3","text-wide":"Wide Text","text-regular":"Regular Text","text-narrow":"Narrow Text","columns-1":"Columns 1","columns-2":"Columns 2","columns-3":"Columns 3","columns-4":"Columns 4",large:"Large Image",medium:"Medium Image","full-width":"Full Width Image","grid-vertical":"Vertical Grid","grid-horizontal":"Horizontal Grid","grid-square":"Square Grid","grid-stacked":"Stacked Grid",slideshow:"Slideshow",carousel:"Carousel","text-overlay-large":"Image with Text · Large","text-overlay-medium":"Image with Text · Medium","text-overlay-full":"Small Image with Text · Full","text-columns-2":"Image with Text · Columns 2","text-columns-3":"Image with Text · Columns 3","text-columns-4":"Image with Text · Columns 4","text-below-large":"Image with Text · Below Large","text-below-medium":"Small Image with Text · Below Medium","text-left-regular":"Image with Text · Left Regular","text-right-regular":"Image with Text · Right Regular","text-left-large":"Large Image with Text · Left","text-right-large":"Large Image with Text · Right","banner-video":"YouTube Video","banner-1":"Banner 1","banner-2":"Banner 2","banner-3":"Banner 3","info-1":"Info 1","info-2":"Info 2","info-3":"Info 3","testimonial-1":"Testimonial 1","testimonial-2":"Testimonial 2","testimonial-3":"Testimonial 3","pricing-1":"Pricing 1","pricing-2":"Pricing 2","pricing-3":"Pricing 3","faq-1":"FAQ 1","faq-2":"FAQ 2","faq-3":"FAQ 3","quote-1":"Quote 1","quote-2":"Quote 2","quote-3":"Quote 3"};
@@ -119,8 +121,6 @@ function TextToolbar({editorRef,selectionRef,onChange,onSizeChange,onAlignChange
 }
 
 function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onBlur:()=>void}){
-  type TextAlign="left"|"center"|"right"|"justify";
-  type TextLine={content:string;textSize:string;align?:TextAlign};
   const rawVariant=block.variant??"paragraph";
   const variant=rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant.startsWith("columns-")?"columns":rawVariant;
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
@@ -128,7 +128,8 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const defaultSize=typeof block.data?.textSize==="string"&&TEXT_STYLES[block.data.textSize]?block.data.textSize:(layout.startsWith("heading-")?layout:layout==="wide"?"paragraph-1":layout==="narrow"?"paragraph-3":"paragraph-2");
   const legacyContent=block.body??block.title??"";
   const storedLines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:null;
-  const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";\n  const makeInitialLines=():TextLine[]=>{
+  const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";
+  const makeInitialLines=():TextLine[]=>{
     if(storedLines?.length)return storedLines.map(item=>({content:typeof item==="object"&&item!==null&&"content" in item&&typeof (item as {content?:unknown}).content==="string"?(item as {content:string}).content:"",textSize:typeof item==="object"&&item!==null&&"textSize" in item&&typeof (item as {textSize?:unknown}).textSize==="string"&&TEXT_STYLES[(item as {textSize:string}).textSize]?(item as {textSize:string}).textSize:defaultSize,align:typeof item==="object"&&item!==null&&"align" in item&&["left","center","right","justify"].includes(String((item as {align?:unknown}).align))?(item as {align:TextAlign}).align:defaultAlign}));
     const holder=document.createElement("div");
     holder.innerHTML=legacyContent;
