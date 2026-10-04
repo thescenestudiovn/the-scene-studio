@@ -4,8 +4,8 @@ const SAFE_STYLE = /^(color:\s*#[0-9a-f]{3,8}|text-align:\s*(left|center|right|j
 
 function sanitizeHtml(value: string): string {
   let html = value.replace(/<!--[\\s\\S]*?-->/g, "");
-  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)[^>]*>[\\s\\S]*?<\\/\\1>/gi, "");
-  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)(?:\\s[^>]*)?\\/?\s*>/gi, "");
+  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)[^>]*>[\\s\\S]*?<\/\\1>/gi, "");
+  html = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|button|select|option|meta|link)(?:\\s[^>]*)?\\/?\\s*>/gi, "");
   return html.replace(/<\/?([a-z0-9]+)(?:\s[^>]*)?\s*\/?>/gi, (full, rawTag) => {
     const tag = String(rawTag).toLowerCase();
     if (!ALLOWED_TAGS.has(tag)) return "";
