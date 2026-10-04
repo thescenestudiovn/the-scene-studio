@@ -134,7 +134,7 @@ function TextToolbar({editorRef,selectionRef,currentSize,onSizeChange,onAlignCha
     document.execCommand(command,false,value);
     save();
   };
-  const toolbar=<div data-rich-text-toolbar className="sticky top-0 z-[1000] flex w-full flex-wrap items-center gap-0.5 border-b border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" onMouseDown={e=>e.preventDefault()}>
+  const toolbar=<div data-rich-text-toolbar className="absolute right-16 top-[-44px] z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" onMouseDown={e=>e.preventDefault()}>
     <select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>onSizeChange(e.target.value)} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none">
       {SIZE_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
@@ -187,8 +187,30 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
     return `<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap"><br></p>`;
   };
 
+  const normalizeLines=()=>{
+    const editor=editorRef.current;if(!editor)return;
+    Array.from(editor.children).forEach((node)=>{
+      if(!(node instanceof HTMLElement))return;
+      if(!["P","DIV"].includes(node.tagName))return;
+      const existingSize=node.getAttribute("data-text-size");
+      const size=existingSize&&TEXT_STYLES[existingSize]?existingSize:defaultSize;
+      const align=(node.style.textAlign as TextAlign)||defaultAlign;
+      if(node.tagName!=="P"){
+        const p=document.createElement("p");
+        p.innerHTML=node.innerHTML||"<br>";
+        Array.from(node.attributes).forEach(attr=>{if(attr.name!=="class"&&attr.name!=="style")p.setAttribute(attr.name,attr.value);});
+        node.replaceWith(p);
+        node=p;
+      }
+      node.setAttribute("data-text-line","true");
+      node.setAttribute("data-text-size",size);
+      node.style.textAlign=align;
+      node.className=`w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]}`;
+    });
+  };
   const getLines=()=>{
     const editor=editorRef.current;if(!editor)return [];
+    normalizeLines();
     return Array.from(editor.children).filter((n):n is HTMLElement=>n instanceof HTMLElement).map(el=>{
       const size=el.getAttribute("data-text-size")&&TEXT_STYLES[el.getAttribute("data-text-size")!]?el.getAttribute("data-text-size")!:defaultSize;
       const align=(el.style.textAlign as TextAlign)||defaultAlign;
@@ -277,7 +299,7 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
         onFocus={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
         onMouseUp={saveSelection}
         onKeyUp={()=>{saveSelection();const sel=window.getSelection();if(sel?.rangeCount){const node=sel.getRangeAt(0).startContainer.parentElement;const line=node?.closest("[data-text-line]") as HTMLElement|null;if(line?.getAttribute("data-text-size"))setCurrentSize(line.getAttribute("data-text-size")!);}}}
-        onInput={saveSelection}
+        onInput={()=>{saveSelection();requestAnimationFrame(()=>{normalizeLines();saveSelection();});}}
       />
     </div>
   </section>;
