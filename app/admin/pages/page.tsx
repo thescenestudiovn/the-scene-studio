@@ -15,7 +15,7 @@ import ContentBlockEditor from "../../../components/story/blocks/content/Content
 import ContentBlockView from "../../../components/story/blocks/content/ContentBlockView";
 import type { StoryBlock } from "../../../components/story/editor/types";
 import StoryContent from "../../../components/story/editor/StoryContent";
-import sanitizeHtml from "sanitize-html";
+import sanitizeHtml from "../../../lib/sanitizeHtml";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; collection_id?: string | null; width?: number | null; height?: number | null };
 type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null; homepage?: number; menu_order?: number; menu_visibility?: "visible" | "hidden" | "footer"; page_status?: "online" | "offline" | "password" };
