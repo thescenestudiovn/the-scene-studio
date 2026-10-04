@@ -346,7 +346,10 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
       const range=selection.getRangeAt(0);
       const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
       const line=node instanceof HTMLElement?node.closest("[data-text-line]"):null;
-      if(line?.dataset.textSize)setCurrentSize(line.dataset.textSize);
+      if(line instanceof HTMLElement){
+        const size=line.getAttribute("data-text-size");
+        if(size)setCurrentSize(size);
+      }
     }
   };
 
