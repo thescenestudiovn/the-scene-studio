@@ -265,7 +265,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   useEffect(()=>{
     const editor=editorRef.current;
     if(!editor||editing)return;
-    const html=lines.map(line=>"<div class=\"w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[line.textSize]??"text-base leading-7")+"\">"+(line.content||"")+"</div>").join("");
+    const html=lines.map(line=>"<div class=\"w-full min-h-10 outline-none whitespace-pre-wrap "+(TEXT_STYLES[line.textSize]??"text-base leading-7")+"\" style=\"text-align:"+(line.align||defaultAlign)+"\">"+(line.content||"")+"</div>").join("");
     if(editor.innerHTML!==html)editor.innerHTML=html;
   },[lines,editing]);
 
@@ -298,12 +298,12 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   const firstSize=lines[0]?.textSize||defaultSize;
   const isHeadingLayout=layout==="heading-1"||layout==="heading-2"||layout==="heading-3";
   const textWidthClass=isHeadingLayout?"w-full":layout==="wide"?"w-full":layout==="narrow"?"w-full md:w-1/2":"w-full md:w-[70%]";
-  const html=lines.map(line=>`<div class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[line.textSize]??"text-base leading-7"}">${line.content||""}</div>`).join("");
+  const html=lines.map(line=>`<div class="w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[line.textSize]??"text-base leading-7"}" style="text-align:${line.align||defaultAlign}">${line.content||""}</div>`).join("");
   return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
     <div ref={wrapperRef} className={`relative mx-auto ${textWidthClass}`}>
       {editing&&toolbarPosition.visible&&<TextToolbar editorRef={editorRef} selectionRef={selectionRef} onChange={handleInput} currentSize={firstSize} top={toolbarPosition.top} left={toolbarPosition.left} onHeightChange={setToolbarHeight} onSizeChange={updateSelectedSize} onAlignChange={updateSelectedAlign}/>}
       <div className="mt-5 text-[#77736c]">
-        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className={`w-full cursor-text outline-none whitespace-pre-wrap ${isHeadingLayout?"text-center":""}`} onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} dangerouslySetInnerHTML={{__html:html}} />
+        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck className="w-full cursor-text outline-none whitespace-pre-wrap" onFocus={handleFocus} onMouseUp={saveSelection} onKeyUp={saveSelection} onInput={handleInput} dangerouslySetInnerHTML={{__html:html}} />
       </div>
     </div>
   </section>;
