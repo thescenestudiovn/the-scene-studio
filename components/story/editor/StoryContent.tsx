@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import AddBlockTrigger from "../AddBlockTrigger";
 import TextColumnsEditor from "./TextColumnsEditor";
-import TiptapTextBlockEditor from "./TiptapTextBlockEditor";
 import ImageBlockEditor from "../blocks/image/ImageBlockEditor";
 import ImageWithTextEditor from "../blocks/image/ImageWithTextEditor";
 import GridGalleryEditor from "../blocks/gallery/GridGalleryEditor";
@@ -108,16 +107,205 @@ const SIZE_OPTIONS=[
   {value:"paragraph-3",label:"Paragraph 3",tag:"p",className:"text-sm leading-6"},
 ] as const;
 
-function AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
+function AlignIcon({align}:{align:"left"|"center"|"right"|"jufunction AlignIcon({align}:{align:"left"|"center"|"right"|"justify"}){const widths=align==="left"?[18,14,18,11]:align==="center"?[14,18,14,16]:align==="right"?[18,14,18,11]:[18,18,18,18];const positions=align==="right"?[0,4,0,7]:align==="center"?[2,0,2,1]:[0,0,0,0];return <svg aria-hidden="true" width="20" height="18" viewBox="0 0 20 18" fill="none">{widths.map((w,i)=><rect key={i} x={positions[i]} y={i*4+1} width={w} height="2" rx="1" fill="currentColor"/>)}</svg>}
+
+function TextToolbar({editorRef,selectionRef,currentSize,onSizeChange,onAlignChange}:{editorRef:React.RefObject<HTMLDivElement|null>;selectionRef:React.MutableRefObject<SavedSelection|null>;currentSize:string;onSizeChange:(size:string)=>void;onAlignChange:(align:TextAlign)=>void}){
+  const save=()=>{
+    const editor=editorRef.current;
+    const selection=window.getSelection();
+    if(editor&&selection&&selection.rangeCount&&editor.contains(selection.anchorNode)){
+      selectionRef.current={range:selection.getRangeAt(0).cloneRange(),editor};
+    }
+  };
+  const restore=()=>{
+    const saved=selectionRef.current;
+    const editor=editorRef.current;
+    if(!saved||!editor||saved.editor!==editor)return false;
+    editor.focus();
+    const selection=window.getSelection();
+    if(!selection)return false;
+    selection.removeAllRanges();
+    selection.addRange(saved.range);
+    return true;
+  };
+  const run=(command:string,value?:string)=>{
+    if(!restore())return;
+    document.execCommand(command,false,value);
+    save();
+  };
+  const toolbar=<div data-rich-text-toolbar className="absolute right-16 top-[-44px] z-[1000] flex flex-wrap items-center gap-0.5 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" onMouseDown={e=>e.preventDefault()}>
+    <select aria-label="Text size" title="Text size" value={currentSize} onMouseDown={e=>{save();e.stopPropagation()}} onChange={e=>onSizeChange(e.target.value)} className="h-8 w-[140px] cursor-pointer appearance-auto border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none">
+      {SIZE_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+    <span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>
+    {([["bold","B"],["italic","I"],["underline","U"]] as const).map(([command,label])=><button key={command} type="button" title={command} onClick={()=>run(command)} className={`flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white ${command==="bold"?"font-bold":command==="italic"?"italic":"underline"}`}>{label}</button>)}
+    <label title="Text color" className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm hover:bg-white" onMouseDown={e=>{e.preventDefault();save()}}>
+      <span className="border-b-4 border-[#7d4f45] text-sm font-semibold">A</span>
+      <input type="color" defaultValue="#222222" className="absolute inset-0 opacity-0" onChange={e=>run("foreColor",e.target.value)}/>
+    </label>
+    <span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>
+    {([["left","Align left"],["center","Align center"],["right","Align right"],["justify","Justify"]] as const).map(([align,title])=><button key={align} type="button" title={title} onClick={()=>onAlignChange(align)} className="flex h-8 w-8 items-center justify-center rounded-sm text-xs text-[#403c36] hover:bg-white"><AlignIcon align={align}/></button>)}
+    <span className="mx-1 h-5 w-px bg-[#d9d3ca]"/>
+    <button type="button" title="Remove formatting" onClick={()=>run("removeFormat")} className="flex h-8 w-8 items-center justify-center rounded-sm text-sm text-[#403c36] hover:bg-white">T<span className="text-[#77736c]">x</span></button>
+  </div>;
+  return toolbar;
+}
 
 function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void;onCommit:(patch:Partial<StoryBlock>)=>void}){
   const rawVariant=block.variant??"paragraph";
-  const variant=rawVariant.startsWith("columns-")||rawVariant.startsWith("text-columns-")?"columns":rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant;
+  const variant=rawVariant.startsWith("heading-")||rawVariant.startsWith("text-h")?"heading":rawVariant.startsWith("text-")?"paragraph":rawVariant.startsWith("columns-")?"columns":rawVariant;
   const layout=typeof block.data?.layout==="string"?block.data.layout:(rawVariant==="heading"?"heading-1":rawVariant==="columns"?"columns-2":"regular");
-  if(variant==="columns")return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
-  return <TiptapTextBlockEditor block={block} onChange={onChange} onCommit={onCommit}/>;
+  const isColumns=variant==="columns";
+  const defaultSize=typeof block.data?.textSize==="string"&&TEXT_STYLES[block.data.textSize]?block.data.textSize:(layout.startsWith("heading-")?layout:layout==="wide"?"paragraph-1":layout==="narrow"?"paragraph-3":"paragraph-2");
+  const defaultAlign:TextAlign=layout.startsWith("heading-")?"center":"left";
+  const editorRef=useRef<HTMLDivElement|null>(null);
+  const wrapperRef=useRef<HTMLDivElement|null>(null);
+  const selectionRef=useRef<SavedSelection|null>(null);
+  const [editing,setEditing]=useState(false);
+  const [currentSize,setCurrentSize]=useState(defaultSize);
+
+  const escape=(value:string)=>{const el=document.createElement("div");el.textContent=value;return el.innerHTML;};
+  const buildHtml=()=>{
+    const lines=Array.isArray(block.data?.lines)?block.data.lines as unknown[]:[];
+    if(lines.length){
+      return lines.map(item=>{
+        const v=item as {content?:unknown;textSize?:unknown;align?:unknown};
+        const content=typeof v.content==="string"?v.content:"";
+        const size=typeof v.textSize==="string"&&TEXT_STYLES[v.textSize]?v.textSize:defaultSize;
+        const align=typeof v.align==="string"&&["left","center","right","justify"].includes(v.align)?v.align:defaultAlign;
+        return `<p data-text-line="true" data-text-size="${escape(size)}" style="text-align:${align}" class="${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${content||"<br>"}</p>`;
+      }).join("");
+    }
+    const body=typeof block.body==="string"?block.body:(typeof block.title==="string"?block.title:"");
+    if(body){
+      const holder=document.createElement("div");holder.innerHTML=body;
+      const nodes=Array.from(holder.childNodes);
+      const html=nodes.length>1?nodes.map(node=>node.nodeType===1?(node as HTMLElement).outerHTML:escape(node.textContent??"")).join(""):body;
+      return html.split(/<br\s*\/?>/i).map((part,index)=>`<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap">${part||"<br>"}</p>`).join("");
+    }
+    return `<p data-text-line="true" data-text-size="${escape(defaultSize)}" style="text-align:${defaultAlign}" class="${TEXT_STYLES[defaultSize]} w-full outline-none whitespace-pre-wrap"><br></p>`;
+  };
+
+  const normalizeLines=()=>{
+    const editor=editorRef.current;if(!editor)return;
+    Array.from(editor.children).forEach((rawNode)=>{
+      if(!(rawNode instanceof HTMLElement))return;
+      let node:HTMLElement=rawNode;
+      if(!(node instanceof HTMLElement))return;
+      if(!["P","DIV"].includes(node.tagName))return;
+      const existingSize=node.getAttribute("data-text-size");
+      const size=existingSize&&TEXT_STYLES[existingSize]?existingSize:defaultSize;
+      const align=(node.style.textAlign as TextAlign)||defaultAlign;
+      if(node.tagName!=="P"){
+        const p=document.createElement("p");
+        p.innerHTML=node.innerHTML||"<br>";
+        Array.from(node.attributes).forEach(attr=>{if(attr.name!=="class"&&attr.name!=="style")p.setAttribute(attr.name,attr.value);});
+        node.replaceWith(p);
+        node=p;
+      }
+      node.setAttribute("data-text-line","true");
+      node.setAttribute("data-text-size",size);
+      node.style.textAlign=align;
+      node.className=`w-full outline-none whitespace-pre-wrap ${TEXT_STYLES[size]??TEXT_STYLES[defaultSize]}`;
+    });
+  };
+  const getLines=()=>{
+    const editor=editorRef.current;if(!editor)return [];
+    normalizeLines();
+    return Array.from(editor.children).filter((n):n is HTMLElement=>n instanceof HTMLElement).map(el=>{
+      const size=el.getAttribute("data-text-size")&&TEXT_STYLES[el.getAttribute("data-text-size")!]?el.getAttribute("data-text-size")!:defaultSize;
+      const align=(el.style.textAlign as TextAlign)||defaultAlign;
+      return {content:el.innerHTML==="<br>"?"":el.innerHTML,textSize:size,align};
+    });
+  };
+  const commit=()=>{
+    const editor=editorRef.current;if(!editor)return;
+    const lines=getLines();
+    const body=lines.map(l=>l.content).join("<br />");
+    const patch:Partial<StoryBlock>={body,data:{...(block.data??{}),variant,layout,lines,textSize:lines[0]?.textSize??defaultSize}};
+    onChange(patch);
+    onCommit(patch);
+  };
+  const saveSelection=()=>{
+    const sel=window.getSelection();
+    const editor=editorRef.current;
+    if(sel&&sel.rangeCount&&editor&&editor.contains(sel.anchorNode))selectionRef.current={range:sel.getRangeAt(0).cloneRange(),editor};
+  };
+  const restoreSelection=()=>{
+    const saved=selectionRef.current;const editor=editorRef.current;if(!saved||!editor||saved.editor!==editor)return false;
+    const sel=window.getSelection();if(!sel)return false;
+    editor.focus();sel.removeAllRanges();sel.addRange(saved.range);return true;
+  };
+  const selectedLines=()=>{
+    const editor=editorRef.current;const sel=window.getSelection();
+    if(!editor||!sel||!sel.rangeCount)return [] as HTMLElement[];
+    const range=sel.getRangeAt(0);
+    return Array.from(editor.children).filter((n):n is HTMLElement=>n instanceof HTMLElement).filter(el=>{
+      try{return range.intersectsNode(el)}catch{return false;}
+    });
+  };
+  const applySize=(size:string)=>{
+    const option=SIZE_OPTIONS.find(o=>o.value===size);if(!option||!restoreSelection())return;
+    const lines=selectedLines();if(!lines.length)return;
+    lines.forEach(line=>{line.className=`w-full outline-none whitespace-pre-wrap ${option.className}`;line.setAttribute("data-text-size",size);});
+    setCurrentSize(size);saveSelection();
+  };
+  const applyAlign=(align:TextAlign)=>{
+    if(!restoreSelection())return;
+    const lines=selectedLines();if(!lines.length)return;
+    lines.forEach(line=>line.style.textAlign=align);saveSelection();
+  };
+
+  useEffect(()=>{
+    if(isColumns)return;
+    const editor=editorRef.current;if(!editor)return;
+    editor.innerHTML=buildHtml();
+    const first=editor.querySelector("[data-text-line]") as HTMLElement|null;
+    setCurrentSize(first?.getAttribute("data-text-size")??defaultSize);
+  },[block.id]);
+
+  useEffect(()=>{
+    if(!editing)return;
+    const close=(event:MouseEvent)=>{
+      const target=event.target as Element|null;
+      if(wrapperRef.current?.contains(target)||target?.closest("[data-rich-text-toolbar]"))return;
+      commit();
+      setEditing(false);selectionRef.current=null;
+    };
+    document.addEventListener("mousedown",close);
+    return()=>document.removeEventListener("mousedown",close);
+  },[editing]);
+
+  useEffect(()=>{
+    if(!editing)return;
+    const editor=editorRef.current;
+    if(!editor)return;
+    const handleBlur=()=>commit();
+    editor.addEventListener("blur",handleBlur);
+    return()=>editor.removeEventListener("blur",handleBlur);
+  },[editing]);
+
+  if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
+
+  return <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={e=>e.stopPropagation()}>
+    <div ref={wrapperRef} className="relative mx-auto w-full">
+      {editing && <TextToolbar editorRef={editorRef} selectionRef={selectionRef} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck
+        className="w-full min-h-12 cursor-text outline-none"
+        onClick={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
+        onFocus={()=>{setEditing(true);requestAnimationFrame(saveSelection);}}
+        onMouseUp={saveSelection}
+        onKeyUp={()=>{saveSelection();const sel=window.getSelection();if(sel?.rangeCount){const node=sel.getRangeAt(0).startContainer.parentElement;const line=node?.closest("[data-text-line]") as HTMLElement|null;if(line?.getAttribute("data-text-size"))setCurrentSize(line.getAttribute("data-text-size")!);}}}
+        onInput={()=>{saveSelection();requestAnimationFrame(()=>{normalizeLines();saveSelection();});}}
+      />
+    </div>
+  </section>;
 }
-function ContactBlockEditor({block,onChange}:{block:StoryBlock;onChange:(patch:Partial<StoryBlock>)=>void}){
+k;onChange:(patch:Partial<StoryBlock>)=>void}){
   const data=block.data??{};
   const [pickerOpen,setPickerOpen]=useState(false);
   const headingRef=useRef<HTMLHeadingElement|null>(null);
