@@ -149,9 +149,9 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   useEffect(()=>{linesRef.current=lines;},[lines]);
   const linesKey=JSON.stringify(storedLines??legacyContent);
 
-  const persist=(next:TextLine[])=>{
+  const persist=(next:TextLine[], updateState=true)=>{
     linesRef.current=next;
-    setLines(next);
+    if(updateState)setLines(next);
     onChange({body:next.map(line=>line.content).join("<br />"),data:{...(block.data??{}),variant,layout,lines:next,textSize:next[0]?.textSize??defaultSize}});
   };
 
@@ -162,17 +162,17 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
     return Array.from(editor.children).filter(node=>node.nodeType===1) as HTMLElement[];
   };
 
-  const syncLinesFromDom=()=>{
+  const syncLinesFromDom=(updateState=true)=>{
     const editor=editorRef.current;
     if(!editor)return;
     const children=getDirectLineElements();
     if(!children.length){
       const next=[{content:editor.innerHTML,textSize:defaultSize,align:defaultAlign}];
-      persist(next);
+      persist(next,updateState);
       return;
     }
     const next=children.map((child,index)=>({content:child.innerHTML,textSize:getSizeFromElement(child)||linesRef.current[index]?.textSize||defaultSize,align:((child.style.textAlign as TextAlign)||linesRef.current[index]?.align||defaultAlign)}));
-    persist(next);
+    persist(next,updateState);
   };
 
   const saveSelection=()=>{
@@ -254,14 +254,16 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
   },[editing,toolbarHeight]);
 
   useEffect(()=>{
+    if(editing)return;
     const initial=makeInitialLines();
     const next=initial.length?initial:[{content:"",textSize:defaultSize}];
     setLines(current=>{
       const sameContent=current.length===next.length&&current.every((line,index)=>line.content===next[index].content);
       const sameSizes=current.length===next.length&&current.every((line,index)=>line.textSize===next[index].textSize);
-      return sameContent&&sameSizes?current:next;
+      const sameAlign=current.length===next.length&&current.every((line,index)=>line.align===next[index].align);
+      return sameContent&&sameSizes&&sameAlign?current:next;
     });
-  },[linesKey,block.id]);
+  },[linesKey,block.id,editing]);
 
   useEffect(()=>{
     const editor=editorRef.current;
@@ -276,6 +278,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
       const target=event.target as Node|null;
       if(wrapperRef.current?.contains(target))return;
       if(target&&(target as Element).closest?.("[data-rich-text-toolbar]") || (target as Element).closest?.("[data-admin-block-editor]"))return;
+      setLines(linesRef.current);
       setEditing(false);
       selectionRef.current=null;
       onBlur();
@@ -291,7 +294,7 @@ function TextBlockEditor({block,onChange,onBlur}:{block:StoryBlock;onChange:(pat
 
   const handleInput=()=>{
     saveSelection();
-    syncLinesFromDom();
+    syncLinesFromDom(false);
   };
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
