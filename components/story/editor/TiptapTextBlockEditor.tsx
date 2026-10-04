@@ -34,13 +34,13 @@ function normalizeInitialHtml(block: StoryBlock, defaultSize: string, defaultAli
       const size = typeof line.textSize === "string" && SIZE_OPTIONS.some((option) => option.value === line.textSize) ? line.textSize : defaultSize;
       const align = typeof line.align === "string" && ["left", "center", "right", "justify"].includes(line.align) ? line.align : defaultAlign;
       const px = SIZE_OPTIONS.find((option) => option.value === size)?.px ?? "16px";
-      return "<p style="text-align:" + align + ""><span style="font-size:" + px + "">" + (content || "<br>") + "</span></p>";
+      return `<p style="text-align:${align}"><span style="font-size:${px}">${content || "<br>"}</span></p>`;
     }).join("");
   }
   const body = typeof block.body === "string" ? block.body : typeof block.title === "string" ? block.title : "";
   if (body) return body;
   const px = SIZE_OPTIONS.find((option) => option.value === defaultSize)?.px ?? "16px";
-  return "<p style="text-align:" + defaultAlign + ""><span style="font-size:" + px + ""><br></span></p>";
+  return `<p style="text-align:${defaultAlign}"><span style="font-size:${px}"><br></span></p>`;
 }
 
 function extractLines(html: string, fallbackSize: string, fallbackAlign: TextAlignValue) {
