@@ -57,7 +57,7 @@ function extractLines(html: string, fallbackSize: string, fallbackAlign: TextAli
   });
 }
 
-function Toolbar({ editor, currentSize }: { editor: ReturnType<typeof useEditor>; currentSize: string }) {
+function Toolbar({ editor, currentSize, onSizeChange }: { editor: ReturnType<typeof useEditor>; currentSize: string; onSizeChange: (size: string) => void }) {
   if (!editor) return null;
   const alignIcon = (align: string) => align === "left" ? "☰" : align === "center" ? "≡" : align === "right" ? "☷" : "☰";
   return (
