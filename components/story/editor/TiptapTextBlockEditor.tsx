@@ -61,10 +61,10 @@ function Toolbar({ editor, currentSize }: { editor: ReturnType<typeof useEditor>
   if (!editor) return null;
   const alignIcon = (align: string) => align === "left" ? "☰" : align === "center" ? "≡" : align === "right" ? "☷" : "☰";
   return (
-    <div data-rich-text-toolbar className="absolute right-16 top-[-46px] z-[1000] flex items-center gap-1 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" onMouseDown={(event) => event.preventDefault()}>
+    <div data-rich-text-toolbar className="absolute right-16 top-[-46px] z-[1000] flex items-center gap-1 border border-[#d9d3ca] bg-[#f7f4ef] px-2 py-1.5 shadow-sm" >
       <select aria-label="Text size" title="Text size" value={currentSize} onChange={(event) => {
         const size = SIZE_OPTIONS.find((option) => option.value === event.target.value);
-        if (size) editor.chain().focus().setFontSize(size.px).run();
+        if (size) { editor.chain().focus().setFontSize(size.px).run(); onSizeChange(size.value); }
       }} className="h-8 w-[145px] border border-[#d9d3ca] bg-white px-2 text-xs text-[#403c36] outline-none">
         {SIZE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -151,7 +151,7 @@ export default function TiptapTextBlockEditor({ block, onChange, onCommit }: { b
   return (
     <section className="px-6 py-12 md:px-10 md:py-16" onMouseDown={(event) => event.stopPropagation()}>
       <div className="relative mx-auto w-full">
-        {editing && <Toolbar editor={editor} currentSize={currentSize} />}
+        {editing && <Toolbar editor={editor} currentSize={currentSize} onSizeChange={setCurrentSize} />}
         <EditorContent editor={editor} className="w-full" onClick={() => setEditing(true)} />
       </div>
     </section>
