@@ -220,14 +220,47 @@ function SiteMenuBlock() {
     const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
     const [autoPlay, setAutoPlay] = useState(true);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
     const [focalOpen, setFocalOpen] = useState(false);
     const [altOpen, setAltOpen] = useState(false);
+    const inputRef = useState<HTMLInputElement | null>(null)[0];
     const [slides, setSlides] = useState<MenuSlide[]>([
         { id: "slide-1", title: "Photography is Poetry", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
         { id: "slide-2", title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
     ]);
 
     const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
+    const uploadSlideImage = async (files: FileList | File[]) => {
+        const file = Array.from(files)[0];
+        if (!file) return;
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { window.alert("JPEG, PNG or WebP only"); return; }
+        if (file.size > 5 * 1024 * 1024) { window.alert("Maximum 5 MB"); return; }
+        setUploading(true);
+        try {
+            const objectUrl = URL.createObjectURL(file);
+            const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+                image.onerror = () => reject(new Error("Could not read image"));
+                image.src = objectUrl;
+            });
+            URL.revokeObjectURL(objectUrl);
+            const form = new FormData();
+            form.append("file", file);
+            form.append("alt", file.name.replace(/\\.[^/.]+$/, ""));
+            form.append("width", String(dimensions.width));
+            form.append("height", String(dimensions.height));
+            const response = await fetch("/api/admin/media/upload", { method: "POST", body: form });
+            const result = await response.json() as { success?: boolean; error?: string; media?: Media };
+            if (!response.ok || !result.success || !result.media) throw new Error(result.error || "Upload failed");
+            updateSlide({ media: result.media });
+        } catch (error) {
+            window.alert(error instanceof Error ? error.message : "Upload failed");
+        } finally {
+            setUploading(false);
+        }
+    };
     const updateSlide = (patch: Partial<MenuSlide>) => {
         if (!selectedSlideId) return;
         setSlides(current => current.map(slide => slide.id === selectedSlideId ? { ...slide, ...patch } : slide));
@@ -304,16 +337,38 @@ function SiteMenuBlock() {
                 <div className="space-y-5">
                     <div>
                         <label className="mb-2 block text-[9px] uppercase tracking-[0.14em]">Image</label>
-                        <div className="group relative overflow-hidden border border-[#d8d3ca] bg-white">
-                            {selectedSlide.media ? <img src={mediaUrl(selectedSlide.media.path)} alt={selectedSlide.altText} className="block aspect-[16/9] h-auto w-full object-cover" style={{ objectPosition: selectedSlide.focalX + "% " + selectedSlide.focalY + "%" }} /> : <div className="grid aspect-[16/9] place-items-center text-[9px] uppercase tracking-[0.12em] text-[#8a857d]">Choose image</div>}
-                            {selectedSlide.media && <div className="absolute inset-x-0 bottom-0 bg-black/65 px-3 py-2 text-white opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
-                                <div className="mb-1.5 text-[8px] uppercase tracking-[0.16em] text-white/60">Image</div>
-                                <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-                                    <button type="button" onClick={() => setPickerOpen(true)} className="text-[9px] uppercase tracking-[0.08em]">Change Image</button>
-                                    <button type="button" onClick={() => setFocalOpen(true)} className="text-[9px] uppercase tracking-[0.08em]">Set Focal</button>
-                                    <button type="button" onClick={() => setAltOpen(true)} className="text-[9px] uppercase tracking-[0.08em]">Alt Text</button>
-                                </div>
-                            </div>}
+                        <div className="grid gap-3">
+                            <p className="text-[10px] uppercase tracking-[0.14em] text-[#77736c]">Image</p>
+                            <div
+                                className={"relative overflow-hidden border border-dashed bg-white transition " + (dragOver ? "border-[#171717] bg-[#f5f2ed]" : "border-[#cfc8bf]")}
+                                onDragOver={event => { event.preventDefault(); setDragOver(true); }}
+                                onDragLeave={() => setDragOver(false)}
+                                onDrop={event => { event.preventDefault(); setDragOver(false); void uploadSlideImage(event.dataTransfer.files); }}
+                            >
+                                {selectedSlide.media ? (
+                                    <div className="group relative aspect-[16/7] overflow-hidden bg-[#e9e5de]">
+                                        <img src={mediaUrl(selectedSlide.media.path)} alt={selectedSlide.media.alt || selectedSlide.media.filename || selectedSlide.altText} className="h-full w-full object-cover" style={{ objectPosition: selectedSlide.focalX + "% " + selectedSlide.focalY + "%" }} />
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/65 px-3 py-2 text-white opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+                                            <div className="mb-1 text-[8px] uppercase tracking-[0.16em] text-white/60">Image</div>
+                                            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                                                <button type="button" onClick={() => setPickerOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Change Image</button>
+                                                <button type="button" onClick={() => setFocalOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Set Focal</button>
+                                                <button type="button" onClick={() => setAltOpen(true)} className="text-[9px] uppercase tracking-[0.08em] hover:text-white/70">Alt Text</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex min-h-[180px] flex-col items-center justify-center px-5 text-center">
+                                        <p className="text-sm text-[#77736c]">Drag photo here</p>
+                                        <p className="mt-1 text-[11px] text-[#aaa49a]">Or upload photo from:</p>
+                                        <div className="mt-4 flex flex-wrap justify-center gap-2">
+                                            <button type="button" onClick={() => setPickerOpen(true)} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.13em] hover:border-[#171717]">Gallery</button>
+                                            <button type="button" onClick={() => document.getElementById("menu-slide-upload")?.click()} disabled={uploading} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.13em] hover:border-[#171717] disabled:opacity-50">My Computer</button>
+                                        </div>
+                                    </div>
+                                )}
+                                <input id="menu-slide-upload" hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={event => void uploadSlideImage(event.target.files ?? [])} />
+                            </div>
                         </div>
                     </div>
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Title<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.title} onChange={e => updateSlide({ title: e.target.value })} /></label>
