@@ -104,8 +104,8 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     const textWidthClass =
         isHeadingLayout || isColumns ? "w-full" :
         variant === "wide" ? "w-full" :
-        variant === "narrow" ? "w-1/2" :
-        "w-[70%]";
+        variant === "narrow" ? "w-1/2 mx-auto" :
+        "w-[70%] mx-auto";
     const body = sanitizeHtml(text(data.body));
     return <section className="px-6 py-6 md:px-10 md:py-8"><div className={`mx-auto ${blockLayout.container.content}`}><div className={textWidthClass}>
         {text(data.eyebrow) && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{text(data.eyebrow)}</p>}
