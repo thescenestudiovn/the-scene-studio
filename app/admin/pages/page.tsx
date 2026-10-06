@@ -328,8 +328,8 @@ function SiteMenuBlock() {
     } : undefined;
 
     return <>
-        <section className="relative overflow-hidden border border-[#d8d3ca] bg-[#fbfaf7]">
-            <div className={"group relative overflow-hidden " + menuFrameClass} style={menuFrameStyle}>
+        <section className="group relative overflow-hidden border border-[#d8d3ca] bg-[#fbfaf7]">
+            <div className={"relative overflow-hidden " + menuFrameClass} style={menuFrameStyle}>
                 <div className={"relative z-10 flex items-center justify-between gap-6 px-5 py-5 sm:px-8 " + (style === 2 ? "absolute inset-x-0 top-0" : "")}>
                     {(style === 2 || style === 4) ? <>
                         <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Home</span><span>About</span><span>Portfolio</span></nav>
