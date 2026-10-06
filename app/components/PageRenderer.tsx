@@ -100,11 +100,12 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
                 : (isHeadingLayout ? "center" : "left"),
         };
     }).filter((line): line is { content: string; textSize: string; align: "left" | "center" | "right" | "justify" } => line !== null);
+    // Text width is measured relative to the Content Container, never the viewport.
     const textWidthClass =
         isHeadingLayout ? "w-full" :
         variant === "wide" ? "w-full" :
-        variant === "narrow" ? "w-full md:w-1/2" :
-        "w-full md:w-[70%]";
+        variant === "narrow" ? "w-1/2" :
+        "w-[70%]";
     const body = sanitizeHtml(text(data.body));
     return <section className="px-6 py-6 md:px-10 md:py-8"><div className={`mx-auto ${blockLayout.container.content}`}><div className={textWidthClass}>
         {text(data.eyebrow) && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{text(data.eyebrow)}</p>}
