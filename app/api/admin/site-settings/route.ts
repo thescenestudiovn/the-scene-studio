@@ -17,17 +17,21 @@ export async function PATCH(request: Request) {
     const db = getDB();
     await ensureSiteSettingsTable();
 
-    const fields = [
+    const allowedFields = [
       "phone","email","whatsapp","instagram","facebook","tiktok","pinterest",
       "address","logo","logo_white","favicon","site_description","seo_title",
       "seo_description","og_image","footer_text","menu_config"
     ] as const;
 
-    const values = fields.map(field => typeof body[field] === "string" ? body[field].trim() : "");
-    const setClause = fields.map(field => `${field}=?`).join(", ");
+    const fields = allowedFields.filter(field => Object.prototype.hasOwnProperty.call(body, field));
 
-    await db.prepare(`UPDATE site_settings SET ${setClause}, updated_at=CURRENT_TIMESTAMP WHERE id='global'`)
-      .bind(...values).run();
+    if (fields.length > 0) {
+      const values = fields.map(field => typeof body[field] === "string" ? body[field].trim() : "");
+      const setClause = fields.map(field => `${field}=?`).join(", ");
+
+      await db.prepare(`UPDATE site_settings SET ${setClause}, updated_at=CURRENT_TIMESTAMP WHERE id='global'`)
+        .bind(...values).run();
+    }
 
     return Response.json({ success: true, settings: await getSiteSettings() });
   } catch (error) {
