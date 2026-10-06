@@ -185,7 +185,7 @@ export default function PageRenderer({ blocks }: { blocks: Block[] }) {
     // This keeps menu content from covering any banner, text, image, or other block content.
     const finalBlocks = renderedBlocks.map((block, index) =>
         index === 0
-            ? <div key="page-header-clearance" className="pt-[76px] md:pt-[88px]">{block}</div>
+            ? <div key="page-header-clearance" className="pt-[var(--site-menu-height,88px)]">{block}</div>
             : block
     );
     return <div>{finalBlocks}</div>;
