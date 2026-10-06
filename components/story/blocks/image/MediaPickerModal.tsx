@@ -51,7 +51,7 @@ export default function MediaPickerModal({ open, required, selectedIds, collecti
       })
       .catch(() => { setMedia([]); setCollections([]); })
       .finally(() => setLoading(false));
-  }, [open, selectedIds, collectionId]);
+  }, [open]);
 
   const visibleMedia = useMemo(
     () => activeCollection ? media.filter(item => item.collection_id === activeCollection) : media,
