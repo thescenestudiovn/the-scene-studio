@@ -237,6 +237,7 @@ function SiteMenuBlock() {
     const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
     const [autoPlay, setAutoPlay] = useState(true);
     const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+    const [pageMode, setPageMode] = useState("");
     const [pages, setPages] = useState<Array<{ slug: string; title: string }>>([]);
     useEffect(() => { fetch("/api/admin/pages", { cache: "no-store" }).then(async response => response.ok ? await response.json() as { pages?: unknown } : null).then(data => { if (Array.isArray(data?.pages)) setPages(data.pages.filter((page: unknown): page is { slug: string; title: string } => typeof page === "object" && page !== null && typeof (page as { slug?: unknown }).slug === "string" && typeof (page as { title?: unknown }).title === "string")); }).catch(() => {}); }, []);
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -250,7 +251,10 @@ function SiteMenuBlock() {
     ]);
 
     const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
-    const pageMode = selectedSlide?.buttonUrl && pages.some(page => "/" + page.slug === selectedSlide.buttonUrl) ? selectedSlide.buttonUrl : selectedSlide?.buttonUrl ? "__custom__" : "";
+    useEffect(() => {
+        if (!selectedSlide) { setPageMode(""); return; }
+        setPageMode(selectedSlide.buttonUrl && pages.some(page => "/" + page.slug === selectedSlide.buttonUrl) ? selectedSlide.buttonUrl : selectedSlide.buttonUrl ? "__custom__" : "");
+    }, [selectedSlideId, selectedSlide?.buttonUrl, pages]);
     const uploadSlideImage = async (files: FileList | File[]) => {
         const file = Array.from(files)[0];
         if (!file) return;
@@ -350,7 +354,7 @@ function SiteMenuBlock() {
                 {style >= 3 ? (
                     <div className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-white sm:p-10">
                         <div className="max-w-2xl">
-                            <p className="font-serif text-2xl sm:text-4xl">{previewSlide?.title || "Slide title"}</p>
+                            <p className="font-serif text-2xl sm:text-4xl">{previewSlide?.title || null}</p>
                             {previewSlide?.subtitle ? <p className="mt-2 text-sm sm:text-base">{previewSlide.subtitle}</p> : null}
                             {previewSlide?.buttonText ? <a href={previewSlide.buttonUrl || "#"} target={previewSlide.openNewWindow ? "_blank" : undefined} rel={previewSlide.openNewWindow ? "noreferrer" : undefined} className="mt-5 inline-flex border border-white px-5 py-2 text-[9px] uppercase tracking-[0.14em]">{previewSlide.buttonText}</a> : null}
                         </div>
@@ -419,7 +423,7 @@ function SiteMenuBlock() {
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Button text<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.buttonText} onChange={e => updateSlide({ buttonText: e.target.value })} /></label>
                     <div className="grid gap-2">
                         <span className="text-[9px] uppercase tracking-[0.14em]">Button URL</span>
-                        <select value={pageMode} onChange={event => { const value = event.target.value; updateSlide({ buttonUrl: value === "__custom__" ? "" : value }); }} className="border border-[#d8d3ca] bg-white p-3 text-sm">
+                        <select value={pageMode} onChange={event => { const value = event.target.value; setPageMode(value); updateSlide({ buttonUrl: value === "__custom__" ? "" : value }); }} className="border border-[#d8d3ca] bg-white p-3 text-sm">
                             <option value="">No link</option>
                             {pages.map(page => <option key={page.slug} value={"/" + page.slug}>{page.title}</option>)}
                             <option value="__custom__">Custom URL</option>
