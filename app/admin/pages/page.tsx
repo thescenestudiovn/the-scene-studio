@@ -566,12 +566,17 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             try {
                 const settingsResponse = await fetch("/api/admin/site-settings", { cache: "no-store" });
                 const settingsData = settingsResponse.ok ? await settingsResponse.json() as { settings?: { menu_config?: string } } : null;
-                const nextConfig = parseMenuConfig(settingsData?.settings?.menu_config);\n                menuConfigRef.current = nextConfig;\n                setMenuConfig(nextConfig);
+                const nextConfig = parseMenuConfig(settingsData?.settings?.menu_config);
+menuConfigRef.current = nextConfig;
+setMenuConfig(nextConfig);
             } catch {
-                menuConfigRef.current = DEFAULT_MENU_CONFIG;\n            setMenuConfig(DEFAULT_MENU_CONFIG);
+                menuConfigRef.current = DEFAULT_MENU_CONFIG;
+setMenuConfig(DEFAULT_MENU_CONFIG);
             }
         } else {
-            const nextConfig = parseMenuConfig(item.menu_config);\n            menuConfigRef.current = nextConfig;\n            setMenuConfig(nextConfig);
+            const nextConfig = parseMenuConfig(item.menu_config);
+menuConfigRef.current = nextConfig;
+setMenuConfig(nextConfig);
         }
         // Homepage no longer uses a separate Homepage Cover block.
         // Keep the Page Builder canvas consistent across all pages.
