@@ -245,19 +245,26 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
     const [style, setStyle] = useState<1 | 2 | 3 | 4>(initialConfig.style);
     const [menuLoaded, setMenuLoaded] = useState(false);
     const [siteLogo, setSiteLogo] = useState("");
+    const [siteLogoWhite, setSiteLogoWhite] = useState("");
     useEffect(() => {
         let active = true;
         fetch("/api/admin/site-settings", { cache: "no-store" })
             .then(async response => {
                 if (!response.ok) return null;
-                const data = await response.json() as { settings?: { logo?: string } };
-                return data.settings?.logo ?? "";
+                const data = await response.json() as { settings?: { logo?: string; logo_white?: string } };
+                return { logo: data.settings?.logo ?? "", logoWhite: data.settings?.logo_white ?? "" };
             })
             .then(logo => {
-                if (active) setSiteLogo(logo || "");
+                if (active) {
+                    setSiteLogo(logo.logo || "");
+                    setSiteLogoWhite(logo.logoWhite || "");
+                }
             })
             .catch(() => {
-                if (active) setSiteLogo("");
+                if (active) {
+                    setSiteLogo("");
+                    setSiteLogoWhite("");
+                }
             });
         return () => { active = false; };
     }, []);
@@ -354,8 +361,9 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
         setMenuSettingsOpen(false);
     };
 
-    const logoMarkup = siteLogo ? (
-        <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[140px] object-contain" />
+    const previewLogo = style >= 3 ? siteLogoWhite : siteLogo;
+    const logoMarkup = previewLogo ? (
+        <img src={mediaUrl(previewLogo)} alt="The Scene Studio" className="max-h-8 max-w-[140px] object-contain" />
     ) : (
         <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>
     );
@@ -368,11 +376,15 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
     const previewSlide = slides[previewSlideIndex] ?? slides[0];
     const bg = previewSlide?.media ? mediaUrl(previewSlide.media.path) : "";
     const menuFrameClass = style === 3 ? "aspect-video w-full" : style === 4 ? "aspect-[3/2] w-full" : "min-h-[120px] w-full";
-    const menuFrameStyle = style >= 3 && bg ? {
-        backgroundImage: "linear-gradient(rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + "),rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + ")),url(" + bg + ")",
-        backgroundSize: "cover",
-        backgroundPosition: (previewSlide?.focalX ?? 50) + "% " + (previewSlide?.focalY ?? 50) + "%",
-    } : undefined;
+    const menuFrameStyle = style >= 3
+        ? bg
+            ? {
+                backgroundImage: "linear-gradient(rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + "),rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + ")),url(" + bg + ")",
+                backgroundSize: "cover",
+                backgroundPosition: (previewSlide?.focalX ?? 50) + "% " + (previewSlide?.focalY ?? 50) + "%",
+            }
+            : { backgroundColor: "#e9e4da" }
+        : undefined;
 
     return <>
         <section className={"group relative overflow-hidden border border-[#d8d3ca] bg-[#fbfaf7] " + (style >= 3 ? "text-white" : "")}>
