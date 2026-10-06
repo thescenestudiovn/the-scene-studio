@@ -321,7 +321,7 @@ function SiteMenuBlock() {
                 </div>
             </>}
         </div>}
-        <MediaPickerModal open={pickerOpen} required={1} selectedIds={selectedSlide?.media ? [selectedSlide.media.id] : []} onClose={() => setPickerOpen(false)} onDone={(_collectionId, mediaIds, media) => {
+        <MediaPickerModal collectionId="" open={pickerOpen} required={1} selectedIds={selectedSlide?.media ? [selectedSlide.media.id] : []} onClose={() => setPickerOpen(false)} onDone={(_collectionId, mediaIds, media) => {
             if (selectedSlideId) {
                 const chosen = media.find(item => item.id === mediaIds[0]);
                 updateSlide({ media: chosen });
