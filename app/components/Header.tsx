@@ -27,7 +27,8 @@ export default function Header({ light = false }: { light?: boolean }) {
     const [settings, setSettings] = useState<Settings>({ logo:"", logo_white:"" });
     const [pages, setPages] = useState<Array<{ slug:string; title:string; menu_visibility?:string; page_status?:string; homepage?:number; menu_config?:string|null }>>([]);
     const [config, setConfig] = useState<MenuConfig>({ style:1, display:"both", autoPlay:true, slides:[] });
-    const [slideIndex, setSlideIndex] = useState(0);\n    const fixedHeaderRef = useRef<HTMLElement | null>(null);
+    const [slideIndex, setSlideIndex] = useState(0);
+    const fixedHeaderRef = useRef<HTMLElement | null>(null);
     useEffect(() => {
         const handleScroll=()=>setScrolled(window.scrollY>80); window.addEventListener("scroll",handleScroll); handleScroll();
         fetch("/api/admin/site-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{const data=d as {settings?:Settings}; if(data.settings)setSettings({logo:data.settings.logo||"",logo_white:data.settings.logo_white||""});}).catch(()=>{});
