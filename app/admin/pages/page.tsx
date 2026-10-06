@@ -397,7 +397,7 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
                     {(style === 2 || style === 4) ? <>
                         <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]">{leftMenuPages.map(page => <span key={page.slug}>{page.title}</span>)}</nav>
                         <div className="flex w-28 shrink-0 flex-col items-center text-center">
-                            {(display === "logo" || display === "both") && (siteLogo ? <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[110px] object-contain" /> : <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>)}
+                            {(display === "logo" || display === "both") && (previewLogo ? <img src={mediaUrl(previewLogo)} alt="The Scene Studio" className="max-h-8 max-w-[110px] object-contain" /> : <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>)}
                             {(display === "name" || display === "both") && <span className={display === "both" ? "mt-2 text-[9px] uppercase tracking-[0.12em]" : "text-[9px] uppercase tracking-[0.12em]"}>The Scene Studio</span>}
                         </div>
                         <nav className="flex flex-1 justify-end gap-4 text-[9px] uppercase tracking-[0.12em]">{rightMenuPages.map(page => <span key={page.slug}>{page.title}</span>)}</nav>
