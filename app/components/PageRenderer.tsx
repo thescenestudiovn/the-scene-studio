@@ -161,7 +161,9 @@ function MapBlock({ data }: { data: Record<string, unknown> }) {
     );
 }
 export default function PageRenderer({ blocks }: { blocks: Block[] }) {
-    const renderedBlocks = blocks.map(block => {
+    // Cover blocks are no longer part of the Page Builder output.
+    // Admin and public pages should render the same block list.
+    const renderedBlocks = blocks.filter(block => block.type !== "cover").map(block => {
         const data = parseData(block.data);
         const type = block.type;
         const url = text(data.youtube_url) || text(data.url);
