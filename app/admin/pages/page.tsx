@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Footer from "../../components/Footer";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAdminEditorActions } from "../components/AdminEditorContext";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
@@ -553,6 +553,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [blockPickerOpen, setBlockPickerOpen] = useState(false);
     const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | undefined>(undefined);
     const [menuConfig, setMenuConfig] = useState<MenuConfig>(DEFAULT_MENU_CONFIG);
+    const menuConfigRef = useRef<MenuConfig>(DEFAULT_MENU_CONFIG);
     const { registerPageActions } = useAdminEditorActions();
 
     const openPage = useCallback(async (item: Page) => {
@@ -565,12 +566,12 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             try {
                 const settingsResponse = await fetch("/api/admin/site-settings", { cache: "no-store" });
                 const settingsData = settingsResponse.ok ? await settingsResponse.json() as { settings?: { menu_config?: string } } : null;
-                setMenuConfig(parseMenuConfig(settingsData?.settings?.menu_config));
+                const nextConfig = parseMenuConfig(settingsData?.settings?.menu_config);\n                menuConfigRef.current = nextConfig;\n                setMenuConfig(nextConfig);
             } catch {
-                setMenuConfig(DEFAULT_MENU_CONFIG);
+                menuConfigRef.current = DEFAULT_MENU_CONFIG;\n            setMenuConfig(DEFAULT_MENU_CONFIG);
             }
         } else {
-            setMenuConfig(parseMenuConfig(item.menu_config));
+            const nextConfig = parseMenuConfig(item.menu_config);\n            menuConfigRef.current = nextConfig;\n            setMenuConfig(nextConfig);
         }
         // Homepage no longer uses a separate Homepage Cover block.
         // Keep the Page Builder canvas consistent across all pages.
@@ -710,7 +711,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         return () => registerPageActions(null);
     }, [page, saving, registerPageActions]);
 
-    async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, menu_config: JSON.stringify(menuConfig), blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
+    async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, menu_config: JSON.stringify(menuConfigRef.current), blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
 
     if (loading) return <main className="min-h-[calc(100dvh-64px)] bg-[#f7f5f0] p-12 text-[#171717]">Loading pages…</main>;
     return <main className="min-h-[calc(100dvh-64px)] bg-[#f0eee8] text-[#171717]">
@@ -725,7 +726,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                 {message && <p className="border-b border-[#d8d3ca] bg-white px-5 py-3 text-xs text-[#666158]">{message}</p>}
                 {page ? <div className="overflow-x-auto p-3 sm:p-6 lg:p-8">
                     <div className="mx-auto min-h-[70vh] max-w-[1440px] bg-white shadow-[0_8px_32px_rgba(35,31,26,0.08)]">
-                        <SiteMenuBlock pageId={page.id} initialConfig={menuConfig} onConfigChange={setMenuConfig} />
+                        <SiteMenuBlock pageId={page.id} initialConfig={menuConfig} onConfigChange={config => { menuConfigRef.current = config; setMenuConfig(config); }} />
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
