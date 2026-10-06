@@ -19,7 +19,7 @@ import StoryContent from "../../../components/story/editor/StoryContent";
 import sanitizeHtml from "../../../lib/sanitizeHtml";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; collection_id?: string | null; width?: number | null; height?: number | null };
-type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null; homepage?: number; menu_order?: number; menu_visibility?: "visible" | "hidden" | "footer"; page_status?: "online" | "offline" | "password" };
+type Page = { id: string; title: string; slug: string; page_type: string; seo_title?: string | null; seo_description?: string | null; homepage?: number; menu_order?: number; menu_visibility?: "visible" | "hidden" | "footer"; page_status?: "online" | "offline" | "password"; menu_config?: string | null };
 type Block = { id: string; type: string; sort_order?: number; data: Record<string, unknown>; media: Media[] };
 type PageResponse = { blocks?: Array<{ id: string; type: string; sort_order?: number; data: string | Record<string, unknown>; media?: Media[] }> };
 
@@ -187,6 +187,35 @@ type MenuSlide = {
     tint: number;
 };
 
+type MenuConfig = {
+    style: 1 | 2 | 3 | 4;
+    display: "logo" | "name" | "both";
+    autoPlay: boolean;
+    slides: MenuSlide[];
+};
+
+const DEFAULT_MENU_CONFIG: MenuConfig = {
+    style: 1,
+    display: "both",
+    autoPlay: true,
+    slides: [],
+};
+
+function parseMenuConfig(raw?: string | null): MenuConfig {
+    if (!raw) return DEFAULT_MENU_CONFIG;
+    try {
+        const parsed = JSON.parse(raw) as Partial<MenuConfig>;
+        return {
+            style: parsed.style === 2 || parsed.style === 3 || parsed.style === 4 ? parsed.style : 1,
+            display: parsed.display === "logo" || parsed.display === "name" ? parsed.display : "both",
+            autoPlay: parsed.autoPlay !== false,
+            slides: Array.isArray(parsed.slides) ? parsed.slides : [],
+        };
+    } catch {
+        return DEFAULT_MENU_CONFIG;
+    }
+}
+
 function MenuSlideFocalDialog({ slide, onClose, onSave }: { slide: MenuSlide; onClose: () => void; onSave: (x: number, y: number) => void }) {
     const [point, setPoint] = useState(`${slide.focalX}% ${slide.focalY}%`);
     const parts = point.split(" ").map(value => Number.parseFloat(value));
@@ -212,8 +241,8 @@ function MenuSlideAltDialog({ slide, onClose, onSave }: { slide: MenuSlide; onCl
     </div></div>, document.body);
 }
 
-function SiteMenuBlock({ onConfigChange }: { onConfigChange: (config: { style: 1 | 2 | 3 | 4; display: "logo" | "name" | "both"; autoPlay: boolean; slides: MenuSlide[] }) => void }) {
-    const [style, setStyle] = useState<1 | 2 | 3 | 4>(1);
+function SiteMenuBlock({ initialConfig, onConfigChange }: { initialConfig: MenuConfig; onConfigChange: (config: MenuConfig) => void }) {
+    const [style, setStyle] = useState<1 | 2 | 3 | 4>(initialConfig.style);
     const [menuLoaded, setMenuLoaded] = useState(false);
     const [siteLogo, setSiteLogo] = useState("");
     useEffect(() => {
@@ -232,11 +261,11 @@ function SiteMenuBlock({ onConfigChange }: { onConfigChange: (config: { style: 1
             });
         return () => { active = false; };
     }, []);
-    const [display, setDisplay] = useState<"logo" | "name" | "both">("both");
+    const [display, setDisplay] = useState<"logo" | "name" | "both">(initialConfig.display);
     const [menuSettingsOpen, setMenuSettingsOpen] = useState(false);
     const [slideSettingsOpen, setSlideSettingsOpen] = useState(false);
     const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
-    const [autoPlay, setAutoPlay] = useState(true);
+    const [autoPlay, setAutoPlay] = useState(initialConfig.autoPlay);
     const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
     const [pageMode, setPageMode] = useState("");
     const [pages, setPages] = useState<Array<{ slug: string; title: string }>>([]);
@@ -246,12 +275,17 @@ function SiteMenuBlock({ onConfigChange }: { onConfigChange: (config: { style: 1
     const [dragOver, setDragOver] = useState(false);
     const [focalOpen, setFocalOpen] = useState(false);
     const [altOpen, setAltOpen] = useState(false);
-    const [slides, setSlides] = useState<MenuSlide[]>([
-        { id: "slide-1", title: "Photography is Poetry", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
-        { id: "slide-2", title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
-    ]);
+    const [slides, setSlides] = useState<MenuSlide[]>(initialConfig.slides);
 
-    useEffect(() => { fetch("/api/admin/site-settings",{cache:"no-store"}).then(async response => response.ok ? await response.json() as { settings?: { menu_config?: string } } : null).then(data => { const raw=data?.settings?.menu_config; if(raw){ try { const saved=JSON.parse(raw) as Partial<{style:1|2|3|4;display:"logo"|"name"|"both";autoPlay:boolean;slides:MenuSlide[]}>; if(saved.style) setStyle(saved.style); if(saved.display) setDisplay(saved.display); if(typeof saved.autoPlay==="boolean") setAutoPlay(saved.autoPlay); if(Array.isArray(saved.slides)) setSlides(saved.slides); } catch {} } setMenuLoaded(true); }).catch(()=>setMenuLoaded(true)); }, []);
+    useEffect(() => {
+        setStyle(initialConfig.style);
+        setDisplay(initialConfig.display);
+        setAutoPlay(initialConfig.autoPlay);
+        setSlides(initialConfig.slides);
+        setPreviewSlideIndex(0);
+        setSelectedSlideId(null);
+        setMenuLoaded(true);
+    }, [initialConfig]);
     useEffect(() => { if (menuLoaded) onConfigChange({ style, display, autoPlay, slides }); }, [menuLoaded, style, display, autoPlay, slides, onConfigChange]);
 
     const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
@@ -500,7 +534,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [sitePages, setSitePages] = useState<Page[]>([]);
     const [blockPickerOpen, setBlockPickerOpen] = useState(false);
     const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | undefined>(undefined);
-    const [menuConfig, setMenuConfig] = useState<{ style: 1 | 2 | 3 | 4; display: "logo" | "name" | "both"; autoPlay: boolean; slides: MenuSlide[] } | null>(null);
+    const [menuConfig, setMenuConfig] = useState<MenuConfig>(DEFAULT_MENU_CONFIG);
 
     const openPage = useCallback(async (item: Page) => {
         setMessage("");
@@ -508,6 +542,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         const data = await response.json() as PageResponse;
         const loaded = (data.blocks ?? []).map(block => ({ id: block.id, type: block.type, sort_order: block.sort_order, data: parseData(block.data), media: block.media ?? [] }));
         setPage(item);
+        setMenuConfig(parseMenuConfig(item.menu_config));
         if (item.page_type === "home") {
             const cover = loaded.find(block => block.type === "cover") ?? { id: crypto.randomUUID(), type: "cover", data: { variant: "cover-full" }, media: [] };
             setBlocks([cover, ...loaded.filter(block => block.id !== cover.id)]);
@@ -644,7 +679,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         setBlocks(cover ? [cover, ...nextBlocks] : nextBlocks);
     }
 
-    async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); if (menuConfig) { const menuResponse = await fetch("/api/admin/site-settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ menu_config: JSON.stringify(menuConfig) }) }); if (!menuResponse.ok) throw new Error("Could not save site menu"); } setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
+    async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, menu_config: JSON.stringify(menuConfig), blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
 
     if (loading) return <main className="min-h-[calc(100dvh-64px)] bg-[#f7f5f0] p-12 text-[#171717]">Loading pages…</main>;
     return <main className="min-h-[calc(100dvh-64px)] bg-[#f0eee8] text-[#171717]">
@@ -661,7 +696,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                 {message && <p className="border-b border-[#d8d3ca] bg-white px-5 py-3 text-xs text-[#666158]">{message}</p>}
                 {page ? <div className="overflow-x-auto p-3 sm:p-6 lg:p-8">
                     <div className="mx-auto min-h-[70vh] max-w-[1440px] bg-white shadow-[0_8px_32px_rgba(35,31,26,0.08)]">
-                        <SiteMenuBlock onConfigChange={setMenuConfig} />
+                        <SiteMenuBlock initialConfig={menuConfig} onConfigChange={setMenuConfig} />
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
