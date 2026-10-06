@@ -224,7 +224,7 @@ function SiteMenuBlock() {
                 return data.settings?.logo ?? "";
             })
             .then(logo => {
-                if (active) setSiteLogo(logo ?? "");
+                if (active) setSiteLogo(logo || "");
             })
             .catch(() => {
                 if (active) setSiteLogo("");
