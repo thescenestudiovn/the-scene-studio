@@ -26,6 +26,7 @@ async function ensureSchema(db: ReturnType<typeof getDB>) {
     ["show_header_footer", "INTEGER NOT NULL DEFAULT 1"],
     ["noindex", "INTEGER NOT NULL DEFAULT 0"],
     ["social_image", "TEXT"],
+    ["menu_config", "TEXT NOT NULL DEFAULT ''"],
   ] as const;
 
   for (const [name, definition] of additions) {
