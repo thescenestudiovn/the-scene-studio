@@ -238,7 +238,7 @@ function SiteMenuBlock() {
     const [autoPlay, setAutoPlay] = useState(true);
     const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
     const [pages, setPages] = useState<Array<{ slug: string; title: string }>>([]);
-    useEffect(() => { fetch("/api/admin/pages", { cache: "no-store" }).then(async response => response.ok ? await response.json() : null).then(data => { if (Array.isArray(data?.pages)) setPages(data.pages.filter((page: unknown): page is { slug: string; title: string } => typeof page === "object" && page !== null && typeof (page as { slug?: unknown }).slug === "string" && typeof (page as { title?: unknown }).title === "string")); }).catch(() => {}); }, []);
+    useEffect(() => { fetch("/api/admin/pages", { cache: "no-store" }).then(async response => response.ok ? await response.json() as { pages?: unknown } : null).then(data => { if (Array.isArray(data?.pages)) setPages(data.pages.filter((page: unknown): page is { slug: string; title: string } => typeof page === "object" && page !== null && typeof (page as { slug?: unknown }).slug === "string" && typeof (page as { title?: unknown }).title === "string")); }).catch(() => {}); }, []);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [dragOver, setDragOver] = useState(false);
