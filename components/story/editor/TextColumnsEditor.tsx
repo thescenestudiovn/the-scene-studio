@@ -96,12 +96,12 @@ function columnCount(variant:string){
   if(variant==="columns-1")return 1;
   if(variant==="columns-2"||variant==="text-columns-2")return 2;
   if(variant==="columns-3"||variant==="text-columns-3")return 3;
-  if(variant==="text-columns-4")return 4;
+  if(variant==="columns-4"||variant==="text-columns-4")return 4;
   return 1;
 }
 
 function getColumns(block: StoryBlock): Column[] {
-  const variant=typeof block.data?.layout==="string"?block.data.layout:"columns-2";
+  const variant=typeof block.data?.layout==="string" && block.data.layout ? block.data.layout : (typeof block.variant==="string" ? block.variant : "columns-2");
   const desired=columnCount(variant);
   const raw = block.data?.columns;
   const existing = Array.isArray(raw) ? raw.map(item => ({ content: typeof item === "object" && item !== null && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "") })) : [];
