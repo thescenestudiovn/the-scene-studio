@@ -179,9 +179,12 @@ export default function PageRenderer({ blocks }: { blocks: Block[] }) {
         if (type === "links") return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} border-t border-[#d8d3ca] pt-6`}><h2 className="font-serif text-4xl">{title}</h2><div className="mt-6 flex flex-wrap gap-6">{(Array.isArray(data.links) ? data.links : []).map((item, index) => { const link = item && typeof item === "object" ? item as Record<string, unknown> : {}; return <Link key={index} href={text(link.url) || "#"} className="text-xs uppercase tracking-[0.15em]">{text(link.label) || "Link"} →</Link>; })}</div></div></section>;
         return null;
     });
-    const needsHeaderClearance = blocks[0]?.type !== "cover" && blocks[0]?.type !== "content";
-    const finalBlocks = needsHeaderClearance
-        ? renderedBlocks.map((block, index) => index === 0 ? <div key="page-header-clearance" className="pt-[76px] md:pt-[88px]">{block}</div> : block)
-        : renderedBlocks;
+    // The site menu is fixed, so reserve its full height before the first page-builder block.
+    // This keeps menu content from covering any banner, text, image, or other block content.
+    const finalBlocks = renderedBlocks.map((block, index) =>
+        index === 0
+            ? <div key="page-header-clearance" className="pt-[76px] md:pt-[88px]">{block}</div>
+            : block
+    );
     return <div>{finalBlocks}</div>;
 }
