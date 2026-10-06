@@ -20,7 +20,7 @@ export async function PATCH(request: Request) {
     const fields = [
       "phone","email","whatsapp","instagram","facebook","tiktok","pinterest",
       "address","logo","logo_white","favicon","site_description","seo_title",
-      "seo_description","og_image","footer_text"
+      "seo_description","og_image","footer_text","menu_config"
     ] as const;
 
     const values = fields.map(field => typeof body[field] === "string" ? body[field].trim() : "");
