@@ -56,6 +56,30 @@ function TextPreview({ block }: { block: StoryBlock }) {
     })
     .filter((line): line is { content: string; textSize: string; align: "left"|"center"|"right"|"justify" } => line !== null);
 
+  const isColumnsLayout = variant === "columns-2" || variant === "columns-3" || variant === "columns-4" ||
+    variant === "text-columns-2" || variant === "text-columns-3" || variant === "text-columns-4";
+  const columnCount = variant === "columns-2" || variant === "text-columns-2" ? 2 :
+    variant === "columns-3" || variant === "text-columns-3" ? 3 :
+    variant === "columns-4" || variant === "text-columns-4" ? 4 : 0;
+  const rawColumns = Array.isArray(data.columns) ? data.columns : [];
+  const columns = Array.from({ length: columnCount }, (_, index) => {
+    const item = rawColumns[index];
+    if (typeof item === "object" && item !== null && "content" in item) {
+      return text((item as { content?: unknown }).content);
+    }
+    return typeof item === "string" ? item : "";
+  });
+
+  if (isColumnsLayout && columnCount > 0) {
+    return <section className="px-6 py-6 md:px-10 md:py-8">
+      <div className={`mx-auto grid w-full gap-8 md:grid-cols-${columnCount}`}>
+        {columns.map((content, index) => (
+          <div key={index} className={`min-w-0 whitespace-pre-wrap text-[#77736c] ${textStyle(defaultSize)}`} dangerouslySetInnerHTML={{ __html: content }} />
+        ))}
+      </div>
+    </section>;
+  }
+
   const textWidthClass =
     variant === "heading-1" || variant === "heading-2" || variant === "heading-3" ? "w-full" :
     variant === "wide" ? "w-full" :
