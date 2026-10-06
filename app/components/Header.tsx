@@ -36,7 +36,7 @@ export default function Header({ light = false }: { light?: boolean }) {
             if(data.pages){
                 const visible=data.pages.filter(p=>p.menu_visibility==="visible"&&p.page_status!=="offline");
                 setPages(visible);
-                const pathname=window.location.pathname.replace(/^\\/|\\$/g,"");
+                const pathname=window.location.pathname.replace(/^\/|\/$/g,"");
                 const current=visible.find(p => (Number(p.homepage)===1 ? "" : p.slug) === pathname);
                 setConfig(current?.menu_config ? parseMenuConfig(current.menu_config) : DEFAULT_MENU_CONFIG);
             }
