@@ -236,6 +236,7 @@ function SiteMenuBlock() {
     const [slideSettingsOpen, setSlideSettingsOpen] = useState(false);
     const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
     const [autoPlay, setAutoPlay] = useState(true);
+    const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [dragOver, setDragOver] = useState(false);
@@ -318,7 +319,7 @@ function SiteMenuBlock() {
             <span>The Scene Studio</span>
         </span>
     );
-    const previewSlide = slides[0];
+    const previewSlide = slides[previewSlideIndex] ?? slides[0];
     const bg = previewSlide?.media ? mediaUrl(previewSlide.media.path) : "";
     const menuFrameClass = style === 3 ? "aspect-video w-full" : style === 4 ? "aspect-[3/2] w-full" : "min-h-[120px] w-full";
     const menuFrameStyle = style >= 3 && bg ? {
@@ -352,9 +353,9 @@ function SiteMenuBlock() {
                         </div>
                         {slides.length >= 2 ? (
                             <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 text-[9px] uppercase tracking-[0.12em]">
-                                <button type="button" aria-label="Previous slide" className="hover:opacity-70">←</button>
-                                <span>01 {" / "} {String(slides.length).padStart(2, "0")}</span>
-                                <button type="button" aria-label="Next slide" className="hover:opacity-70">→</button>
+                                <button type="button" aria-label="Previous slide" onClick={() => setPreviewSlideIndex(current => (current - 1 + slides.length) % slides.length)} className="hover:opacity-70">←</button>
+                                <span>{String(previewSlideIndex + 1).padStart(2, "0")} {" / "} {String(slides.length).padStart(2, "0")}</span>
+                                <button type="button" aria-label="Next slide" onClick={() => setPreviewSlideIndex(current => (current + 1) % slides.length)} className="hover:opacity-70">→</button>
                             </div>
                         ) : null}
                     </div>
