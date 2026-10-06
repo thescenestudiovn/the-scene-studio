@@ -293,8 +293,14 @@ function TextBlockEditor({block,onChange,onCommit}:{block:StoryBlock;onChange:(p
 
   if(isColumns)return <div className="grid gap-4"><TextColumnsEditor block={{...block,variant:"columns",data:{...(block.data??{}),variant:"columns",layout}}} onChange={onChange}/></div>;
 
+  const textWidthClass =
+    layout === "heading-1" || layout === "heading-2" || layout === "heading-3" ? "w-full" :
+    layout === "wide" ? "w-full" :
+    layout === "narrow" ? "w-full md:w-1/2" :
+    "w-full md:w-[70%]";
+
   return <section className="px-6 py-6 md:px-10 md:py-8" onMouseDown={e=>e.stopPropagation()}>
-    <div ref={wrapperRef} className="relative mx-auto w-full">
+    <div ref={wrapperRef} className={`relative mx-auto ${textWidthClass}`}>
       {editing && <TextToolbar editorRef={editorRef} selectionRef={selectionRef} currentSize={currentSize} onSizeChange={applySize} onAlignChange={applyAlign}/>}
       <div
         ref={editorRef}
