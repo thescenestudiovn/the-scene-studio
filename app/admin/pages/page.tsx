@@ -214,6 +214,8 @@ function MenuSlideAltDialog({ slide, onClose, onSave }: { slide: MenuSlide; onCl
 
 function SiteMenuBlock() {
     const [style, setStyle] = useState<1 | 2 | 3 | 4>(1);
+    const [menuLoaded, setMenuLoaded] = useState(false);
+    const [menuSaving, setMenuSaving] = useState(false);
     const [siteLogo, setSiteLogo] = useState("");
     useEffect(() => {
         let active = true;
@@ -249,6 +251,9 @@ function SiteMenuBlock() {
         { id: "slide-1", title: "Photography is Poetry", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
         { id: "slide-2", title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
     ]);
+
+    useEffect(() => { fetch("/api/admin/site-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{ const raw=d?.settings?.menu_config; if(raw){ try { const saved=JSON.parse(raw) as Partial<{style:1|2|3|4;display:"logo"|"name"|"both";autoPlay:boolean;slides:MenuSlide[]}>; if(saved.style) setStyle(saved.style); if(saved.display) setDisplay(saved.display); if(typeof saved.autoPlay==="boolean") setAutoPlay(saved.autoPlay); if(Array.isArray(saved.slides)) setSlides(saved.slides); } catch {} } setMenuLoaded(true); }).catch(()=>setMenuLoaded(true)); }, []);
+    const saveMenu = async () => { setMenuSaving(true); try { const response=await fetch("/api/admin/site-settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({menu_config:JSON.stringify({style,display,autoPlay,slides})})}); if(!response.ok) throw new Error("Could not save menu"); window.alert("Menu saved."); } catch(error) { window.alert(error instanceof Error?error.message:"Could not save menu"); } finally { setMenuSaving(false); } };
 
     const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
     useEffect(() => {
@@ -457,6 +462,7 @@ function SiteMenuBlock() {
                         <button type="button" onClick={addSlide} className="mt-3 border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">+ Add New</button>
                         <div className="mt-6 border-t border-[#d8d3ca] pt-5"><p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Options</p><label className="flex items-center justify-between text-xs">Auto play slides<input type="checkbox" checked={autoPlay} onChange={e => setAutoPlay(e.target.checked)} /></label></div>
                     </div>}
+                    <button type="button" onClick={() => void saveMenu()} disabled={menuSaving || !menuLoaded} className="w-full bg-[#171717] px-4 py-3 text-[9px] uppercase tracking-[0.14em] text-white disabled:opacity-50">{menuSaving ? "Saving..." : "Save Menu"}</button>
                 </div>
             </>}
         </div>}
