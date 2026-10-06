@@ -4,6 +4,7 @@ import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAdminEditorActions } from "../components/AdminEditorContext";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
 import { mediaUrl } from "../../../lib/media";
@@ -552,6 +553,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [blockPickerOpen, setBlockPickerOpen] = useState(false);
     const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | undefined>(undefined);
     const [menuConfig, setMenuConfig] = useState<MenuConfig>(DEFAULT_MENU_CONFIG);
+    const { registerPageActions } = useAdminEditorActions();
 
     const openPage = useCallback(async (item: Page) => {
         setMessage("");
@@ -703,6 +705,11 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         setBlocks(cover ? [cover, ...nextBlocks] : nextBlocks);
     }
 
+    useEffect(() => {
+        registerPageActions(page ? { save: () => { void save(); }, saving, previewUrl: "/" + page.slug } : null);
+        return () => registerPageActions(null);
+    }, [page, saving, registerPageActions]);
+
     async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, menu_config: JSON.stringify(menuConfig), blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
 
     if (loading) return <main className="min-h-[calc(100dvh-64px)] bg-[#f7f5f0] p-12 text-[#171717]">Loading pages…</main>;
@@ -711,10 +718,8 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
             <section className="min-w-0 flex-1">
                 <div className="sticky top-16 z-30 flex min-h-[68px] items-center justify-between gap-4 border-b border-[#d8d3ca] bg-[#f7f5f0]/95 px-4 backdrop-blur sm:px-6">
                     <div className="min-w-0"><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Page builder</p><h1 className="truncate text-sm font-medium">{page?.title ?? "Choose a page"}</h1></div>
-                    {page && <div className="flex shrink-0 items-center gap-2">
-                        <details className="group relative"><summary className="cursor-pointer list-none border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em]">SEO</summary><div className="absolute right-0 top-full z-50 mt-2 grid w-[min(84vw,360px)] gap-3 border border-[#d8d3ca] bg-[#fbfaf7] p-4 shadow-lg"><input className="min-w-0 border border-[#d8d3ca] bg-white p-2.5 text-xs" placeholder="SEO title" value={page.seo_title ?? ""} onChange={event => setPage({ ...page, seo_title: event.target.value })} /><textarea className="min-h-20 min-w-0 border border-[#d8d3ca] bg-white p-2.5 text-xs" placeholder="SEO description" value={page.seo_description ?? ""} onChange={event => setPage({ ...page, seo_description: event.target.value })} /></div></details>
-                        <Link href={`/${page.slug}`} target="_blank" rel="noreferrer" className="border border-[#d8d3ca] px-3 py-2.5 text-[9px] uppercase tracking-[0.12em]">Preview</Link>
-                        <button type="button" onClick={() => void save()} disabled={saving} className="bg-[#171717] px-4 py-2.5 text-[9px] uppercase tracking-[0.12em] text-white disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
+                    {page && <div className="flex shrink-0 items-center">
+                        <span className="text-[9px] uppercase tracking-[0.12em] text-[#aaa49a]">Page Builder</span>
                     </div>}
                 </div>
                 {message && <p className="border-b border-[#d8d3ca] bg-white px-5 py-3 text-xs text-[#666158]">{message}</p>}
