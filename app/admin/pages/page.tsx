@@ -363,6 +363,9 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
     };
 
     const previewLogo = style >= 3 ? siteLogoWhite : siteLogo;
+    const splitCount = Math.floor(pages.length / 2);
+    const leftMenuPages = pages.slice(0, splitCount);
+    const rightMenuPages = pages.slice(splitCount);
     const logoMarkup = previewLogo ? (
         <img src={mediaUrl(previewLogo)} alt="The Scene Studio" className="max-h-8 max-w-[140px] object-contain" />
     ) : (
@@ -392,12 +395,12 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
             <div className={"relative overflow-hidden " + menuFrameClass} style={menuFrameStyle}>
                 <div className={"relative z-10 flex items-center justify-between gap-6 px-5 py-5 sm:px-8 " + (style === 2 ? "absolute inset-x-0 top-0" : "")}>
                     {(style === 2 || style === 4) ? <>
-                        <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Home</span><span>About</span><span>Portfolio</span></nav>
+                        <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]">{leftMenuPages.map(page => <span key={page.slug}>{page.title}</span>)}</nav>
                         <div className="flex w-28 shrink-0 flex-col items-center text-center">
                             {(display === "logo" || display === "both") && (siteLogo ? <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[110px] object-contain" /> : <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>)}
                             {(display === "name" || display === "both") && <span className={display === "both" ? "mt-2 text-[9px] uppercase tracking-[0.12em]" : "text-[9px] uppercase tracking-[0.12em]"}>The Scene Studio</span>}
                         </div>
-                        <nav className="flex flex-1 justify-end gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Blog</span><span>Film</span><span>Contact</span></nav>
+                        <nav className="flex flex-1 justify-end gap-4 text-[9px] uppercase tracking-[0.12em]">{rightMenuPages.map(page => <span key={page.slug}>{page.title}</span>)}</nav>
                     </> : <>
                         <div className="shrink-0 text-[10px] font-medium uppercase tracking-[0.15em]">{menuText}</div>
                         <nav className="flex min-w-0 items-center justify-end gap-3 overflow-x-auto text-[9px] uppercase tracking-[0.12em] sm:gap-5"><span>Home</span><span>About</span><span>Portfolio</span><span>Blog</span><span>Film</span><span>Contact</span></nav>
