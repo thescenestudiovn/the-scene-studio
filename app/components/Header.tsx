@@ -38,7 +38,16 @@ export default function Header({ light = false }: { light?: boolean }) {
                 setPages(visible);
                 const pathname=window.location.pathname.replace(/^\/|\/$/g,"");
                 const current=visible.find(p => (Number(p.homepage)===1 ? "" : p.slug) === pathname);
-                setConfig(current?.menu_config ? parseMenuConfig(current.menu_config) : DEFAULT_MENU_CONFIG);
+                if (current?.menu_config) {
+                    setConfig(parseMenuConfig(current.menu_config));
+                } else if (current && Number(current.homepage) === 1) {
+                    fetch("/api/admin/site-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(settingsData=>{
+                        const globalConfig=(settingsData as {settings?:{menu_config?:string}})?.settings?.menu_config;
+                        setConfig(parseMenuConfig(globalConfig));
+                    }).catch(()=>setConfig(DEFAULT_MENU_CONFIG));
+                } else {
+                    setConfig(DEFAULT_MENU_CONFIG);
+                }
             }
         }).catch(()=>{});
         return()=>window.removeEventListener("scroll",handleScroll);
