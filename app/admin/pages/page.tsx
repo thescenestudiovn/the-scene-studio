@@ -241,7 +241,7 @@ function MenuSlideAltDialog({ slide, onClose, onSave }: { slide: MenuSlide; onCl
     </div></div>, document.body);
 }
 
-function SiteMenuBlock({ initialConfig, onConfigChange }: { initialConfig: MenuConfig; onConfigChange: (config: MenuConfig) => void }) {
+function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: string; initialConfig: MenuConfig; onConfigChange: (config: MenuConfig) => void }) {
     const [style, setStyle] = useState<1 | 2 | 3 | 4>(initialConfig.style);
     const [menuLoaded, setMenuLoaded] = useState(false);
     const [siteLogo, setSiteLogo] = useState("");
@@ -278,6 +278,7 @@ function SiteMenuBlock({ initialConfig, onConfigChange }: { initialConfig: MenuC
     const [slides, setSlides] = useState<MenuSlide[]>(initialConfig.slides);
 
     useEffect(() => {
+        setMenuLoaded(false);
         setStyle(initialConfig.style);
         setDisplay(initialConfig.display);
         setAutoPlay(initialConfig.autoPlay);
@@ -285,7 +286,7 @@ function SiteMenuBlock({ initialConfig, onConfigChange }: { initialConfig: MenuC
         setPreviewSlideIndex(0);
         setSelectedSlideId(null);
         setMenuLoaded(true);
-    }, [initialConfig]);
+    }, [pageId]);
     useEffect(() => { if (menuLoaded) onConfigChange({ style, display, autoPlay, slides }); }, [menuLoaded, style, display, autoPlay, slides, onConfigChange]);
 
     const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
@@ -706,7 +707,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                 {message && <p className="border-b border-[#d8d3ca] bg-white px-5 py-3 text-xs text-[#666158]">{message}</p>}
                 {page ? <div className="overflow-x-auto p-3 sm:p-6 lg:p-8">
                     <div className="mx-auto min-h-[70vh] max-w-[1440px] bg-white shadow-[0_8px_32px_rgba(35,31,26,0.08)]">
-                        <SiteMenuBlock initialConfig={menuConfig} onConfigChange={setMenuConfig} />
+                        <SiteMenuBlock pageId={page.id} initialConfig={menuConfig} onConfigChange={setMenuConfig} />
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
