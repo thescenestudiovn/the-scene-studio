@@ -320,7 +320,7 @@ function SiteMenuBlock() {
     );
     const previewSlide = slides[0];
     const bg = previewSlide?.media ? mediaUrl(previewSlide.media.path) : "";
-    const menuFrameClass = style === 3 ? "aspect-[2/3]" : style === 4 ? "aspect-square" : "min-h-[120px]";
+    const menuFrameClass = style === 3 ? "aspect-video" : style === 4 ? "aspect-[2/3]" : "min-h-[120px]";
     const menuFrameStyle = style >= 3 && bg ? {
         backgroundImage: "linear-gradient(rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + "),rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + ")),url(" + bg + ")",
         backgroundSize: "cover",
