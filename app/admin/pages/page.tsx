@@ -237,6 +237,8 @@ function SiteMenuBlock() {
     const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
     const [autoPlay, setAutoPlay] = useState(true);
     const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+    const [pages, setPages] = useState<Array<{ slug: string; title: string }>>([]);
+    useEffect(() => { fetch("/api/admin/pages", { cache: "no-store" }).then(async response => response.ok ? await response.json() : null).then(data => { if (Array.isArray(data?.pages)) setPages(data.pages.filter((page: unknown): page is { slug: string; title: string } => typeof page === "object" && page !== null && typeof (page as { slug?: unknown }).slug === "string" && typeof (page as { title?: unknown }).title === "string")); }).catch(() => {}); }, []);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [dragOver, setDragOver] = useState(false);
@@ -248,6 +250,7 @@ function SiteMenuBlock() {
     ]);
 
     const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
+    const pageMode = selectedSlide?.buttonUrl && pages.some(page => "/" + page.slug === selectedSlide.buttonUrl) ? selectedSlide.buttonUrl : selectedSlide?.buttonUrl ? "__custom__" : "";
     const uploadSlideImage = async (files: FileList | File[]) => {
         const file = Array.from(files)[0];
         if (!file) return;
@@ -414,8 +417,15 @@ function SiteMenuBlock() {
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Title<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.title} onChange={e => updateSlide({ title: e.target.value })} /></label>
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Subtitle<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.subtitle} onChange={e => updateSlide({ subtitle: e.target.value })} /></label>
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Button text<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.buttonText} onChange={e => updateSlide({ buttonText: e.target.value })} /></label>
-                    <label className="block text-[9px] uppercase tracking-[0.14em]">Button URL<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.buttonUrl} onChange={e => updateSlide({ buttonUrl: e.target.value })} /></label>
-                    <button type="button" className="border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">Select Page</button>
+                    <div className="grid gap-2">
+                        <span className="text-[9px] uppercase tracking-[0.14em]">Button URL</span>
+                        <select value={pageMode} onChange={event => { const value = event.target.value; updateSlide({ buttonUrl: value === "__custom__" ? "" : value }); }} className="border border-[#d8d3ca] bg-white p-3 text-sm">
+                            <option value="">No link</option>
+                            {pages.map(page => <option key={page.slug} value={"/" + page.slug}>{page.title}</option>)}
+                            <option value="__custom__">Custom URL</option>
+                        </select>
+                        {pageMode === "__custom__" && <input className="border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="https://..." value={selectedSlide.buttonUrl} onChange={e => updateSlide({ buttonUrl: e.target.value })} />}
+                    </div>
                     <label className="flex items-center gap-2 text-[10px]"><input type="checkbox" checked={selectedSlide.openNewWindow} onChange={e => updateSlide({ openNewWindow: e.target.checked })} /> Open link in new window</label>
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Background Tint<input type="range" min="0" max="100" value={selectedSlide.tint} onChange={e => updateSlide({ tint: Number(e.target.value) })} className="mt-2 w-full" /></label>
                 </div>
