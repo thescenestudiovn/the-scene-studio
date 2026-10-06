@@ -107,8 +107,8 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID();
 
     await db.prepare(`
-      INSERT INTO pages (id,slug,title,page_type,seo_title,seo_description,published,homepage,menu_order,menu_visibility,page_status,show_header_footer,noindex)
-      VALUES (?, ?, ?, 'page', NULL, NULL, 1, 0, ?, ?, 'online', 1, 0)
+      INSERT INTO pages (id,slug,title,page_type,seo_title,seo_description,published,homepage,menu_order,menu_visibility,page_status,show_header_footer,noindex,menu_config)
+      VALUES (?, ?, ?, 'page', NULL, NULL, 1, 0, ?, ?, 'online', 1, 0, '')
     `).bind(id, slug, title, menuOrder, menuVisibility).run();
 
     if (body.duplicate_from_id) {
@@ -146,6 +146,7 @@ export async function PATCH(request: Request) {
       show_header_footer?: boolean;
       noindex?: boolean;
       social_image?: string | null;
+      menu_config?: string | null;
       blocks?: Array<{ id?: string; type: string; data?: Record<string, unknown>; sort_order?: number }>;
     };
     if (!body.id) return Response.json({ success: false, error: "id is required" }, { status: 400 });
@@ -187,6 +188,7 @@ export async function PATCH(request: Request) {
     if (body.show_header_footer !== undefined) set("show_header_footer", body.show_header_footer ? 1 : 0);
     if (body.noindex !== undefined) set("noindex", body.noindex ? 1 : 0);
     if (body.social_image !== undefined) set("social_image", body.social_image);
+    if (body.menu_config !== undefined) set("menu_config", body.menu_config ?? "");
 
     if (fields.length) {
       fields.push("updated_at = CURRENT_TIMESTAMP");
