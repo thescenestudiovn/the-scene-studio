@@ -214,6 +214,23 @@ function MenuSlideAltDialog({ slide, onClose, onSave }: { slide: MenuSlide; onCl
 
 function SiteMenuBlock() {
     const [style, setStyle] = useState<1 | 2 | 3 | 4>(1);
+    const [siteLogo, setSiteLogo] = useState("");
+    useEffect(() => {
+        let active = true;
+        fetch("/api/admin/site-settings", { cache: "no-store" })
+            .then(async response => {
+                if (!response.ok) return null;
+                const data = await response.json() as { settings?: { logo?: string } };
+                return data.settings?.logo ?? "";
+            })
+            .then(logo => {
+                if (active) setSiteLogo(logo);
+            })
+            .catch(() => {
+                if (active) setSiteLogo("");
+            });
+        return () => { active = false; };
+    }, []);
     const [display, setDisplay] = useState<"logo" | "name" | "both">("both");
     const [menuSettingsOpen, setMenuSettingsOpen] = useState(false);
     const [slideSettingsOpen, setSlideSettingsOpen] = useState(false);
@@ -290,7 +307,17 @@ function SiteMenuBlock() {
         setMenuSettingsOpen(false);
     };
 
-    const menuText = display === "logo" ? "[ LOGO ]" : display === "name" ? "The Scene Studio" : "[ LOGO ] The Scene Studio";
+    const logoMarkup = siteLogo ? (
+        <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[140px] object-contain" />
+    ) : (
+        <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>
+    );
+    const menuText = display === "logo" ? logoMarkup : display === "name" ? "The Scene Studio" : (
+        <span className="flex items-center gap-3">
+            {logoMarkup}
+            <span>The Scene Studio</span>
+        </span>
+    );
     const previewSlide = slides[0];
     const bg = previewSlide?.media ? mediaUrl(previewSlide.media.path) : "";
     const menuFrameClass = style === 3 ? "aspect-[2/3]" : style === 4 ? "aspect-square" : "min-h-[120px]";
@@ -306,7 +333,10 @@ function SiteMenuBlock() {
                 <div className={"relative z-10 flex items-center justify-between gap-6 px-5 py-5 sm:px-8 " + (style === 2 ? "absolute inset-x-0 top-0" : "")}>
                     {style === 2 ? <>
                         <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Home</span><span>About</span><span>Portfolio</span></nav>
-                        <div className="flex w-28 shrink-0 flex-col items-center text-center"><div className="text-lg leading-none">[ LOGO ]</div><span className="mt-2 text-[9px] uppercase tracking-[0.12em]">The Scene Studio</span></div>
+                        <div className="flex w-28 shrink-0 flex-col items-center text-center">
+                            {siteLogo ? <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[110px] object-contain" /> : <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>}
+                            <span className="mt-2 text-[9px] uppercase tracking-[0.12em]">The Scene Studio</span>
+                        </div>
                         <nav className="flex flex-1 justify-end gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Blog</span><span>Film</span><span>Contact</span></nav>
                     </> : <>
                         <div className="shrink-0 text-[10px] font-medium uppercase tracking-[0.15em]">{menuText}</div>
