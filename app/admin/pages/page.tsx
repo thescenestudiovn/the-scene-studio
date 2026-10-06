@@ -542,7 +542,17 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         const data = await response.json() as PageResponse;
         const loaded = (data.blocks ?? []).map(block => ({ id: block.id, type: block.type, sort_order: block.sort_order, data: parseData(block.data), media: block.media ?? [] }));
         setPage(item);
-        setMenuConfig(parseMenuConfig(item.menu_config));
+        if (!item.menu_config && Number(item.homepage) === 1) {
+            try {
+                const settingsResponse = await fetch("/api/admin/site-settings", { cache: "no-store" });
+                const settingsData = settingsResponse.ok ? await settingsResponse.json() as { settings?: { menu_config?: string } } : null;
+                setMenuConfig(parseMenuConfig(settingsData?.settings?.menu_config));
+            } catch {
+                setMenuConfig(DEFAULT_MENU_CONFIG);
+            }
+        } else {
+            setMenuConfig(parseMenuConfig(item.menu_config));
+        }
         if (item.page_type === "home") {
             const cover = loaded.find(block => block.type === "cover") ?? { id: crypto.randomUUID(), type: "cover", data: { variant: "cover-full" }, media: [] };
             setBlocks([cover, ...loaded.filter(block => block.id !== cover.id)]);
