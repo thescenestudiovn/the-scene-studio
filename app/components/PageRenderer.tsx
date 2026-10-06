@@ -67,7 +67,7 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     const title = text(data.title);
     const count = imageCount(variant);
     const columns = Array.isArray(data.columns) ? data.columns.map(item => item && typeof item === "object" && "content" in item ? String((item as { content?: unknown }).content ?? "") : String(item ?? "")) : [];
-    const isColumns = variant === "columns-2" || variant === "columns-3" || variant === "columns-4";
+    const isColumns = variant === "columns-2" || variant === "columns-3" || variant === "columns-4" || variant === "text-columns-2" || variant === "text-columns-3" || variant === "text-columns-4";
     const isHeadingLayout = variant === "heading-1" || variant === "heading-2" || variant === "heading-3";
     const defaultSize =
         variant === "heading-1" ? "heading-1" :
@@ -102,7 +102,7 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
     }).filter((line): line is { content: string; textSize: string; align: "left" | "center" | "right" | "justify" } => line !== null);
     // Text width is measured relative to the Content Container, never the viewport.
     const textWidthClass =
-        isHeadingLayout ? "w-full" :
+        isHeadingLayout || isColumns ? "w-full" :
         variant === "wide" ? "w-full" :
         variant === "narrow" ? "w-1/2" :
         "w-[70%]";
