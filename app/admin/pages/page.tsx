@@ -329,13 +329,13 @@ function SiteMenuBlock() {
 
     return <>
         <section className="relative overflow-hidden border border-[#d8d3ca] bg-[#fbfaf7]">
-            <div className={"relative overflow-hidden " + menuFrameClass} style={menuFrameStyle}>
+            <div className={"group relative overflow-hidden " + menuFrameClass} style={menuFrameStyle}>
                 <div className={"relative z-10 flex items-center justify-between gap-6 px-5 py-5 sm:px-8 " + (style === 2 ? "absolute inset-x-0 top-0" : "")}>
-                    {style === 2 ? <>
+                    {(style === 2 || style === 4) ? <>
                         <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Home</span><span>About</span><span>Portfolio</span></nav>
                         <div className="flex w-28 shrink-0 flex-col items-center text-center">
-                            {siteLogo ? <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[110px] object-contain" /> : <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>}
-                            <span className="mt-2 text-[9px] uppercase tracking-[0.12em]">The Scene Studio</span>
+                            {(display === "logo" || display === "both") && (siteLogo ? <img src={mediaUrl(siteLogo)} alt="The Scene Studio" className="max-h-8 max-w-[110px] object-contain" /> : <span className="text-[10px] uppercase tracking-[0.12em] text-[#8a857d]">Logo</span>)}
+                            {(display === "name" || display === "both") && <span className={display === "both" ? "mt-2 text-[9px] uppercase tracking-[0.12em]" : "text-[9px] uppercase tracking-[0.12em]"}>The Scene Studio</span>}
                         </div>
                         <nav className="flex flex-1 justify-end gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Blog</span><span>Film</span><span>Contact</span></nav>
                     </> : <>
@@ -350,9 +350,9 @@ function SiteMenuBlock() {
                     </div>
                 </div>}
             </div>
-            <div className="flex items-center justify-end gap-2 border-t border-[#d8d3ca] bg-[#f7f5f0] px-4 py-3">
-                <button type="button" onClick={() => setMenuSettingsOpen(true)} className="border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">⚙ Setting</button>
-                <button type="button" onClick={() => setStyle(current => current === 4 ? 1 : (current + 1) as 1 | 2 | 3 | 4)} className="bg-[#171717] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Switch Menu</button>
+            <div className="pointer-events-none absolute right-3 top-3 z-30 flex gap-1 opacity-0 transition-opacity duration-150 hover:opacity-100 group-hover:opacity-100">
+                <button type="button" onClick={() => setStyle(current => current === 4 ? 1 : (current + 1) as 1 | 2 | 3 | 4)} aria-label="Switch menu style" title="Switch menu style" className="pointer-events-auto flex h-7 items-center border border-[#d8d3ca] bg-[#fbfaf7]/95 px-2 text-[8px] uppercase tracking-[0.1em] shadow-sm hover:bg-white">Switch</button>
+                <button type="button" onClick={() => setMenuSettingsOpen(true)} aria-label="Menu settings" title="Menu settings" className="pointer-events-auto flex h-7 w-7 items-center justify-center border border-[#d8d3ca] bg-[#fbfaf7]/95 text-sm shadow-sm hover:bg-white">⚙</button>
             </div>
         </section>
 
@@ -419,7 +419,7 @@ function SiteMenuBlock() {
                         <p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Logo / Studio Name</p>
                         <div className="space-y-2">{[["logo","Chỉ logo"],["name","Chỉ tên studio"],["both","Logo + tên studio"]].map(([value,label]) => <label key={value} className="flex items-center gap-2 text-xs"><input type="radio" name="menu-display" checked={display === value} onChange={() => setDisplay(value as typeof display)} /> {label}</label>)}</div>
                     </div>
-                    {style === 2 && <div>
+                    {style >= 3 && <div>
                         <p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Slides</p>
                         <div className="space-y-3">{slides.map((slide, index) => <div key={slide.id} className="border border-[#d8d3ca] bg-white p-2">
                             <button type="button" onClick={() => openSlide(slide.id)} className="relative block aspect-[16/7] w-full overflow-hidden bg-[#ebe7df] text-left">
