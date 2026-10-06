@@ -661,8 +661,14 @@ setMenuConfig(nextConfig);
                     };
         const newBlock: Block = { id: crypto.randomUUID(), type: selection.category, data, media: [] };
         setBlocks(current => {
-            const afterIndex = afterBlockId ? current.findIndex(block => block.id === afterBlockId) : -1;
-            const index = afterIndex >= 0 ? afterIndex + 1 : current.length;
+            const index = afterBlockId === "__FIRST__"
+                ? 0
+                : afterBlockId
+                    ? (() => {
+                        const afterIndex = current.findIndex(block => block.id === afterBlockId);
+                        return afterIndex >= 0 ? afterIndex + 1 : current.length;
+                    })()
+                    : current.length;
             return [...current.slice(0, index), newBlock, ...current.slice(index)];
         });
     }
