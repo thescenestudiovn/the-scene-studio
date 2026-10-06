@@ -17,13 +17,14 @@ export type SiteSettings = {
   seo_description: string;
   og_image: string;
   footer_text: string;
+  menu_config: string;
 };
 
 const EMPTY: SiteSettings = {
   phone: "", email: "", whatsapp: "", instagram: "", facebook: "",
   tiktok: "", pinterest: "", address: "", logo: "", logo_white: "",
   favicon: "", site_description: "", seo_title: "", seo_description: "",
-  og_image: "", footer_text: "",
+  og_image: "", footer_text: "", menu_config: "",
 };
 
 export async function ensureSiteSettingsTable(): Promise<void> {
@@ -70,6 +71,7 @@ export async function ensureSiteSettingsTable(): Promise<void> {
     ["seo_description", "TEXT"],
     ["og_image", "TEXT"],
     ["footer_text", "TEXT"],
+    ["menu_config", "TEXT"],
   ] as const;
 
   for (const [name, definition] of missingColumns) {
