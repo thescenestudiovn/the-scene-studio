@@ -343,14 +343,22 @@ function SiteMenuBlock() {
                         <nav className="flex min-w-0 items-center justify-end gap-3 overflow-x-auto text-[9px] uppercase tracking-[0.12em] sm:gap-5"><span>Home</span><span>About</span><span>Portfolio</span><span>Blog</span><span>Film</span><span>Contact</span></nav>
                     </>}
                 </div>
-                {style >= 3 && <div className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-white sm:p-10">
-                    <div className="max-w-2xl">
-                        <p className="font-serif text-2xl sm:text-4xl">{previewSlide?.title || "Slide title"}</p>
-                        {previewSlide?.subtitle && <p className="mt-2 text-sm sm:text-base">{previewSlide.subtitle}</p>}
-                        {previewSlide?.buttonText && <a href={previewSlide.buttonUrl || "#"} target={previewSlide.openNewWindow ? "_blank" : undefined} rel={previewSlide.openNewWindow ? "noreferrer" : undefined} className="mt-5 inline-flex border border-white px-5 py-2 text-[9px] uppercase tracking-[0.14em]">{previewSlide.buttonText}</a>}
+                {style >= 3 ? (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-white sm:p-10">
+                        <div className="max-w-2xl">
+                            <p className="font-serif text-2xl sm:text-4xl">{previewSlide?.title || "Slide title"}</p>
+                            {previewSlide?.subtitle ? <p className="mt-2 text-sm sm:text-base">{previewSlide.subtitle}</p> : null}
+                            {previewSlide?.buttonText ? <a href={previewSlide.buttonUrl || "#"} target={previewSlide.openNewWindow ? "_blank" : undefined} rel={previewSlide.openNewWindow ? "noreferrer" : undefined} className="mt-5 inline-flex border border-white px-5 py-2 text-[9px] uppercase tracking-[0.14em]">{previewSlide.buttonText}</a> : null}
+                        </div>
+                        {slides.length >= 2 ? (
+                            <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 text-[9px] uppercase tracking-[0.12em]">
+                                <button type="button" aria-label="Previous slide" className="hover:opacity-70">←</button>
+                                <span>01 {" / "} {String(slides.length).padStart(2, "0")}</span>
+                                <button type="button" aria-label="Next slide" className="hover:opacity-70">→</button>
+                            </div>
+                        ) : null}
                     </div>
-                    {slides.length >= 2 && <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 text-[9px] uppercase tracking-[0.12em]"><button type="button" aria-label="Previous slide" className="hover:opacity-70">←</button><span>01 / {String(slides.length).padStart(2, "0")}</span><button type="button" aria-label="Next slide" className="hover:opacity-70">→</button></div>}
-                </div>
+                ) : null}
             </div>
             <div className="pointer-events-none absolute right-3 top-3 z-30 flex gap-1 opacity-0 transition-opacity duration-150 hover:opacity-100 group-hover:opacity-100">
                 <button type="button" onClick={() => setStyle(current => current === 4 ? 1 : (current + 1) as 1 | 2 | 3 | 4)} aria-label="Switch menu style" title="Switch menu style" className="pointer-events-auto flex h-7 items-center border border-[#d8d3ca] bg-[#fbfaf7]/95 px-2 text-[8px] uppercase tracking-[0.1em] shadow-sm hover:bg-white">Switch</button>
