@@ -171,6 +171,166 @@ function PageBlockPreview({ block }: { block: Block }) {
     return <div className="mx-auto max-w-6xl px-6 py-8 md:px-10"><p className="text-[10px] uppercase tracking-[0.16em] text-[#77736c]">{BLOCK_LABELS[block.type] ?? block.type} · {variant}</p>{title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}{body && <p className="mt-3 text-sm leading-7 text-[#77736c]">{body}</p>}</div>;
 }
 
+
+type MenuSlide = {
+    id: string;
+    title: string;
+    subtitle: string;
+    buttonText: string;
+    buttonUrl: string;
+    openNewWindow: boolean;
+    media?: Media;
+    focalX: number;
+    focalY: number;
+    altText: string;
+    tint: number;
+};
+
+function SiteMenuBlock() {
+    const [style, setStyle] = useState<1 | 2 | 3 | 4>(1);
+    const [display, setDisplay] = useState<"logo" | "name" | "both">("both");
+    const [menuSettingsOpen, setMenuSettingsOpen] = useState(false);
+    const [slideSettingsOpen, setSlideSettingsOpen] = useState(false);
+    const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
+    const [autoPlay, setAutoPlay] = useState(true);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [slides, setSlides] = useState<MenuSlide[]>([
+        { id: "slide-1", title: "Photography is Poetry", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
+        { id: "slide-2", title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
+    ]);
+
+    const selectedSlide = slides.find(slide => slide.id === selectedSlideId) ?? null;
+    const updateSlide = (patch: Partial<MenuSlide>) => {
+        if (!selectedSlideId) return;
+        setSlides(current => current.map(slide => slide.id === selectedSlideId ? { ...slide, ...patch } : slide));
+    };
+    const moveSlide = (index: number, direction: -1 | 1) => {
+        setSlides(current => {
+            const next = index + direction;
+            if (next < 0 || next >= current.length) return current;
+            const copy = [...current];
+            [copy[index], copy[next]] = [copy[next], copy[index]];
+            return copy;
+        });
+    };
+    const deleteSlide = (id: string) => {
+        setSlides(current => current.filter(slide => slide.id !== id));
+        if (selectedSlideId === id) {
+            setSelectedSlideId(null);
+            setSlideSettingsOpen(false);
+        }
+    };
+    const addSlide = () => {
+        const id = crypto.randomUUID();
+        setSlides(current => [...current, { id, title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 }]);
+    };
+    const openSlide = (id: string) => {
+        setSelectedSlideId(id);
+        setSlideSettingsOpen(true);
+        setMenuSettingsOpen(false);
+    };
+
+    const menuText = display === "logo" ? "[ LOGO ]" : display === "name" ? "The Scene Studio" : "[ LOGO ] The Scene Studio";
+    const previewSlide = slides[0];
+    const bg = previewSlide?.media ? mediaUrl(previewSlide.media.path) : "";
+    const menuFrameClass = style === 3 ? "aspect-[2/3]" : style === 4 ? "aspect-square" : "min-h-[120px]";
+    const menuFrameStyle = style >= 3 && bg ? {
+        backgroundImage: "linear-gradient(rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + "),rgba(0,0,0," + ((previewSlide?.tint ?? 25) / 100) + ")),url(" + bg + ")",
+        backgroundSize: "cover",
+        backgroundPosition: (previewSlide?.focalX ?? 50) + "% " + (previewSlide?.focalY ?? 50) + "%",
+    } : undefined;
+
+    return <>
+        <section className="relative overflow-hidden border border-[#d8d3ca] bg-[#fbfaf7]">
+            <div className={"relative overflow-hidden " + menuFrameClass} style={menuFrameStyle}>
+                <div className={"relative z-10 flex items-center justify-between gap-6 px-5 py-5 sm:px-8 " + (style === 2 ? "absolute inset-x-0 top-0" : "")}>
+                    {style === 2 ? <>
+                        <nav className="flex flex-1 items-center gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Home</span><span>About</span><span>Portfolio</span></nav>
+                        <div className="flex w-28 shrink-0 flex-col items-center text-center"><div className="text-lg leading-none">[ LOGO ]</div><span className="mt-2 text-[9px] uppercase tracking-[0.12em]">The Scene Studio</span></div>
+                        <nav className="flex flex-1 justify-end gap-4 text-[9px] uppercase tracking-[0.12em]"><span>Blog</span><span>Film</span><span>Contact</span></nav>
+                    </> : <>
+                        <div className="shrink-0 text-[10px] font-medium uppercase tracking-[0.15em]">{menuText}</div>
+                        <nav className="flex min-w-0 items-center justify-end gap-3 overflow-x-auto text-[9px] uppercase tracking-[0.12em] sm:gap-5"><span>Home</span><span>About</span><span>Portfolio</span><span>Blog</span><span>Film</span><span>Contact</span></nav>
+                    </>}
+                </div>
+                {style >= 3 && <div className="absolute inset-0 flex items-end p-6 text-white sm:p-10">
+                    <div>
+                        <p className="font-serif text-2xl sm:text-4xl">{previewSlide?.title || "Slide title"}</p>
+                        {previewSlide?.subtitle && <p className="mt-2 max-w-lg text-sm">{previewSlide.subtitle}</p>}
+                    </div>
+                </div>}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-[#d8d3ca] bg-[#f7f5f0] px-4 py-3">
+                <button type="button" onClick={() => setMenuSettingsOpen(true)} className="border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">⚙ Setting</button>
+                <button type="button" onClick={() => setStyle(current => current === 4 ? 1 : (current + 1) as 1 | 2 | 3 | 4)} className="bg-[#171717] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Switch Menu</button>
+            </div>
+        </section>
+
+        {(menuSettingsOpen || slideSettingsOpen) && <div className="fixed inset-y-0 left-0 z-[100] w-[min(390px,92vw)] overflow-y-auto border-r border-[#d8d3ca] bg-[#f7f5f0] p-5 shadow-2xl">
+            {slideSettingsOpen && selectedSlide ? <>
+                <div className="mb-6 flex items-center justify-between border-b border-[#d8d3ca] pb-4">
+                    <button type="button" onClick={() => { setSlideSettingsOpen(false); setMenuSettingsOpen(true); }} className="text-[9px] uppercase tracking-[0.14em]">← Header Slider</button>
+                    <button type="button" onClick={() => setSlideSettingsOpen(false)} className="text-lg">×</button>
+                </div>
+                <p className="mb-5 text-[10px] uppercase tracking-[0.16em] text-[#77736c]">Header Slider &gt; Slide</p>
+                <div className="space-y-5">
+                    <div>
+                        <label className="mb-2 block text-[9px] uppercase tracking-[0.14em]">Image</label>
+                        <button type="button" onClick={() => setPickerOpen(true)} className="relative block aspect-[16/9] w-full overflow-hidden border border-[#d8d3ca] bg-white">
+                            {selectedSlide.media ? <img src={mediaUrl(selectedSlide.media.path)} alt={selectedSlide.altText} className="h-full w-full object-cover" style={{ objectPosition: selectedSlide.focalX + "% " + selectedSlide.focalY + "%" }} /> : <span className="grid h-full place-items-center text-[9px] uppercase tracking-[0.12em] text-[#8a857d]">Choose image</span>}
+                        </button>
+                        <button type="button" onClick={() => setPickerOpen(true)} className="mt-2 border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">Change Image</button>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                            <label className="text-[9px] uppercase tracking-[0.12em]">Focal X<input type="range" min="0" max="100" value={selectedSlide.focalX} onChange={e => updateSlide({ focalX: Number(e.target.value) })} className="mt-2 w-full" /></label>
+                            <label className="text-[9px] uppercase tracking-[0.12em]">Focal Y<input type="range" min="0" max="100" value={selectedSlide.focalY} onChange={e => updateSlide({ focalY: Number(e.target.value) })} className="mt-2 w-full" /></label>
+                        </div>
+                        <input className="mt-3 w-full border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Alt text" value={selectedSlide.altText} onChange={e => updateSlide({ altText: e.target.value })} />
+                    </div>
+                    <label className="block text-[9px] uppercase tracking-[0.14em]">Title<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.title} onChange={e => updateSlide({ title: e.target.value })} /></label>
+                    <label className="block text-[9px] uppercase tracking-[0.14em]">Subtitle<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.subtitle} onChange={e => updateSlide({ subtitle: e.target.value })} /></label>
+                    <label className="block text-[9px] uppercase tracking-[0.14em]">Button text<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.buttonText} onChange={e => updateSlide({ buttonText: e.target.value })} /></label>
+                    <label className="block text-[9px] uppercase tracking-[0.14em]">Button URL<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.buttonUrl} onChange={e => updateSlide({ buttonUrl: e.target.value })} /></label>
+                    <button type="button" className="border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">Select Page</button>
+                    <label className="flex items-center gap-2 text-[10px]"><input type="checkbox" checked={selectedSlide.openNewWindow} onChange={e => updateSlide({ openNewWindow: e.target.checked })} /> Open link in new window</label>
+                    <label className="block text-[9px] uppercase tracking-[0.14em]">Background Tint<input type="range" min="0" max="100" value={selectedSlide.tint} onChange={e => updateSlide({ tint: Number(e.target.value) })} className="mt-2 w-full" /></label>
+                </div>
+            </> : <>
+                <div className="mb-6 flex items-center justify-between border-b border-[#d8d3ca] pb-4"><p className="text-[10px] uppercase tracking-[0.16em]">Site Menu Settings</p><button type="button" onClick={() => setMenuSettingsOpen(false)} className="text-lg">×</button></div>
+                <div className="space-y-7">
+                    <div>
+                        <p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Menu Style</p>
+                        <div className="grid grid-cols-2 gap-2">{([1,2,3,4] as const).map(item => <button key={item} type="button" onClick={() => setStyle(item)} className={"border px-3 py-2 text-[9px] uppercase tracking-[0.12em] " + (style === item ? "border-[#171717] bg-[#171717] text-white" : "border-[#d8d3ca] bg-white")}>Style {item}</button>)}</div>
+                    </div>
+                    <div>
+                        <p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Logo / Studio Name</p>
+                        <div className="space-y-2">{[["logo","Chỉ logo"],["name","Chỉ tên studio"],["both","Logo + tên studio"]].map(([value,label]) => <label key={value} className="flex items-center gap-2 text-xs"><input type="radio" name="menu-display" checked={display === value} onChange={() => setDisplay(value as typeof display)} /> {label}</label>)}</div>
+                    </div>
+                    {style === 2 && <div>
+                        <p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Slides</p>
+                        <div className="space-y-3">{slides.map((slide, index) => <div key={slide.id} className="border border-[#d8d3ca] bg-white p-2">
+                            <button type="button" onClick={() => openSlide(slide.id)} className="relative block aspect-[16/7] w-full overflow-hidden bg-[#ebe7df] text-left">
+                                {slide.media && <img src={mediaUrl(slide.media.path)} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+                                <span className="absolute inset-0 bg-black/25" />
+                                <span className="absolute inset-x-3 bottom-3 text-xs text-white">{slide.title}</span>
+                            </button>
+                            <div className="mt-2 flex items-center justify-end gap-2"><button type="button" disabled={index === 0} onClick={() => moveSlide(index,-1)} className="text-xs disabled:opacity-30">↑</button><button type="button" disabled={index === slides.length-1} onClick={() => moveSlide(index,1)} className="text-xs disabled:opacity-30">↓</button><button type="button" onClick={() => deleteSlide(slide.id)} className="text-xs">🗑</button></div>
+                        </div>)}</div>
+                        <button type="button" onClick={addSlide} className="mt-3 border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">+ Add New</button>
+                        <div className="mt-6 border-t border-[#d8d3ca] pt-5"><p className="mb-3 text-[9px] uppercase tracking-[0.14em]">Options</p><label className="flex items-center justify-between text-xs">Auto play slides<input type="checkbox" checked={autoPlay} onChange={e => setAutoPlay(e.target.checked)} /></label></div>
+                    </div>}
+                </div>
+            </>}
+        </div>}
+        <MediaPickerModal open={pickerOpen} required={1} selectedIds={selectedSlide?.media ? [selectedSlide.media.id] : []} onClose={() => setPickerOpen(false)} onDone={(_collectionId, mediaIds, media) => {
+            if (selectedSlideId) {
+                const chosen = media.find(item => item.id === mediaIds[0]);
+                updateSlide({ media: chosen });
+            }
+            setPickerOpen(false);
+        }} />
+    </>;
+}
+
 function AddPageBlockTrigger({ onClick }: { onClick: () => void }) {
     return <div className="group relative h-8 w-full" aria-label="Insert block">
         <button type="button" onClick={onClick} aria-label="Add block" title="Add block" className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100">
@@ -355,12 +515,7 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
                 {message && <p className="border-b border-[#d8d3ca] bg-white px-5 py-3 text-xs text-[#666158]">{message}</p>}
                 {page ? <div className="overflow-x-auto p-3 sm:p-6 lg:p-8">
                     <div className="mx-auto min-h-[70vh] max-w-[1440px] bg-white shadow-[0_8px_32px_rgba(35,31,26,0.08)]">
-                        <div className="flex min-h-16 items-center justify-between gap-4 border-b border-[#eeeae3] px-5 sm:px-8">
-                            <Link href="/" target="_blank" className="shrink-0 text-[10px] font-medium uppercase tracking-[0.18em]">The Scene Studio</Link>
-                            <nav className="flex min-w-0 items-center gap-3 overflow-x-auto text-[9px] text-[#77736c] sm:gap-6 sm:text-[10px]">
-                                {sitePages.map(item => <Link key={item.id} href={item.homepage === 1 ? "/" : "/" + item.slug} target="_blank">{item.title}</Link>)}
-                            </nav>
-                        </div>
+                        <SiteMenuBlock />
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
