@@ -255,6 +255,7 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
                 return { logo: data.settings?.logo ?? "", logoWhite: data.settings?.logo_white ?? "" };
             })
             .then(logo => {
+                if (!logo) return;
                 if (active) {
                     setSiteLogo(logo.logo || "");
                     setSiteLogoWhite(logo.logoWhite || "");
