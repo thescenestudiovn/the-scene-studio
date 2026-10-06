@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ContentBlockPicker, { type ContentBlockSelection } from "../../../components/story/ContentBlockPicker";
 import MediaPickerModal from "../../../components/story/blocks/image/MediaPickerModal";
 import { mediaUrl } from "../../../lib/media";
@@ -186,6 +187,31 @@ type MenuSlide = {
     tint: number;
 };
 
+function MenuSlideFocalDialog({ slide, onClose, onSave }: { slide: MenuSlide; onClose: () => void; onSave: (x: number, y: number) => void }) {
+    const [point, setPoint] = useState(`${slide.focalX}% ${slide.focalY}%`);
+    const parts = point.split(" ").map(value => Number.parseFloat(value));
+    const x = Number.isFinite(parts[0]) ? parts[0] : 50;
+    const y = Number.isFinite(parts[1]) ? parts[1] : 50;
+    if (typeof document === "undefined") return null;
+    return createPortal(<div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6"><div className="w-full max-w-4xl bg-[#f7f4ee] p-5 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Set focal</p><p className="mt-1 text-sm">{slide.media?.filename || "Image"}</p></div><button type="button" onClick={onClose} className="text-lg">×</button></div>
+        {slide.media ? <div className="relative mx-auto max-h-[68vh] w-full cursor-crosshair overflow-hidden bg-[#e9e5de]" onClick={event => { const rect=event.currentTarget.getBoundingClientRect(); const clamp=(v:number)=>Math.max(0,Math.min(100,Math.round(v))); setPoint(`${clamp(((event.clientX-rect.left)/rect.width)*100)}% ${clamp(((event.clientY-rect.top)/rect.height)*100)}%`); }}>
+            <img src={mediaUrl(slide.media.path)} alt={slide.altText} className="block max-h-[68vh] w-full object-contain" /><span className="pointer-events-none absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-black/30" style={{left:`${x}%`,top:`${y}%`}} />
+        </div> : <div className="grid h-64 place-items-center bg-[#e9e5de] text-[9px] uppercase tracking-[0.12em] text-[#8a857d]">Choose image first</div>}
+        <div className="mt-4 flex items-center justify-between"><button type="button" onClick={()=>setPoint("50% 50%")} className="text-[9px] uppercase tracking-[0.14em] underline">Reset</button><div className="flex gap-2"><button type="button" onClick={onClose} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Cancel</button><button type="button" onClick={()=>onSave(x,y)} className="bg-[#171717] px-4 py-2 text-[9px] uppercase tracking-[0.14em] text-white">Set focal point</button></div></div>
+    </div></div>, document.body);
+}
+
+function MenuSlideAltDialog({ slide, onClose, onSave }: { slide: MenuSlide; onClose: () => void; onSave: (value: string) => void }) {
+    const [value,setValue]=useState(slide.altText);
+    if (typeof document==="undefined") return null;
+    return createPortal(<div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6"><div className="w-full max-w-lg bg-[#f7f4ee] p-6 shadow-2xl">
+        <div className="flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Alt text</p><p className="mt-1 text-sm">{slide.media?.filename || "Image"}</p></div><button type="button" onClick={onClose} className="text-lg">×</button></div>
+        <textarea value={value} onChange={e=>setValue(e.target.value)} autoFocus className="mt-5 min-h-28 w-full border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Describe this image for accessibility" />
+        <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onClose} className="border border-[#d8d3ca] bg-white px-4 py-2 text-[9px] uppercase tracking-[0.14em]">Cancel</button><button type="button" onClick={()=>onSave(value.trim())} className="bg-[#171717] px-4 py-2 text-[9px] uppercase tracking-[0.14em] text-white">Save alt text</button></div>
+    </div></div>, document.body);
+}
+
 function SiteMenuBlock() {
     const [style, setStyle] = useState<1 | 2 | 3 | 4>(1);
     const [display, setDisplay] = useState<"logo" | "name" | "both">("both");
@@ -194,6 +220,8 @@ function SiteMenuBlock() {
     const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
     const [autoPlay, setAutoPlay] = useState(true);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [focalOpen, setFocalOpen] = useState(false);
+    const [altOpen, setAltOpen] = useState(false);
     const [slides, setSlides] = useState<MenuSlide[]>([
         { id: "slide-1", title: "Photography is Poetry", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
         { id: "slide-2", title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
@@ -276,15 +304,17 @@ function SiteMenuBlock() {
                 <div className="space-y-5">
                     <div>
                         <label className="mb-2 block text-[9px] uppercase tracking-[0.14em]">Image</label>
-                        <button type="button" onClick={() => setPickerOpen(true)} className="relative block aspect-[16/9] w-full overflow-hidden border border-[#d8d3ca] bg-white">
-                            {selectedSlide.media ? <img src={mediaUrl(selectedSlide.media.path)} alt={selectedSlide.altText} className="h-full w-full object-cover" style={{ objectPosition: selectedSlide.focalX + "% " + selectedSlide.focalY + "%" }} /> : <span className="grid h-full place-items-center text-[9px] uppercase tracking-[0.12em] text-[#8a857d]">Choose image</span>}
-                        </button>
-                        <button type="button" onClick={() => setPickerOpen(true)} className="mt-2 border border-[#d8d3ca] px-3 py-2 text-[9px] uppercase tracking-[0.12em]">Change Image</button>
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                            <label className="text-[9px] uppercase tracking-[0.12em]">Focal X<input type="range" min="0" max="100" value={selectedSlide.focalX} onChange={e => updateSlide({ focalX: Number(e.target.value) })} className="mt-2 w-full" /></label>
-                            <label className="text-[9px] uppercase tracking-[0.12em]">Focal Y<input type="range" min="0" max="100" value={selectedSlide.focalY} onChange={e => updateSlide({ focalY: Number(e.target.value) })} className="mt-2 w-full" /></label>
+                        <div className="group relative overflow-hidden border border-[#d8d3ca] bg-white">
+                            {selectedSlide.media ? <img src={mediaUrl(selectedSlide.media.path)} alt={selectedSlide.altText} className="block aspect-[16/9] h-auto w-full object-cover" style={{ objectPosition: selectedSlide.focalX + "% " + selectedSlide.focalY + "%" }} /> : <div className="grid aspect-[16/9] place-items-center text-[9px] uppercase tracking-[0.12em] text-[#8a857d]">Choose image</div>}
+                            {selectedSlide.media && <div className="absolute inset-x-0 bottom-0 bg-black/65 px-3 py-2 text-white opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+                                <div className="mb-1.5 text-[8px] uppercase tracking-[0.16em] text-white/60">Image</div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                                    <button type="button" onClick={() => setPickerOpen(true)} className="text-[9px] uppercase tracking-[0.08em]">Change Image</button>
+                                    <button type="button" onClick={() => setFocalOpen(true)} className="text-[9px] uppercase tracking-[0.08em]">Set Focal</button>
+                                    <button type="button" onClick={() => setAltOpen(true)} className="text-[9px] uppercase tracking-[0.08em]">Alt Text</button>
+                                </div>
+                            </div>}
                         </div>
-                        <input className="mt-3 w-full border border-[#d8d3ca] bg-white p-3 text-sm" placeholder="Alt text" value={selectedSlide.altText} onChange={e => updateSlide({ altText: e.target.value })} />
                     </div>
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Title<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.title} onChange={e => updateSlide({ title: e.target.value })} /></label>
                     <label className="block text-[9px] uppercase tracking-[0.14em]">Subtitle<input className="mt-2 w-full border border-[#d8d3ca] bg-white p-3 text-sm" value={selectedSlide.subtitle} onChange={e => updateSlide({ subtitle: e.target.value })} /></label>
@@ -328,6 +358,8 @@ function SiteMenuBlock() {
             }
             setPickerOpen(false);
         }} />
+        {focalOpen && selectedSlide?.media && <MenuSlideFocalDialog slide={selectedSlide} onClose={() => setFocalOpen(false)} onSave={(x,y) => { updateSlide({ focalX:x, focalY:y }); setFocalOpen(false); }} />}
+        {altOpen && selectedSlide?.media && <MenuSlideAltDialog slide={selectedSlide} onClose={() => setAltOpen(false)} onSave={value => { updateSlide({ altText:value }); setAltOpen(false); }} />}
     </>;
 }
 
