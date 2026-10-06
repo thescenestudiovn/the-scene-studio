@@ -104,7 +104,7 @@ function SettingsPanel({ page, onClose, onSaved, onDelete, onDuplicate }: {
 }
 
 export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
-    const { editor } = useAdminEditor();
+    const { editor, pageActions } = useAdminEditor();
     const [pages, setPages] = useState<Page[]>([]);
     const [settingsPage, setSettingsPage] = useState<Page | null>(null);
     const [actionPageId, setActionPageId] = useState<string | null>(null);
@@ -269,6 +269,12 @@ export default function AdminSiteMenu({ activeSlug }: { activeSlug: string }) {
                     </div>
                 </>}
             </nav>
+            <div className="mt-auto border-t border-[#e5e0d8] p-3">
+                {pageActions && <div className="grid grid-cols-2 gap-2">
+                    <Link href={pageActions.previewUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center border border-[#d8d3ca] px-3 py-3 text-[9px] uppercase tracking-[0.12em] hover:bg-white">Preview</Link>
+                    <button type="button" onClick={pageActions.save} disabled={pageActions.saving} className="bg-[#171717] px-3 py-3 text-[9px] uppercase tracking-[0.12em] text-white disabled:opacity-50">{pageActions.saving ? "Saving…" : "Save"}</button>
+                </div>}
+            </div>
             <nav aria-label="Pages not in site menu" className="border-t border-[#e5e0d8] px-3 py-4" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void movePage(event.dataTransfer.getData("text/page-id"), null, "hidden"); }}>
                 <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.16em] text-[#aaa49a]">Not in menu</p>
                 <div className="min-h-16 rounded border border-dashed border-[#d8d3ca] p-1">
