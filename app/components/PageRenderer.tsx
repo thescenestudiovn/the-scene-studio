@@ -106,7 +106,7 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
         variant === "narrow" ? "w-full md:w-1/2" :
         "w-full md:w-[70%]";
     const body = sanitizeHtml(text(data.body));
-    return <section className="px-6 py-6 md:px-10 md:py-8"><div className={`mx-auto ${textWidthClass}`}>
+    return <section className="px-6 py-6 md:px-10 md:py-8"><div className={`mx-auto ${blockLayout.container.content}`}><div className={textWidthClass}>
         {text(data.eyebrow) && <p className="text-[10px] uppercase tracking-[0.18em] text-[#77736c]">{text(data.eyebrow)}</p>}
         {title && <h2 className="mt-3 font-serif text-3xl">{title}</h2>}
         {isColumns ? (
@@ -120,7 +120,7 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
         ) : body ? (
             <div className={`mt-5 whitespace-pre-wrap text-[#77736c] ${textStyle(defaultSize)}`} style={{ textAlign: isHeadingLayout ? "center" : "left" }} dangerouslySetInnerHTML={{ __html: body }} />
         ) : null}
-    </div></section>;
+    </div></div></section>;
 }
 function ContactBlock({ data, media }: { data: Record<string, unknown>; media: Media[] }) {
     const title = text(data.title);
