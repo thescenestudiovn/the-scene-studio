@@ -53,7 +53,21 @@ export default function Header({ light = false }: { light?: boolean }) {
         }).catch(()=>{});
         return()=>window.removeEventListener("scroll",handleScroll);
     },[]);
-    useEffect(()=>{if(!config.autoPlay||config.style<3||config.slides.length<2)return; const id=window.setInterval(()=>setSlideIndex(i=>(i+1)%config.slides.length),5000); return()=>window.clearInterval(id);},[config.autoPlay,config.style,config.slides.length]);\n    // Measure the actual fixed menu height so page content always starts below it.\n    useLayoutEffect(() => {\n        if (config.style >= 3) {\n            document.documentElement.style.setProperty("--site-menu-height", "0px");\n            return;\n        }\n        const header = fixedHeaderRef.current;\n        if (!header) return;\n        const updateHeight = () => document.documentElement.style.setProperty("--site-menu-height", `${header.getBoundingClientRect().height}px`);\n        updateHeight();\n        const observer = new ResizeObserver(updateHeight);\n        observer.observe(header);\n        return () => observer.disconnect();\n    }, [config.style, config.display]);
+    useEffect(()=>{if(!config.autoPlay||config.style<3||config.slides.length<2)return; const id=window.setInterval(()=>setSlideIndex(i=>(i+1)%config.slides.length),5000); return()=>window.clearInterval(id);},[config.autoPlay,config.style,config.slides.length]);
+    // Measure the actual fixed menu height so page content always starts below it.
+    useLayoutEffect(() => {
+        if (config.style >= 3) {
+            document.documentElement.style.setProperty("--site-menu-height", "0px");
+            return;
+        }
+        const header = fixedHeaderRef.current;
+        if (!header) return;
+        const updateHeight = () => document.documentElement.style.setProperty("--site-menu-height", `${header.getBoundingClientRect().height}px`);
+        updateHeight();
+        const observer = new ResizeObserver(updateHeight);
+        observer.observe(header);
+        return () => observer.disconnect();
+    }, [config.style, config.display]);
     const closeMenu=()=>setMenuOpen(false), darkHeader=light||scrolled||menuOpen||config.style>=3, logo=config.style===3||config.style===4?(settings.logo_white||""):(darkHeader?(settings.logo||settings.logo_white):(settings.logo_white||settings.logo)), slide=config.slides[slideIndex]||config.slides[0], bg=slide?.media?.path;
     const nav=<>{pages.map(p=><a key={p.slug} href={Number(p.homepage)===1?"/":"/"+p.slug} onClick={closeMenu} className="transition-opacity hover:opacity-50">{p.title}</a>)}</>;
     const splitCount=Math.floor(pages.length/2);
