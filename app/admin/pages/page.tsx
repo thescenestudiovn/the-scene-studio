@@ -224,7 +224,6 @@ function SiteMenuBlock() {
     const [dragOver, setDragOver] = useState(false);
     const [focalOpen, setFocalOpen] = useState(false);
     const [altOpen, setAltOpen] = useState(false);
-    const inputRef = useState<HTMLInputElement | null>(null)[0];
     const [slides, setSlides] = useState<MenuSlide[]>([
         { id: "slide-1", title: "Photography is Poetry", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
         { id: "slide-2", title: "New slide", subtitle: "", buttonText: "", buttonUrl: "", openNewWindow: false, focalX: 50, focalY: 50, altText: "", tint: 25 },
