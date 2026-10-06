@@ -42,6 +42,7 @@ export async function ensureSiteSettingsTable(): Promise<void> {
         whatsapp TEXT, tiktok TEXT, pinterest TEXT, address TEXT,
         logo TEXT, logo_white TEXT, favicon TEXT, site_description TEXT,
         seo_title TEXT, seo_description TEXT, og_image TEXT, footer_text TEXT,
+        menu_config TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
@@ -97,7 +98,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   const settings = await db.prepare(`
     SELECT phone,email,whatsapp,instagram,facebook,tiktok,pinterest,address,
            logo,logo_white,favicon,site_description,seo_title,seo_description,
-           og_image,footer_text
+           og_image,footer_text,menu_config
     FROM site_settings WHERE id='global' LIMIT 1
   `).first<SiteSettings>();
   return { ...EMPTY, ...(settings ?? {}) };
