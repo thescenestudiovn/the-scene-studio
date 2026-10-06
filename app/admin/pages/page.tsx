@@ -570,12 +570,9 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
         } else {
             setMenuConfig(parseMenuConfig(item.menu_config));
         }
-        if (item.page_type === "home") {
-            const cover = loaded.find(block => block.type === "cover") ?? { id: crypto.randomUUID(), type: "cover", data: { variant: "cover-full" }, media: [] };
-            setBlocks([cover, ...loaded.filter(block => block.id !== cover.id)]);
-        } else {
-            setBlocks(loaded.filter(block => block.type !== "cover"));
-        }
+        // Homepage no longer uses a separate Homepage Cover block.
+        // Keep the Page Builder canvas consistent across all pages.
+        setBlocks(loaded.filter(block => block.type !== "cover"));
     }, []);
 
     const loadPages = useCallback(async () => {
