@@ -34,13 +34,40 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
   const cycleSingleVariant = () => { if (!singleVariant) return; const i = SINGLE_VARIANTS.indexOf(singleVariant); onChange({ variant: SINGLE_VARIANTS[(i + 1) % SINGLE_VARIANTS.length] }); };
   const cycleColumnVariant = () => { if (!isColumnVariant(variant)) return; const i = COLUMN_VARIANTS.indexOf(variant); onChange({ variant: COLUMN_VARIANTS[(i + 1) % COLUMN_VARIANTS.length] }); };
   const applySelection = (collectionId: string, mediaIds: string[], selectedMedia: StoryBlock["media"]) => {
-    const chosen = mediaIds[0]; if (!chosen) return;
-    const nextIds = [...configuredIds]; nextIds[activeSlot] = chosen;
+    const chosen = mediaIds[0];
+    if (!chosen) return;
+
+    // Image Controls and Page Builder must share the same source of truth:
+    // the block data.media_ids array. Keep the slot order intact and replace
+    // only the slot that opened the picker.
+    const nextIds = [...configuredIds];
+    while (nextIds.length <= activeSlot) nextIds.push("");
+    nextIds[activeSlot] = chosen;
+
     const nextMedia = [...availableMedia];
-    for (const item of selectedMedia ?? []) if (!nextMedia.some(media => media.id === item.id)) nextMedia.push(item);
-    const patch: Partial<StoryBlock> = { data: { ...data, collection_id: collectionId || null, media_ids: nextIds }, media: nextMedia };
+    for (const item of selectedMedia ?? []) {
+      if (!nextMedia.some(media => media.id === item.id)) nextMedia.push(item);
+    }
+
+    const nextData = {
+      ...data,
+      collection_id: collectionId || null,
+      media_ids: nextIds.filter(Boolean),
+    };
+    const patch: Partial<StoryBlock> = { data: nextData, media: nextMedia };
+
+    // This updates the Page Builder immediately. The page-level Save action
+    // persists media_ids in page_blocks.data for the public renderer.
     onChange(patch);
-    if (storyId) void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: patch.data }) });
+
+    // Keep Story Editor behaviour unchanged when editing an actual story.
+    if (storyId) {
+      void fetch(`/api/admin/stories/${storyId}/blocks/${block.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: nextData }),
+      });
+    }
     setPickerOpen(false);
   };
   const renderSlot = (index: number) => {
