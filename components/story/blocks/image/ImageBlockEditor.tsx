@@ -79,8 +79,6 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
   const focalFor = (slot: number) => focalPoints[slot] || "50% 50%";
   const openPicker = (slot: number) => { setActiveSlot(slot); setPickerOpen(true); };
   const singleVariant = SINGLE_VARIANTS.includes(variant as (typeof SINGLE_VARIANTS)[number]) ? variant as (typeof SINGLE_VARIANTS)[number] : null;
-  const cycleSingleVariant = () => { if (!singleVariant) return; const i = SINGLE_VARIANTS.indexOf(singleVariant); onChange({ variant: SINGLE_VARIANTS[(i + 1) % SINGLE_VARIANTS.length] }); };
-  const cycleColumnVariant = () => { if (!isColumnVariant(variant)) return; const i = COLUMN_VARIANTS.indexOf(variant); onChange({ variant: COLUMN_VARIANTS[(i + 1) % COLUMN_VARIANTS.length] }); };
   const applySelection = (collectionId: string, mediaIds: string[], selectedMedia: StoryBlock["media"]) => {
     const chosen = mediaIds[0]; if (!chosen) return;
     const nextIds = [...configuredIds]; nextIds[activeSlot] = chosen;
@@ -143,8 +141,16 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
 
   return <div className="relative overflow-visible rounded-sm border border-transparent focus-within:border-[#d9d3ca]">
     <div className="mb-2 flex items-center justify-between"><span className="text-[9px] uppercase tracking-[.16em] text-[#8a857d]">{LABELS[variant] ?? "Image"}</span><div className="flex items-center gap-2">
-      {singleVariant && <button type="button" onClick={cycleSingleVariant} className="rounded-full border border-[#ded8d0] bg-white px-2.5 py-1 text-[9px] uppercase tracking-[.08em] text-[#625e57]">{singleVariant === "medium" ? "Medium · 50%" : singleVariant === "large" ? "Large · 70%" : "Full · 100%"}</button>}
-      {isColumnVariant(variant) && <button type="button" onClick={cycleColumnVariant} className="rounded-full border border-[#ded8d0] bg-white px-2.5 py-1 text-[9px] uppercase tracking-[.08em] text-[#625e57]">{variant === "columns-2" ? "Columns 2" : variant === "columns-3" ? "Columns 3" : "Columns 4"}</button>}
+      {singleVariant && <select value={singleVariant} onChange={event => onChange({ variant: event.target.value as (typeof SINGLE_VARIANTS)[number] })} className="rounded-full border border-[#ded8d0] bg-white px-2.5 py-1 text-[9px] uppercase tracking-[.08em] text-[#625e57] outline-none">
+        <option value="medium">Medium · 50%</option>
+        <option value="large">Large · 70%</option>
+        <option value="full-width">Full · 100%</option>
+      </select>}
+      {isColumnVariant(variant) && <select value={variant} onChange={event => onChange({ variant: event.target.value as (typeof COLUMN_VARIANTS)[number] })} className="rounded-full border border-[#ded8d0] bg-white px-2.5 py-1 text-[9px] uppercase tracking-[.08em] text-[#625e57] outline-none">
+        <option value="columns-2">Columns 2</option>
+        <option value="columns-3">Columns 3</option>
+        <option value="columns-4">Columns 4</option>
+      </select>}
       <span aria-hidden="true" className="text-[#aaa39a]">×</span>
     </div></div>
     {singleVariant ? <div className="flex justify-center"><div style={{ width: `${SINGLE_WIDTHS[singleVariant]}%` }}>{renderSlot(0)}</div></div> : <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${required}, minmax(0, 1fr))` }}>{Array.from({ length: required }, (_, i) => renderSlot(i))}</div>}
