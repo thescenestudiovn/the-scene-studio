@@ -56,7 +56,8 @@ export function splitImageRatio(variant: string) {
 }
 
 export function imageBlockContainer(variant: string) {
-  if (variant === "medium") return blockLayout.container.narrow;
-  if (variant === "full-width") return blockLayout.container.wide;
+  if (variant === "full-width") return "w-full";
+  if (variant === "large") return "w-[70%]";
+  if (variant === "medium") return "w-1/2";
   return blockLayout.container.medium;
 }
