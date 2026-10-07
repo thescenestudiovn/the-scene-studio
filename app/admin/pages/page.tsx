@@ -546,6 +546,7 @@ function PageBlockDragHandle({ disabled, onDragStart, onDragEnd }: { disabled?: 
 function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [page, setPage] = useState<Page | null>(null);
     const [blocks, setBlocks] = useState<Block[]>([]);
+    const blocksRef = useRef<Block[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
@@ -555,6 +556,10 @@ function AdminPagesContent({ initialSlug = "home" }: { initialSlug?: string }) {
     const [menuConfig, setMenuConfig] = useState<MenuConfig>(DEFAULT_MENU_CONFIG);
     const menuConfigRef = useRef<MenuConfig>(DEFAULT_MENU_CONFIG);
     const { registerPageActions } = useAdminEditorActions();
+
+    useEffect(() => {
+        blocksRef.current = blocks;
+    }, [blocks]);
 
     const openPage = useCallback(async (item: Page) => {
         setMessage("");
@@ -722,7 +727,7 @@ setMenuConfig(nextConfig);
         return () => registerPageActions(null);
     }, [page, saving, registerPageActions]);
 
-    async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, menu_config: JSON.stringify(menuConfigRef.current), blocks: blocks.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
+    async function save() { if (!page || saving) return; setSaving(true); setMessage(""); try { const response = await fetch("/api/admin/pages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: page.id, title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, menu_config: JSON.stringify(menuConfigRef.current), blocks: blocksRef.current.map((block, index) => ({ id: block.id, type: block.type, sort_order: index, data: block.data })) }) }); const data = await response.json() as { success?: boolean; error?: string }; if (!response.ok || !data.success) throw new Error(data.error || "Could not save page"); setMessage("Page saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save page"); } finally { setSaving(false); } }
 
     if (loading) return <main className="min-h-[calc(100dvh-64px)] bg-[#f7f5f0] p-12 text-[#171717]">Loading pages…</main>;
     return <main className="min-h-[calc(100dvh-64px)] bg-[#f0eee8] text-[#171717]">
