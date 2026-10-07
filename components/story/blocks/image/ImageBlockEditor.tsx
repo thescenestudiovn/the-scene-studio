@@ -11,7 +11,6 @@ const PREVIEWS: Record<string, string> = { large: "image-large.jpg", medium: "im
 const LABELS: Record<string, string> = { large: "Large Image", medium: "Medium Image", "full-width": "Full Width Image", "columns-1": "Image Columns 1", "columns-2": "Image Columns 2", "columns-3": "Image Columns 3", "columns-4": "Image Columns 4" };
 const SINGLE_VARIANTS = ["medium", "large", "full-width"] as const;
 const COLUMN_VARIANTS = ["columns-2", "columns-3", "columns-4"] as const;
-const SINGLE_WIDTHS: Record<(typeof SINGLE_VARIANTS)[number], number> = { medium: 50, large: 70, "full-width": 100 };
 
 type Props = { storyId?: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
 function slotCount(variant: string) { return variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1; }
@@ -74,8 +73,9 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
     const mediaId = selectedIds[index];
     const media = mediaId ? availableMedia.find(item => item.id === mediaId) : undefined;
     const demo = `${BASE}${PREVIEWS[variant] ?? PREVIEWS.large}`;
-    let image = media ? <img src={mediaUrl(media.path)} alt={media.alt ?? ""} className="block h-auto w-full" /> : <img src={demo} alt="" className="block h-auto w-full" />;
-    if (isColumnVariant(variant) && !media) image = <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e9e5de]"><img src={demo} alt="" className="absolute top-0 h-full max-w-none" style={{ width: `${required * 100}%`, left: `-${index * 100}%` }} /></div>;
+    // Image Controls uses a fixed preview. The Switch changes the real block variant;
+    // it must never resize/reflow this control thumbnail.
+    const image = <div className="aspect-[4/3] w-full overflow-hidden bg-[#e9e5de]"><img src={media ? mediaUrl(media.path) : demo} alt={media?.alt ?? ""} className="block h-full w-full object-cover" /></div>;
     return <div key={`${block.id}-${index}`} className="min-w-0"><button type="button" onClick={() => openPicker(index)} className="group block w-full overflow-hidden bg-[#e9e5de] text-left">{image}</button><button type="button" onClick={() => openPicker(index)} className="mt-2 text-[9px] uppercase tracking-[.14em] text-[#77736c] underline underline-offset-4">{media ? "Change image" : "Choose image"}</button></div>;
   };
   return <div className="relative overflow-visible rounded-sm border border-transparent focus-within:border-[#d9d3ca]">
@@ -84,7 +84,7 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
       {isColumnVariant(variant) && <button type="button" onClick={cycleColumnVariant} className="rounded-full border border-[#ded8d0] bg-white px-2.5 py-1 text-[9px] uppercase tracking-[.08em] text-[#625e57]">{variant === "columns-2" ? "Columns 2" : variant === "columns-3" ? "Columns 3" : "Columns 4"}</button>}
       <span aria-hidden="true" className="text-[#aaa39a]">×</span>
     </div></div>
-    {singleVariant ? <div className="flex justify-center"><div style={{ width: `${SINGLE_WIDTHS[singleVariant]}%` }}>{renderSlot(0)}</div></div> : <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${required}, minmax(0, 1fr))` }}>{Array.from({ length: required }, (_, i) => renderSlot(i))}</div>}
+    <div className="w-full max-w-2xl">{renderSlot(0)}</div>
     <MediaPickerModal open={pickerOpen} required={1} selectedIds={activeSlot < selectedIds.length && selectedIds[activeSlot] ? [selectedIds[activeSlot]] : []} collectionId={typeof data.collection_id === "string" ? data.collection_id : ""} onClose={() => setPickerOpen(false)} onDone={applySelection} />
   </div>;
 }
