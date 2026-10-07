@@ -28,7 +28,7 @@ function FocalPointDialog({ media, value, onClose, onSave }: { media: StoryBlock
   const y = Number.isFinite(parts[1]) ? parts[1] : 50;
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6">
+    <div data-admin-modal className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-6" onMouseDown={event => event.stopPropagation()}>
     <div className="w-full max-w-4xl bg-[#f7f4ee] p-5 shadow-2xl">
       <div className="mb-4 flex items-center justify-between"><div><p className="text-[9px] uppercase tracking-[0.18em] text-[#8a857d]">Set focal</p><p className="mt-1 text-sm">{media.filename}</p></div><button type="button" onClick={onClose} className="text-lg leading-none text-[#6f6a62]" aria-label="Close">×</button></div>
       <div className="relative mx-auto max-h-[68vh] w-full cursor-crosshair overflow-hidden bg-[#e9e5de]" onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setPoint(`${clampPercent(((event.clientX - rect.left) / rect.width) * 100)}% ${clampPercent(((event.clientY - rect.top) / rect.height) * 100)}%`); }}>
