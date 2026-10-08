@@ -14,7 +14,7 @@ const SINGLE_VARIANTS = ["medium", "large", "full-width"] as const;
 const COLUMN_VARIANTS = ["columns-2", "columns-3", "columns-4"] as const;
 const SINGLE_WIDTHS: Record<(typeof SINGLE_VARIANTS)[number], number> = { medium: 50, large: 70, "full-width": 100 };
 
-type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void };
+type Props = { storyId: string; block: StoryBlock; onChange: (patch: Partial<StoryBlock>) => void; fixedPreviewWidth?: boolean };
 function slotCount(variant: string) { return variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : 1; }
 function isColumnVariant(variant: string): variant is (typeof COLUMN_VARIANTS)[number] { return COLUMN_VARIANTS.includes(variant as (typeof COLUMN_VARIANTS)[number]); }
 
@@ -59,7 +59,7 @@ function AltTextDialog({ media, onClose, onSave }: { media: StoryBlock["media"][
   );
 }
 
-export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
+export default function ImageBlockEditor({ storyId, block, onChange, fixedPreviewWidth = false }: Props) {
   const variant = block.variant ?? "large";
   if (variant === "slideshow" || variant === "carousel") return <SliderGalleryEditor storyId={storyId} block={block} onChange={onChange} />;
   const required = slotCount(variant);
@@ -153,7 +153,7 @@ export default function ImageBlockEditor({ storyId, block, onChange }: Props) {
       </select>}
       <span aria-hidden="true" className="text-[#aaa39a]">×</span>
     </div></div>
-    {singleVariant ? <div className="flex justify-center"><div style={{ width: `${SINGLE_WIDTHS[singleVariant]}%` }}>{renderSlot(0)}</div></div> : <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${required}, minmax(0, 1fr))` }}>{Array.from({ length: required }, (_, i) => renderSlot(i))}</div>}
+    {singleVariant ? <div className="flex justify-center"><div style={{ width: `${fixedPreviewWidth ? 70 : SINGLE_WIDTHS[singleVariant]}%` }}>{renderSlot(0)}</div></div> : <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${required}, minmax(0, 1fr))` }}>{Array.from({ length: required }, (_, i) => renderSlot(i))}</div>}
     {focalOpen && selectedIds[focalSlot] && (() => { const item = availableMedia.find(media => media.id === selectedIds[focalSlot]); return item ? <FocalPointDialog media={item} value={focalFor(focalSlot)} onClose={() => setFocalOpen(false)} onSave={value => updateFocal(focalSlot, value)} /> : null; })()}
     {altOpen && selectedIds[altSlot] && (() => { const item = availableMedia.find(media => media.id === selectedIds[altSlot]); return item ? <AltTextDialog media={item} onClose={() => setAltOpen(false)} onSave={value => void updateAltText(altSlot, value)} /> : null; })()}
     <MediaPickerModal open={pickerOpen} required={1} selectedIds={activeSlot < selectedIds.length && selectedIds[activeSlot] ? [selectedIds[activeSlot]] : []} collectionId={typeof data.collection_id === "string" ? data.collection_id : ""} onClose={() => setPickerOpen(false)} onDone={applySelection} />

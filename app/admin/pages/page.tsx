@@ -749,7 +749,6 @@ setMenuConfig(nextConfig);
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
                                 previewOnlyTypes={["content", "image"]}
-                                sidebarEditorDisabledTypes={["image"]}
                                 storyId=""
                                 blocks={storyBlocks()}
                                 onBlocksChange={handleStoryBlocksChange}
