@@ -18,9 +18,8 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://thescenestudio.asia
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-    return stories.map((story) => ({ slug: story.slug }));
-}
+// Story content is read from D1, which is only available when the Worker handles a request.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { slug } = await params;
