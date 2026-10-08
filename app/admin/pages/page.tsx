@@ -294,6 +294,8 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
         setSlides(initialConfig.slides);
         setPreviewSlideIndex(0);
         setSelectedSlideId(null);
+        setMenuSettingsOpen(false);
+        setSlideSettingsOpen(false);
         setMenuLoaded(true);
     }, [pageId]);
     useEffect(() => { if (menuLoaded) onConfigChange({ style, display, autoPlay, slides }); }, [menuLoaded, style, display, autoPlay, slides, onConfigChange]);
@@ -430,7 +432,7 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
             </div>
         </section>
 
-        {(menuSettingsOpen || slideSettingsOpen) && <div className="fixed inset-y-0 left-0 z-[100] w-[min(390px,92vw)] overflow-y-auto border-r border-[#d8d3ca] bg-[#f7f5f0] p-5 shadow-2xl">
+        {(menuSettingsOpen || (slideSettingsOpen && selectedSlide)) && <div className="fixed inset-y-0 left-0 z-[100] w-[min(390px,92vw)] overflow-y-auto border-r border-[#d8d3ca] bg-[#f7f5f0] p-5 shadow-2xl">
             {slideSettingsOpen && selectedSlide ? <>
                 <div className="mb-6 flex items-center justify-between border-b border-[#d8d3ca] pb-4">
                     <button type="button" onClick={() => { setSlideSettingsOpen(false); setMenuSettingsOpen(true); }} className="text-[9px] uppercase tracking-[0.14em]">← Header Slider</button>
@@ -746,6 +748,7 @@ setMenuConfig(nextConfig);
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
+                                previewOnlyTypes={["content"]}
                                 storyId=""
                                 blocks={storyBlocks()}
                                 onBlocksChange={handleStoryBlocksChange}
