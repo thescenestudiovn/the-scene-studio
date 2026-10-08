@@ -432,7 +432,7 @@ function SiteMenuBlock({ pageId, initialConfig, onConfigChange }: { pageId: stri
             </div>
         </section>
 
-        {(menuSettingsOpen || (slideSettingsOpen && selectedSlide)) && <div className="fixed inset-y-0 left-0 z-[100] w-[min(390px,92vw)] overflow-y-auto border-r border-[#d8d3ca] bg-[#f7f5f0] p-5 shadow-2xl">
+        {(menuSettingsOpen || (slideSettingsOpen && selectedSlide)) && <div className="fixed bottom-0 left-0 top-16 z-[100] w-[min(390px,92vw)] overflow-y-auto border-r border-[#d8d3ca] bg-[#f7f5f0] p-5 shadow-2xl lg:left-[272px]">
             {slideSettingsOpen && selectedSlide ? <>
                 <div className="mb-6 flex items-center justify-between border-b border-[#d8d3ca] pb-4">
                     <button type="button" onClick={() => { setSlideSettingsOpen(false); setMenuSettingsOpen(true); }} className="text-[9px] uppercase tracking-[0.14em]">← Header Slider</button>
