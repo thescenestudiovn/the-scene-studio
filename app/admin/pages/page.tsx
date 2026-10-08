@@ -607,7 +607,7 @@ setMenuConfig(nextConfig);
         if (initialPage) await openPage(initialPage);
         else setMessage("Page not found: " + initialSlug);
         setLoading(false);
-    }, [openPage]);
+    }, [initialSlug, openPage]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => { void loadPages(); }, 0);
