@@ -748,7 +748,8 @@ setMenuConfig(nextConfig);
                         <div className="px-5 py-8 sm:px-8 lg:px-10">
                             {blocks.find(block => block.type === "cover") && <div className="mb-8 border-b border-[#eeeae3] pb-8"><CoverEditor block={blocks.find(block => block.type === "cover")!} onChange={patch => updateBlock(blocks.find(block => block.type === "cover")!.id, patch)} /></div>}
                             <StoryContent
-                                previewOnlyTypes={["content"]}
+                                previewOnlyTypes={["content", "image"]}
+                                sidebarEditorDisabledTypes={["image"]}
                                 storyId=""
                                 blocks={storyBlocks()}
                                 onBlocksChange={handleStoryBlocksChange}

@@ -2,6 +2,7 @@
 
 import type { StoryBlock } from "./types";
 import { mediaUrl } from "../../../lib/media";
+import { blockLayout, imageBlockContainer } from "../../content/blockLayout";
 import ContentBlockView from "../blocks/content/ContentBlockView";
 
 function text(value: unknown) { return typeof value === "string" ? value : ""; }
@@ -108,6 +109,11 @@ function ImagePreview({ block }: { block: StoryBlock }) {
   const count = variant === "columns-2" ? 2 : variant === "columns-3" ? 3 : variant === "columns-4" ? 4 : variant.startsWith("grid-") ? 4 : 1;
   const items = Array.from({ length: count }, (_, i) => images[i] ?? images[0]);
   const grid = variant === "columns-2" ? "md:grid-cols-2" : variant === "columns-3" ? "md:grid-cols-3" : variant === "columns-4" ? "md:grid-cols-4" : variant.startsWith("grid-") ? "md:grid-cols-4" : "";
+  if (["medium", "large", "full-width"].includes(variant)) {
+    const section = variant === "full-width" ? "w-full" : "px-6 py-12 md:px-10 md:py-16";
+    const container = variant === "full-width" ? "w-full" : `mx-auto ${blockLayout.container.content}`;
+    return <section className={section}><div className={container}><div className={`mx-auto ${imageBlockContainer(variant)} overflow-hidden bg-[#e8e4dc]`}>{images[0] ? <img src={mediaUrl(images[0].path)} alt={images[0].alt || images[0].filename || ""} className="h-auto w-full object-cover" /> : fallback ? <img src={fallback} alt="" className="h-auto w-full object-cover" /> : <div className="aspect-[4/3]" />}</div></div></section>;
+  }
   return <section className="px-6 py-12 md:px-10 md:py-16"><div className={`mx-auto max-w-6xl grid gap-3 ${grid || "md:grid-cols-1"}`}>{items.map((item, index) => item || fallback ? <div key={index} className="aspect-[4/3] overflow-hidden bg-[#e8e4dc]">{item ? <img src={mediaUrl(item.path)} alt={item.alt || item.filename || ""} className="h-full w-full object-cover" /> : <img src={fallback} alt="" className="h-full w-full object-cover" />}</div> : <div key={index} className="aspect-[4/3] bg-[#e8e4dc]" />)}</div></section>;
 }
 
