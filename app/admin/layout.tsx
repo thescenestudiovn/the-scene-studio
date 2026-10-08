@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] text-[#171717]">
-      <header className="sticky top-0 z-50 border-b border-[#ddd7cd] bg-[#f7f5f0]/95 backdrop-blur">
+      <header className="sticky top-0 z-[200] border-b border-[#ddd7cd] bg-[#f7f5f0]/95 backdrop-blur">
         <div className="flex min-h-[64px] items-center gap-8 px-5 md:px-8">
           <Link href="/admin/pages/home" className="shrink-0 text-[11px] uppercase tracking-[0.2em]">
             The Scene Studio <span className="text-[#99958e]">/ Admin</span>
