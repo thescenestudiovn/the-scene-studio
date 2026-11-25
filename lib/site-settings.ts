@@ -1,4 +1,4 @@
-import { getDB } from "./db";
+import { getDBAsync } from "./db";
 
 export type SiteSettings = {
   phone: string;
@@ -30,8 +30,8 @@ const EMPTY: SiteSettings = {
   default_og_image: "",
 };
 
-export async function ensureSiteSettingsTable(): Promise<void> {
-  const db = getDB();
+export async function ensureSiteSettingsTable(existingDb?: D1Database): Promise<D1Database> {
+  const db = existingDb || (await getDBAsync());
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS site_settings (
@@ -53,11 +53,6 @@ export async function ensureSiteSettingsTable(): Promise<void> {
     )
   `).run();
 
-  await db.prepare(`
-    INSERT OR IGNORE INTO site_settings (id, phone, email, whatsapp, instagram, facebook, logo_url, header_studio_name, footer_bio, footer_copyright, default_meta_title, default_meta_description, default_og_image)
-    VALUES ('global', '', '', '', '', '', '', 'The Scene Studio', '', '© 2026 The Scene Studio', 'Wedding Stories — The Scene Studio', '', '')
-  `).run();
-
   const columns = [
     ["whatsapp", "TEXT DEFAULT ''"],
     ["logo_url", "TEXT DEFAULT ''"],
@@ -75,15 +70,26 @@ export async function ensureSiteSettingsTable(): Promise<void> {
       // Column already exists
     }
   }
+
+  await db.prepare(`
+    INSERT OR IGNORE INTO site_settings (id, phone, email, whatsapp, instagram, facebook, logo_url, header_studio_name, footer_bio, footer_copyright, default_meta_title, default_meta_description, default_og_image)
+    VALUES ('global', '', '', '', '', '', '', 'The Scene Studio', '', '© 2026 The Scene Studio', 'Wedding Stories — The Scene Studio', '', '')
+  `).run();
+
+  return db;
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
-  const db = getDB();
-  await ensureSiteSettingsTable();
+  try {
+    const db = await ensureSiteSettingsTable();
 
-  const settings = await db
-    .prepare(`SELECT phone,email,whatsapp,instagram,facebook,logo_url,header_studio_name,footer_bio,footer_copyright,default_meta_title,default_meta_description,default_og_image FROM site_settings WHERE id='global' LIMIT 1`)
-    .first<SiteSettings>();
+    const settings = await db
+      .prepare(`SELECT phone,email,whatsapp,instagram,facebook,logo_url,header_studio_name,footer_bio,footer_copyright,default_meta_title,default_meta_description,default_og_image FROM site_settings WHERE id='global' LIMIT 1`)
+      .first<SiteSettings>();
 
-  return settings ? { ...EMPTY, ...settings } : EMPTY;
+    return settings ? { ...EMPTY, ...settings } : EMPTY;
+  } catch (error) {
+    console.warn("[getSiteSettings] Failed to fetch settings from database:", error);
+    return EMPTY;
+  }
 }

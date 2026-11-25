@@ -13,9 +13,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const body = (await request.json()) as Partial<SiteSettings>;
-    const db = getDB();
-
-    await ensureSiteSettingsTable();
+    const db = await ensureSiteSettingsTable();
     await db.prepare(`
       UPDATE site_settings
       SET
