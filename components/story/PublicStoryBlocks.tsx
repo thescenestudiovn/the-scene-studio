@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { mediaUrl } from "../../lib/media";
 import { blockLayout, blockGrid, imageWithTextContainer, textBelowContainer, splitImageRatio } from "../content/blockLayout";
+import VideoBlockRenderer from "./blocks/video/VideoBlockRenderer";
+import SocialBlockRenderer from "./blocks/social/SocialBlockRenderer";
+import OthersBlockRenderer from "./blocks/others/OthersBlockRenderer";
+import FlexBlockRenderer from "./blocks/flex/FlexBlockRenderer";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; width?: number | null; height?: number | null };
 type Block = { id: string; type: string; variant?: string | null; eyebrow?: string | null; title?: string | null; body?: string | null; data?: string | Record<string, unknown> | null; media?: Media[] };
@@ -50,7 +54,19 @@ export default function PublicStoryBlocks({ blocks }: { blocks: Block[] }) {
     const data = parseData(block.data);
     const media = block.media ?? [];
     const variant = String(block.variant ?? "").trim().toLowerCase();
-    if (variant === "banner-video") { const url = typeof data.youtube_url === "string" ? data.youtube_url : ""; const id = youtubeId(url); if (!id) return null; return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} overflow-hidden bg-black`}><div className="aspect-video"><iframe className="h-full w-full" src={`https://www.youtube.com/embed/${id}`} title="YouTube video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /></div></div></section>; }
+
+    if (block.type === "video" || variant.startsWith("video") || variant === "banner-video") {
+      return <VideoBlockRenderer key={block.id} data={{ ...data, title: block.title, body: block.body, eyebrow: block.eyebrow }} variant={variant} media={media} />;
+    }
+    if (block.type === "social" || variant.startsWith("instagram-") || variant.startsWith("social-")) {
+      return <SocialBlockRenderer key={block.id} data={data} variant={variant} />;
+    }
+    if (block.type === "others" || variant === "spacer" || variant.startsWith("divider-") || variant === "button" || variant === "embed-code") {
+      return <OthersBlockRenderer key={block.id} data={data} variant={variant} />;
+    }
+    if (block.type === "flex" || variant.startsWith("bio-") || variant.startsWith("team-") || variant.startsWith("slider-") || variant.startsWith("services-") || variant.startsWith("testimonials-") || variant.startsWith("events-") || variant.startsWith("partners-") || variant.startsWith("faq-") || variant === "flex-blank") {
+      return <FlexBlockRenderer key={block.id} data={{ ...data, title: block.title, body: block.body, eyebrow: block.eyebrow }} variant={variant} />;
+    }
     if (block.type === "image" && variant.startsWith("text-")) return <ImageWithText key={block.id} block={block} data={data} media={media} variant={variant} />;
     if (block.type === "image" && (variant === "slideshow" || variant === "carousel")) return <section key={block.id} className={blockLayout.section.compact}>{block.eyebrow && <p className={`mb-4 px-6 ${blockLayout.typography.eyebrow} md:px-10`}>{block.eyebrow}</p>}{block.title && <h2 className={`mb-8 px-6 ${blockLayout.typography.heading} md:px-10`}>{block.title}</h2>}{variant === "slideshow" ? <Slider media={media} /> : <Carousel media={media} />}</section>;
     if (block.type === "image" && media[0]) return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.wide} overflow-hidden`}><img src={mediaUrl(media[0].path)} alt={media[0].alt || "The Scene Studio"} loading="lazy" decoding="async" className="h-auto w-full" /></div></section>;

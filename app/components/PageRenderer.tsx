@@ -3,6 +3,10 @@ import sanitizeHtml from "sanitize-html";
 import { getDB } from "../../lib/db";
 import { mediaUrl } from "../../lib/media";
 import { blockLayout, blockGrid, imageBlockContainer } from "../../components/content/blockLayout";
+import VideoBlockRenderer from "../../components/story/blocks/video/VideoBlockRenderer";
+import SocialBlockRenderer from "../../components/story/blocks/social/SocialBlockRenderer";
+import OthersBlockRenderer from "../../components/story/blocks/others/OthersBlockRenderer";
+import FlexBlockRenderer from "../../components/story/blocks/flex/FlexBlockRenderer";
 
 type Media = { id: string; path: string; filename?: string | null; alt?: string | null; width?: number | null; height?: number | null };
 type Block = { id: string; type: string; data: string | Record<string, unknown>; media?: Media[] };
@@ -93,5 +97,32 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
 }
 
 export default function PageRenderer({ blocks }: { blocks: Block[] }) {
-    return <div>{blocks.map(block => { const data = parseData(block.data); const type = block.type; const url = text(data.youtube_url) || text(data.url); const title = text(data.title); if (type === "cover") return <CoverBlock key={block.id} data={data} media={block.media ?? []} />; if (type === "image") return <ImageBlock key={block.id} data={data} media={block.media ?? []} />; if (type === "text") return <TextBlock key={block.id} data={data} />; if (type === "content" && text(data.variant) === "banner-video" && url) { const id = youtubeId(url); return id ? <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} overflow-hidden bg-black`}><div className="aspect-video"><iframe className="h-full w-full" src={`https://www.youtube.com/embed/${id}`} title={title || "The Scene Studio film"} allowFullScreen /></div></div></section> : null; } if (type === "content") return <section key={block.id} className="px-6 py-20 md:px-10 md:py-32"><div className={`mx-auto grid ${blockLayout.container.content} gap-10 md:grid-cols-12 md:items-end`}><div className="md:col-span-7"><p className={blockLayout.typography.eyebrow}>{text(data.eyebrow)}</p><h2 className={`mt-5 ${blockLayout.typography.display} leading-[0.95]`}>{title}</h2></div><div className="whitespace-pre-line text-sm leading-7 text-[#77736c] md:col-span-4 md:col-start-9">{text(data.body)}</div></div></section>; if (type === "links") return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} border-t border-[#d8d3ca] pt-6`}><h2 className="font-serif text-4xl">{title}</h2><div className="mt-6 flex flex-wrap gap-6">{(Array.isArray(data.links) ? data.links : []).map((item, index) => { const link = item && typeof item === "object" ? item as Record<string, unknown> : {}; return <Link key={index} href={text(link.url) || "#"} className="text-xs uppercase tracking-[0.15em]">{text(link.label) || "Link"} →</Link>; })}</div></div></section>; return null; })}</div>;
+    return <div>{blocks.map(block => {
+        const data = parseData(block.data);
+        const type = block.type;
+        const variant = text(data.variant);
+        const url = text(data.youtube_url) || text(data.url);
+        const title = text(data.title);
+
+        if (type === "cover") return <CoverBlock key={block.id} data={data} media={block.media ?? []} />;
+        if (type === "image") return <ImageBlock key={block.id} data={data} media={block.media ?? []} />;
+        if (type === "text") return <TextBlock key={block.id} data={data} />;
+        if (type === "video") return <VideoBlockRenderer key={block.id} data={data} variant={variant} media={block.media ?? []} />;
+        if (type === "social") return <SocialBlockRenderer key={block.id} data={data} variant={variant} />;
+        if (type === "others") return <OthersBlockRenderer key={block.id} data={data} variant={variant} />;
+        if (type === "flex" || type === "blog") return <FlexBlockRenderer key={block.id} data={data} variant={variant} />;
+
+        if (type === "content") {
+            if (variant.startsWith("video") || variant === "banner-video" || url) {
+                return <VideoBlockRenderer key={block.id} data={data} variant={variant} media={block.media ?? []} />;
+            }
+            if (variant.startsWith("bio-") || variant.startsWith("team-") || variant.startsWith("slider-") || variant.startsWith("services-") || variant.startsWith("testimonials-") || variant.startsWith("events-") || variant.startsWith("partners-") || variant.startsWith("faq-") || variant === "flex-blank") {
+                return <FlexBlockRenderer key={block.id} data={data} variant={variant} />;
+            }
+            return <section key={block.id} className="px-6 py-20 md:px-10 md:py-32"><div className={`mx-auto grid ${blockLayout.container.content} gap-10 md:grid-cols-12 md:items-end`}><div className="md:col-span-7"><p className={blockLayout.typography.eyebrow}>{text(data.eyebrow)}</p><h2 className={`mt-5 ${blockLayout.typography.display} leading-[0.95]`}>{title}</h2></div><div className="whitespace-pre-line text-sm leading-7 text-[#77736c] md:col-span-4 md:col-start-9">{text(data.body)}</div></div></section>;
+        }
+
+        if (type === "links") return <section key={block.id} className="px-6 py-16 md:px-10 md:py-24"><div className={`mx-auto ${blockLayout.container.content} border-t border-[#d8d3ca] pt-6`}><h2 className="font-serif text-4xl">{title}</h2><div className="mt-6 flex flex-wrap gap-6">{(Array.isArray(data.links) ? data.links : []).map((item, index) => { const link = item && typeof item === "object" ? item as Record<string, unknown> : {}; return <Link key={index} href={text(link.url) || "#"} className="text-xs uppercase tracking-[0.15em]">{text(link.label) || "Link"} →</Link>; })}</div></div></section>;
+        return null;
+    })}</div>;
 }
