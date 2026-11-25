@@ -1,4 +1,22 @@
-export default function Footer() {
+import { getSiteSettings } from "../../lib/site-settings";
+
+export default async function Footer() {
+    let settings = {
+        phone: "",
+        email: "thescenestudiovn@gmail.com",
+        instagram: "https://instagram.com/thescenestudiovn",
+        facebook: "",
+        footer_bio: "Stories worth remembering.",
+        footer_copyright: "© 2026 The Scene Studio",
+    };
+    try {
+        const loaded = await getSiteSettings();
+        if (loaded) settings = { ...settings, ...loaded };
+    } catch {}
+
+    const instagramUrl = settings.instagram || "https://instagram.com/thescenestudiovn";
+    const emailUrl = settings.email ? `mailto:${settings.email}` : "mailto:thescenestudiovn@gmail.com";
+
     return (
         <footer className="bg-[#171717] px-6 py-16 text-[#f7f5f0] md:px-10 md:py-20">
             <div className="mx-auto max-w-7xl">
@@ -9,7 +27,7 @@ export default function Footer() {
                         </p>
 
                         <p className="mt-8 max-w-md font-serif text-4xl leading-[0.95] tracking-[-0.03em] md:text-6xl">
-                            Stories worth remembering.
+                            {settings.footer_bio || "Stories worth remembering."}
                         </p>
 
                         <p className="mt-8 font-sans text-xs tracking-[0.15em] uppercase text-[#9d9a93]">
@@ -68,25 +86,37 @@ export default function Footer() {
 
                             <nav className="mt-6 flex flex-col gap-4 font-sans text-sm">
                                 <a
-                                    href="#"
+                                    href={instagramUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="transition-opacity hover:opacity-50"
                                 >
                                     Instagram
                                 </a>
 
                                 <a
-                                    href="mailto:thescenestudiovn@gmail.com"
+                                    href={emailUrl}
                                     className="transition-opacity hover:opacity-50"
                                 >
                                     Email
                                 </a>
+                                {settings.facebook && (
+                                    <a
+                                        href={settings.facebook}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="transition-opacity hover:opacity-50"
+                                    >
+                                        Facebook
+                                    </a>
+                                )}
                             </nav>
                         </div>
                     </div>
                 </div>
 
                 <div className="mt-20 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 font-sans text-[10px] tracking-[0.15em] uppercase text-[#9d9a93] md:flex-row">
-                    <p>© 2026 The Scene Studio</p>
+                    <p>{settings.footer_copyright || "© 2026 The Scene Studio"}</p>
 
                     <p>Da Nang · Vietnam</p>
                 </div>

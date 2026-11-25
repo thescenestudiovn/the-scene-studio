@@ -45,9 +45,14 @@ export default function Header({ light = false }: { light?: boolean }) {
                     <a
                         href="/"
                         onClick={closeMenu}
-                        className="justify-self-start font-sans text-xs uppercase tracking-[0.2em] md:justify-self-center"
+                        className="flex items-center gap-3 justify-self-start font-sans text-xs uppercase tracking-[0.2em] md:justify-self-center"
                     >
-                        The Scene Studio
+                        <img
+                            src={light || scrolled || menuOpen ? "/images/logo-dark.png" : "/images/logo-white.png"}
+                            alt="The Scene Studio"
+                            className="h-5 w-auto object-contain transition-opacity"
+                        />
+                        <span className="hidden md:inline">The Scene Studio</span>
                     </a>
 
                     <div className="hidden items-center justify-end gap-8 font-sans text-xs uppercase tracking-[0.15em] md:flex">
