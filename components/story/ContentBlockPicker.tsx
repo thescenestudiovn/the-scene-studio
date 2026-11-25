@@ -4,111 +4,31 @@ import { useState } from "react";
 import TextBlockPicker from "./picker/TextBlockPicker";
 import ImageBlockPicker from "./picker/ImageBlockPicker";
 import VideoBlockPicker from "./picker/VideoBlockPicker";
-import SocialBlockPicker from "./picker/SocialBlockPicker";
-import OthersBlockPicker from "./picker/OthersBlockPicker";
-import FlexBlockPicker from "./picker/FlexBlockPicker";
-import LinksBlockPicker from "./picker/LinksBlockPicker";
 import { BLOCK_CATEGORIES, type ContentBlockSelection } from "./picker/blockTypes";
 
-export type {
-  ContentBlockSelection,
-  ImageBlockVariant,
-  TextBlockVariant,
-  VideoBlockVariant,
-  SocialBlockVariant,
-  OthersBlockVariant,
-  FlexBlockVariant,
-  LinksBlockVariant,
-} from "./picker/blockTypes";
+export type { ContentBlockSelection, ImageBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
 
 type Props = { open: boolean; onClose: () => void; onSelect: (selection: ContentBlockSelection) => void };
 type Category = (typeof BLOCK_CATEGORIES)[number][0];
 
 export default function ContentBlockPicker({ open, onClose, onSelect }: Props) {
-  const [category, setCategory] = useState<Category>("video");
+  const [category, setCategory] = useState<Category>("text");
   if (!open) return null;
   const label = BLOCK_CATEGORIES.find(([id]) => id === category)?.[1] ?? "Blocks";
 
-  return (
-    <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#f8f7f4] text-[#27251f]">
-      <aside className="flex w-[260px] shrink-0 flex-col border-r border-[#ddd9d0] bg-white max-md:w-[200px]">
-        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-[#e5e1d9] px-6 max-md:px-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-2 text-sm text-[#77736c] transition hover:text-[#171717]"
-          >
-            <span className="text-lg">←</span>
-            <span className="text-xs uppercase tracking-[0.16em]">Add Block</span>
-          </button>
-          <button type="button" onClick={onClose} className="text-xl leading-none text-[#77736c] hover:text-[#171717]">
-            ×
-          </button>
-        </div>
-        <nav className="overflow-y-auto p-3 max-md:p-2">
-          {BLOCK_CATEGORIES.map(([id, name]) => {
-            const active = category === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setCategory(id)}
-                className={`mb-1 flex w-full items-center justify-between rounded-sm px-4 py-3 text-left text-sm transition max-md:px-3 max-md:py-2.5 max-md:text-xs ${
-                  active
-                    ? "border-l-2 border-[#10b981] bg-[#f4f2ec] font-medium text-[#171717]"
-                    : "text-[#77736c] hover:bg-[#faf9f6] hover:text-[#171717]"
-                }`}
-              >
-                <span>{name}</span>
-                {id === "flex" && (
-                  <span className="rounded-full bg-[#e8f7f4] px-2 py-0.5 text-[9px] font-semibold tracking-wider text-[#10b981]">
-                    NEW
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        <header className="sticky top-0 z-10 border-b border-[#ddd9d0] bg-[#f8f7f4]/95 px-10 py-7 backdrop-blur max-md:px-5 max-md:py-5">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-[#8a867e]">Add Block</div>
-          <h1 className="mt-2 font-serif text-3xl max-md:text-2xl">{label}</h1>
-        </header>
-        <div className="mx-auto max-w-6xl px-10 py-10 max-md:px-4 max-md:py-6">
-          {category === "text" && <TextBlockPicker onSelect={onSelect} />}
-          {category === "image" && <ImageBlockPicker onSelect={onSelect} />}
-          {category === "video" && <VideoBlockPicker onSelect={onSelect} />}
-          {category === "social" && <SocialBlockPicker onSelect={onSelect} />}
-          {category === "others" && <OthersBlockPicker onSelect={onSelect} />}
-          {(category === "flex" || category === "content" || category === "blog") && (
-            <FlexBlockPicker onSelect={onSelect} />
-          )}
-          {category === "links" && <LinksBlockPicker onSelect={onSelect} />}
-          {category === "contact" && (
-            <div className="mx-auto max-w-xl rounded-xl border border-[#ddd9d0] bg-white p-8 text-center">
-              <span className="text-[10px] uppercase tracking-[0.18em] text-[#8a867e]">Contact Block</span>
-              <h2 className="mt-2 font-serif text-2xl">Client Inquiry Form</h2>
-              <p className="mt-2 text-sm text-[#77736c]">
-                Directs leads and couples to the dedicated inquiry workflow.
-              </p>
-              <button
-                type="button"
-                onClick={() =>
-                  onSelect({
-                    category: "contact",
-                    variant: "contact-form",
-                    data: { title: "Inquire With Us", body: "Tell us about your celebration." },
-                  })
-                }
-                className="mt-6 bg-[#171717] px-6 py-2.5 text-xs uppercase tracking-[0.15em] text-white transition hover:bg-[#333]"
-              >
-                Insert Contact Form
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
-  );
+  return <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#f8f7f4] text-[#27251f]">
+    <aside className="flex w-[260px] shrink-0 flex-col border-r border-[#ddd9d0] bg-white max-md:w-[190px]">
+      <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-[#e5e1d9] px-6 max-md:px-4"><span className="text-[11px] font-medium uppercase tracking-[0.18em]">Blocks</span><button type="button" onClick={onClose} className="text-xl leading-none text-[#77736c]">×</button></div>
+      <nav className="overflow-y-auto p-3 max-md:p-2">{BLOCK_CATEGORIES.map(([id, name]) => <button key={id} type="button" onClick={() => setCategory(id)} className={`mb-1 flex w-full items-center rounded-md px-4 py-3 text-left text-sm max-md:px-3 max-md:py-2.5 max-md:text-xs ${category === id ? "bg-[#efede8] font-medium" : "text-[#77736c] hover:bg-[#f5f3ef]"}`}>{name}</button>)}</nav>
+    </aside>
+    <main className="min-w-0 flex-1 overflow-y-auto">
+      <header className="sticky top-0 z-10 border-b border-[#ddd9d0] bg-[#f8f7f4]/95 px-10 py-7 backdrop-blur max-md:px-5 max-md:py-5"><div className="text-[10px] uppercase tracking-[0.18em]">Add content block</div><h1 className="mt-2 font-serif text-3xl max-md:text-2xl">{label}</h1></header>
+      <div className="mx-auto max-w-6xl px-10 py-10 max-md:px-4 max-md:py-6">
+        {category === "text" && <TextBlockPicker onSelect={onSelect} />}
+        {category === "image" && <ImageBlockPicker onSelect={onSelect} />}
+        {category === "video" && <VideoBlockPicker onSelect={onSelect} />}
+        {!(["text", "image", "video"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
+      </div>
+    </main>
+  </div>;
 }

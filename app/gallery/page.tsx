@@ -26,6 +26,7 @@ async function getCoverPositions(db: D1Database, collectionIds: string[]) {
   const positions = new Map<string, { x:number; y:number }>();
   if (!collectionIds.length) return positions;
   try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS collection_cover_positions (collection_id TEXT PRIMARY KEY, position_x REAL NOT NULL DEFAULT 50, position_y REAL NOT NULL DEFAULT 50, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`).run();
     const result = await db.prepare(`SELECT collection_id,position_x,position_y FROM collection_cover_positions WHERE collection_id IN (${collectionIds.map(()=>"?").join(",")})`).bind(...collectionIds).all<{collection_id:string;position_x:number;position_y:number}>();
     for (const row of result.results ?? []) positions.set(row.collection_id, { x:Number(row.position_x ?? 50), y:Number(row.position_y ?? 50) });
   } catch (error) { console.error("Gallery cover positions unavailable:", error); }

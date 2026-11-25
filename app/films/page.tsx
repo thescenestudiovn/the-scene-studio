@@ -2,9 +2,6 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { films } from "../../data/films";
 import { stories } from "../../data/stories";
-import { getDBAsync } from "../../lib/db";
-
-export const dynamic = "force-dynamic";
 
 export const metadata = {
     title: "Wedding Films & Destination Wedding Videography | The Scene Studio",
@@ -33,57 +30,7 @@ function getYouTubeId(url: string) {
     }
 }
 
-type FilmItem = {
-    title: string;
-    location: string;
-    description: string;
-    youtubeUrl: string;
-};
-
-async function getFilmsList(): Promise<FilmItem[]> {
-    try {
-        const db = await getDBAsync();
-        const result = await db.prepare(`
-            SELECT
-                f.id,
-                f.title,
-                f.location,
-                f.youtube_url,
-                f.story_id
-            FROM films f
-            WHERE f.published = 1
-            ORDER BY f.sort_order ASC, f.created_at DESC
-        `).all();
-
-        const rows = (result.results ?? []) as Array<{
-            id: string;
-            title: string;
-            location: string | null;
-            youtube_url: string;
-            story_id: string | null;
-        }>;
-
-        if (rows.length > 0) {
-            return rows.map((r) => {
-                const matchedStory = stories.find((s) => s.slug === r.story_id);
-                return {
-                    title: r.title,
-                    location: r.location || "",
-                    description: matchedStory?.description || "",
-                    youtubeUrl: r.youtube_url,
-                };
-            });
-        }
-    } catch (e) {
-        console.error("Failed to load films from D1", e);
-    }
-
-    return films;
-}
-
-export default async function FilmsPage() {
-    const filmsList = await getFilmsList();
-
+export default function FilmsPage() {
     return (
         <main className="min-h-screen bg-[#f7f5f0] text-[#171717]">
             <Header light />
@@ -106,7 +53,7 @@ export default async function FilmsPage() {
 
             <section className="px-6 md:px-10">
                 <div className="mx-auto max-w-7xl">
-                    {filmsList.map((film, index) => {
+                    {films.map((film, index) => {
                         const youtubeId = getYouTubeId(film.youtubeUrl);
 
                         return (
