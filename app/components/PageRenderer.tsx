@@ -1,6 +1,6 @@
 import Link from "next/link";
 import sanitizeHtml from "sanitize-html";
-import { getDB } from "../../lib/db";
+import { getDBAsync } from "../../lib/db";
 import { mediaUrl } from "../../lib/media";
 import { blockLayout, blockGrid, imageBlockContainer } from "../../components/content/blockLayout";
 
@@ -9,18 +9,23 @@ type Block = { id: string; type: string; data: string | Record<string, unknown>;
 type PageData = { title: string; seo_title: string | null; seo_description: string | null; blocks: Block[] };
 
 export async function getPage(slug: string): Promise<PageData | null> {
-    const db = getDB();
-    const page = await db.prepare(`SELECT title,seo_title,seo_description,id FROM pages WHERE slug=? AND published=1`).bind(slug).first<{ id: string; title: string; seo_title: string | null; seo_description: string | null }>();
-    if (!page) return null;
-    const result = await db.prepare(`SELECT id,type,data FROM page_blocks WHERE page_id=? ORDER BY sort_order ASC`).bind(page.id).all<Block>();
-    const media = await db.prepare(`SELECT id,path,filename,alt,width,height FROM media`).all<Media>();
-    const mediaById = new Map((media.results ?? []).map(item => [item.id, item]));
-    const blocks = (result.results ?? []).map(block => {
-        const data = parseData(block.data);
-        const ids = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
-        return { ...block, media: ids.map(id => mediaById.get(id)).filter((item): item is Media => Boolean(item)) };
-    });
-    return { title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, blocks };
+    try {
+        const db = await getDBAsync();
+        const page = await db.prepare(`SELECT title,seo_title,seo_description,id FROM pages WHERE slug=? AND published=1`).bind(slug).first<{ id: string; title: string; seo_title: string | null; seo_description: string | null }>();
+        if (!page) return null;
+        const result = await db.prepare(`SELECT id,type,data FROM page_blocks WHERE page_id=? ORDER BY sort_order ASC`).bind(page.id).all<Block>();
+        const media = await db.prepare(`SELECT id,path,filename,alt,width,height FROM media`).all<Media>();
+        const mediaById = new Map((media.results ?? []).map(item => [item.id, item]));
+        const blocks = (result.results ?? []).map(block => {
+            const data = parseData(block.data);
+            const ids = Array.isArray(data.media_ids) ? data.media_ids.filter((id): id is string => typeof id === "string") : [];
+            return { ...block, media: ids.map(id => mediaById.get(id)).filter((item): item is Media => Boolean(item)) };
+        });
+        return { title: page.title, seo_title: page.seo_title, seo_description: page.seo_description, blocks };
+    } catch (error) {
+        console.warn(`[getPage] Failed to fetch page '${slug}':`, error);
+        return null;
+    }
 }
 
 function parseData(value: string | Record<string, unknown>) { if (typeof value !== "string") return value; try { const parsed = JSON.parse(value); return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {}; } catch { return {}; } }

@@ -166,7 +166,7 @@ function PageBlockDragHandle({ disabled, onDragStart, onDragEnd }: { disabled?: 
     </button>;
 }
 
-function AdminPagesContent() {
+function AdminPagesContent({ initialSlug }: { initialSlug?: string }) {
     const [page, setPage] = useState<Page | null>(null);
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [loading, setLoading] = useState(true);
@@ -192,10 +192,12 @@ function AdminPagesContent() {
         const response = await fetch("/api/admin/pages", { cache: "no-store" });
         const data = await response.json() as { pages?: Page[] };
         const loadedPages = data.pages ?? [];
-        const initialPage = loadedPages.find(item => item.page_type === "home") ?? loadedPages[0];
-        if (initialPage) await openPage(initialPage);
+        const targetPage = (initialSlug ? loadedPages.find(item => item.slug === initialSlug) : null)
+            ?? loadedPages.find(item => item.page_type === "home")
+            ?? loadedPages[0];
+        if (targetPage) await openPage(targetPage);
         setLoading(false);
-    }, [openPage]);
+    }, [initialSlug, openPage]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => { void loadPages(); }, 0);
@@ -336,6 +338,6 @@ function AdminPagesContent() {
     </main>;
 }
 
-export default function AdminPagesPage() {
-    return <AdminPagesContent />;
+export default function AdminPagesPage({ initialSlug }: { initialSlug?: string }) {
+    return <AdminPagesContent initialSlug={initialSlug} />;
 }
