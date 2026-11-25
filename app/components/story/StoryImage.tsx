@@ -28,7 +28,8 @@ export default function StoryImage({
                         width: "100%",
                         height: "auto",
                     }}
-                    sizes="100vw"
+                    sizes={size === "full" ? "100vw" : "(max-width: 1280px) 100vw, 1280px"}
+                    loading="lazy"
                     draggable={false}
                 />
             </div>

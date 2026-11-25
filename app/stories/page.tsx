@@ -7,11 +7,13 @@ import Footer from "../components/Footer";
 
 import { stories } from "../../data/stories";
 import { destinations } from "../../data/destinations";
-
 import { mediaUrl } from "../../lib/media";
+import { getDBAsync } from "../../lib/db";
 
 const baseUrl =
     "https://thescenestudio.asia";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
     title: "Wedding Stories — The Scene Studio",
@@ -53,7 +55,77 @@ export const metadata: Metadata = {
     },
 };
 
-export default function StoriesPage() {
+type StoryItem = {
+    slug: string;
+    title: string;
+    location: string;
+    description: string;
+    coverImage: string;
+    destination?: string;
+    destinationName?: string;
+    destinationCountry?: string;
+};
+
+async function getStoriesList(): Promise<StoryItem[]> {
+    try {
+        const db = await getDBAsync();
+        const result = await db.prepare(`
+            SELECT
+                s.slug,
+                s.title,
+                s.location,
+                s.description,
+                m.path AS cover_path,
+                d.slug AS destination_slug,
+                d.name AS destination_name,
+                d.country AS destination_country
+            FROM stories s
+            LEFT JOIN destinations d ON d.id = s.destination_id
+            LEFT JOIN media m ON m.id = s.cover_media_id
+            WHERE s.published = 1
+            ORDER BY s.created_at DESC
+        `).all();
+
+        const rows = (result.results ?? []) as Array<{
+            slug: string;
+            title: string;
+            location: string | null;
+            description: string | null;
+            cover_path: string | null;
+            destination_slug: string | null;
+            destination_name: string | null;
+            destination_country: string | null;
+        }>;
+
+        if (rows.length > 0) {
+            return rows.map((r) => ({
+                slug: r.slug,
+                title: r.title,
+                location: r.location || "",
+                description: r.description || "",
+                coverImage: r.cover_path || "",
+                destination: r.destination_slug || undefined,
+                destinationName: r.destination_name || undefined,
+                destinationCountry: r.destination_country || undefined,
+            }));
+        }
+    } catch (e) {
+        console.error("Failed to load stories from D1", e);
+    }
+
+    return stories.map((s) => ({
+        slug: s.slug,
+        title: s.title,
+        location: s.location,
+        description: s.description,
+        coverImage: s.coverImage,
+        destination: s.destination,
+    }));
+}
+
+export default async function StoriesPage() {
+    const storiesList = await getStoriesList();
+
     const collectionJsonLd = {
         "@context": "https://schema.org",
 
@@ -79,7 +151,7 @@ export default function StoriesPage() {
         mainEntity: {
             "@type": "ItemList",
 
-            itemListElement: stories.map(
+            itemListElement: storiesList.map(
                 (story, index) => ({
                     "@type": "ListItem",
 
@@ -145,12 +217,14 @@ export default function StoriesPage() {
 
                 <div className="mx-auto max-w-7xl">
 
-                    {stories.map((story, index) => {
+                    {storiesList.map((story, index) => {
 
-                        const destination = destinations.find(
-                            (item) =>
-                                item.slug === story.destination
-                        );
+                        const destination = story.destinationName && story.destinationCountry
+                            ? { name: story.destinationName, country: story.destinationCountry, slug: story.destination || "" }
+                            : destinations.find(
+                                (item) =>
+                                    item.slug === story.destination
+                            );
 
                         return (
                             <article

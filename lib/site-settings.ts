@@ -37,11 +37,13 @@ export async function ensureSiteSettingsTable(): Promise<void> {
 
 export async function getSiteSettings(): Promise<SiteSettings> {
   const db = getDB();
-  await ensureSiteSettingsTable();
+  try {
+    const settings = await db
+      .prepare(`SELECT phone,email,instagram,facebook FROM site_settings WHERE id='global' LIMIT 1`)
+      .first<SiteSettings>();
 
-  const settings = await db
-    .prepare(`SELECT phone,email,instagram,facebook FROM site_settings WHERE id='global' LIMIT 1`)
-    .first<SiteSettings>();
-
-  return settings ?? EMPTY;
+    return settings ?? EMPTY;
+  } catch {
+    return EMPTY;
+  }
 }

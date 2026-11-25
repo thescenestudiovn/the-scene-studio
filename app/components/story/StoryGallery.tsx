@@ -76,15 +76,7 @@ export default function StoryGallery({
             </section>
         );
     }
-    {
-        lightboxIndex !== null && (
-            <StoryLightbox
-                images={images}
-                initialIndex={lightboxIndex}
-                onClose={() => setLightboxIndex(null)}
-            />
-        )
-    }
+
     return (
         <>
             <section className="px-6 md:px-10">
@@ -105,6 +97,7 @@ export default function StoryGallery({
                                 className="w-full transition-transform duration-700 ease-out hover:scale-[1.01]"
                                 style={{ width: "100%", height: "auto" }}
                                 sizes="(max-width: 768px) 100vw, 50vw"
+                                loading="lazy"
                                 draggable={false}
                             />
                         </button>
