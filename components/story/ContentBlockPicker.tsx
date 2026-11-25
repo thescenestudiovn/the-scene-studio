@@ -4,9 +4,20 @@ import { useState } from "react";
 import TextBlockPicker from "./picker/TextBlockPicker";
 import ImageBlockPicker from "./picker/ImageBlockPicker";
 import VideoBlockPicker from "./picker/VideoBlockPicker";
+import SocialBlockPicker from "./picker/SocialBlockPicker";
+import OthersBlockPicker from "./picker/OthersBlockPicker";
+import FlexBlockPicker from "./picker/FlexBlockPicker";
 import { BLOCK_CATEGORIES, type ContentBlockSelection } from "./picker/blockTypes";
 
-export type { ContentBlockSelection, ImageBlockVariant, TextBlockVariant, VideoBlockVariant } from "./picker/blockTypes";
+export type {
+  ContentBlockSelection,
+  ImageBlockVariant,
+  TextBlockVariant,
+  VideoBlockVariant,
+  SocialBlockVariant,
+  OthersBlockVariant,
+  FlexBlockVariant,
+} from "./picker/blockTypes";
 
 type Props = { open: boolean; onClose: () => void; onSelect: (selection: ContentBlockSelection) => void };
 type Category = (typeof BLOCK_CATEGORIES)[number][0];
@@ -27,7 +38,10 @@ export default function ContentBlockPicker({ open, onClose, onSelect }: Props) {
         {category === "text" && <TextBlockPicker onSelect={onSelect} />}
         {category === "image" && <ImageBlockPicker onSelect={onSelect} />}
         {category === "video" && <VideoBlockPicker onSelect={onSelect} />}
-        {!(["text", "image", "video"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
+        {category === "social" && <SocialBlockPicker onSelect={onSelect} />}
+        {category === "others" && <OthersBlockPicker onSelect={onSelect} />}
+        {category === "flex" && <FlexBlockPicker onSelect={onSelect} />}
+        {!(["text", "image", "video", "social", "others", "flex"] as string[]).includes(category) && <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-dashed border-[#ccc7bd] bg-white text-sm text-[#8a867e]">{label} blocks will be added here.</div>}
       </div>
     </main>
   </div>;
